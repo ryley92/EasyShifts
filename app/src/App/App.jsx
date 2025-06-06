@@ -19,41 +19,31 @@ import CrewChiefDashboard from '../components/CrewChiefDashboard'; // Import the
 import CrewShiftTimeEntry from '../components/CrewShiftTimeEntry'; // Import the new component
 import Toolbar from '../components/Toolbar';
 import './App.css';
-import * => REPLACE
-````
 
-````javascript
-app/src/App/App.jsx
-<<<<<<< SEARCH
-          <Route path="/shiftsPage" element={<ShiftsPage  />} />
-          <Route path="/employeeListPage" element={<EmployeeListPage  />} />
-          <Route path="/crew-chief-dashboard" element={<CrewChiefDashboard />} /> {/* Add new route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-    </Router>
+// Removed problematic import and userSession logic for simplification
 
+function App() {
   return (
     <Router>
       <div className="App">
         <Toolbar />
         <Routes>
-          <Route path="/" element={<Home/>} />
-          <Route path="/login" element={<Login/>} />
-          <Route path="/signup" element={<SignUp/>} />
-          <Route path={"/manager-schedule"} element={<ManagerSchedule />} />
-          <Route path={"/manager-profile"} element={<ManagerProfile  />} />
-          <Route path={"/manager-settings"} element={<ManagerSettings/>} />
-          <Route path="/signupManager" element={<SignUpManager  />} />
-          <Route path="/signupEmployee" element={<SignUpEmployee  />} />
-          <Route path="/managerProfile" element={<ManagerProfile  />} />
-          <Route path="/employeeProfile" element={<EmployeeProfile  />} />
-          <Route path="/signInShifts" element={<SignInShifts  />} />
-          <Route path="/managerViewShiftsRequests" element={<ManagerViewShiftsRequests  />} />
-          <Route path="/managerWorkersList" element={<ManagerWorkersList  />} />
-          <Route path="/shiftsPage" element={<ShiftsPage  />} />
-          <Route path="/employeeListPage" element={<EmployeeListPage  />} />
-          <Route path="/crew-chief-dashboard" element={<CrewChiefDashboard />} /> {/* Add new route */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/manager-schedule" element={<ManagerSchedule />} />
+          <Route path="/manager-profile" element={<ManagerProfile />} />
+          <Route path="/manager-settings" element={<ManagerSettings />} />
+          <Route path="/signupManager" element={<SignUpManager />} />
+          <Route path="/signupEmployee" element={<SignUpEmployee />} />
+          <Route path="/employeeProfile" element={<EmployeeProfile />} />
+          <Route path="/signInShifts" element={<SignInShifts />} />
+          <Route path="/managerViewShiftsRequests" element={<ManagerViewShiftsRequests />} />
+          <Route path="/managerWorkersList" element={<ManagerWorkersList />} />
+          <Route path="/shiftsPage" element={<ShiftsPage />} />
+          <Route path="/employeeListPage" element={<EmployeeListPage />} />
+          <Route path="/crew-chief-dashboard" element={<CrewChiefDashboard />} />
+          <Route path="/crew-chief/shift/:shiftId/times" element={<CrewShiftTimeEntry />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

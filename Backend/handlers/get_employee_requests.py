@@ -16,11 +16,13 @@ def handle_get_employee_requests(data, user_session):
             for worker in active_workers:
                 employees_requests[worker[1]] = user_requests_controller.get_request_by_userid(worker[0])
 
-            return employees_requests
+            return {"success": True, "data": employees_requests}
 
         else:
-            print("User does not work in any workplace.")
-            return False
+            error_message = "User does not work in any workplace."
+            print(error_message)
+            return {"success": False, "error": error_message}
     else:
-        print("User does not have access to manager-specific pages.")
-        return False
+        error_message = "User does not have access to manager-specific pages."
+        print(error_message)
+        return {"success": False, "error": error_message}
