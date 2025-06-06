@@ -233,6 +233,18 @@ def handle_request(request_id, data):
         # This handler returns data directly in the desired format
         return crew_chief_handlers.handle_get_crew_chief_shifts(user_session)
 
+    elif request_id == 101: # Get Crew Members for Shift (Crew Chief)
+        print("Received Get Crew Members for Shift request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return crew_chief_handlers.handle_get_crew_members_for_shift(data, user_session)
+
+    elif request_id == 102: # Submit Shift Times (Crew Chief)
+        print("Received Submit Shift Times request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return crew_chief_handlers.handle_submit_shift_times(data, user_session)
+
     elif request_id == 991:
         # Set preferences
         print("Set preferences")
