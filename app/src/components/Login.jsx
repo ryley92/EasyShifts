@@ -23,33 +23,55 @@ function Login() {
             };
 
             socket.send(JSON.stringify(request));
-            if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.addEventListener('message', handleMessage);
-            }
+            // Add event listener specifically for this request, and remove it once handled.
+            socket.addEventListener('message', handleMessage);
         } else {
             console.error('Not connected to the server');
+            setError('Not connected to the server. Please try again later.');
         }
     };
 
     const handleMessage = (event) => {
-        if (event.data !== null && event.data !== undefined) {
-            // event.data is not null or undefined, proceed with further processing
-            console.log(event.data);
-            const packetPayload = JSON.parse(event.data);
-            const data = packetPayload["data"];
-            const userExists = data['user_exists'];
-            const isManager = data['is_manager'];
-
-            if (userExists === false) {
-                setError('Invalid Username or Password');
-            } else {
-                setIsManager(isManager === true);
-                setLoggedIn(true);
-            }
+        // Remove listener immediately to avoid processing other messages with this handler
+        if (socket) {
             socket.removeEventListener('message', handleMessage);
-        } else {
-            // Handle the case where event.data is null or undefined
-            console.error('Received null or undefined data.');
+        }
+
+        if (event.data == null) {
+            console.error('Received null or undefined data in login.');
+            setError('Received empty login response.');
+            return;
+        }
+
+        try {
+            const packetPayload = JSON.parse(event.data);
+            console.log("Login response received:", packetPayload);
+
+            // Check if it's the specific response for login (request_id: 10)
+            if (packetPayload && packetPayload.request_id === 10 && packetPayload.data) {
+                const loginData = packetPayload.data;
+                const userExists = loginData.user_exists;
+                const isManagerResponse = loginData.is_manager; // Renamed to avoid conflict with state setter
+
+                if (userExists === false) {
+                    setError('Invalid Username or Password');
+                } else {
+                    setIsManager(isManagerResponse === true);
+                    setLoggedIn(true);
+                }
+            } else if (packetPayload && packetPayload.success === false && packetPayload.error) {
+                // Handle generic error response from the server (e.g., from server's main try-catch)
+                setError(packetPayload.error);
+            } else {
+                // Fallback for unexpected response structures that might not be for this request
+                // This check helps if the listener wasn't removed fast enough or if server sends non-standard responses
+                console.warn('Received an unexpected response, possibly not for login:', packetPayload);
+                // Avoid setting a generic error if it might be a valid message for another component
+                // setError('Received an unexpected response from the server.');
+            }
+        } catch (e) {
+            console.error('Error parsing login response:', e);
+            setError('Failed to process login response.');
         }
     };
 
