@@ -49,6 +49,11 @@ function EmployeeProfile() {
       {profileData ? (
         <div>
           <p className="ProfileInfo">Username: {profileData.username}</p>
+          <p className="ProfileInfo">Name: {profileData.name}</p>
+          <p className="ProfileInfo">Workplace: {profileData.workplace_name}</p>
+          {profileData.employee_type && (
+            <p className="ProfileInfo">Role: {profileData.employee_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+          )}
 
           <div className="ButtonContainer">
             <button className="SignInShiftsButton">
@@ -63,6 +68,14 @@ function EmployeeProfile() {
                 <span className="ButtonText">View my shifts</span>
               </Link>
             </button>
+            {profileData.employee_type === 'crew_chief' && (
+              <button className="ViewShiftsButton"> {/* You might want a different class/styling */}
+                <Link to="/crew-chief-dashboard" aria-label="View Supervised Shifts">
+                  <span className="ButtonIcon" role="img" aria-label="Team Icon"></span> {/* Consider a different icon */}
+                  <span className="ButtonText">Supervised Shifts</span>
+                </Link>
+              </button>
+            )}
           </div>
         </div>
       ) : (
