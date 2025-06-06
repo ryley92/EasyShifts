@@ -21,7 +21,7 @@ def initialize_database_and_session():
     DB_NAME = "defaultdb" # e.g., "easyshiftsdb"
 
     engine = create_engine(
-        f'mysql+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        f'mariadb+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
