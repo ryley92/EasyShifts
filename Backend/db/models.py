@@ -19,6 +19,8 @@ class EmployeeType(enum.Enum):
     STAGEHAND = 'stagehand'
     FORK_OPERATOR = 'fork_operator'
     PICKUP_TRUCK_DRIVER = 'pickup_truck_driver'
+    ADMIN = 'admin'
+    CLIENT = 'client'
     # Add other employee types as needed
     GENERAL_EMPLOYEE = 'general_employee'
 
@@ -147,12 +149,16 @@ class ShiftWorker(Base):
         shiftID (int): ID of the associated shift.
         userID (int): ID of the associated user.
         role_assigned (EmployeeType): The role the user is fulfilling for this shift.
+        clock_in_time (DateTime): The actual clock-in time for the employee on this shift.
+        clock_out_time (DateTime): The actual clock-out time for the employee on this shift.
     """
     __tablename__ = "shiftWorkers"
 
     shiftID = Column(Integer, ForeignKey('shifts.id'), nullable=False)
     userID = Column(Integer, ForeignKey('users.id'), nullable=False)
     role_assigned = Column(Enum(EmployeeType), nullable=False)
+    clock_in_time = Column(DateTime, nullable=True)
+    clock_out_time = Column(DateTime, nullable=True)
 
     __table_args__ = (
         PrimaryKeyConstraint('shiftID', 'userID', 'role_assigned'), # A user might be assigned to the same shift in multiple capacities if needed, or this can be simplified if a user has one role per shift.
