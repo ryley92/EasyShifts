@@ -1,7 +1,7 @@
-from Backend.db.repositories.workPlaces_repository import WorkPlacesRepository
-from Backend.db.services.base_service import BaseService
+from db.repositories.workPlaces_repository import WorkPlacesRepository
+from db.services.base_service import BaseService
 from typing import List, Tuple
-from Backend.db.models import WorkPlace, User
+from db.models import WorkPlace, User
 
 
 class WorkPlacesService(BaseService):
