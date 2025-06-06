@@ -136,6 +136,7 @@ class Shift(Base):
         shiftPart (str): Part of the day for the shift (e.g., 'morning', 'noon', 'evening').
         required_employee_counts (JSON): Stores the number of each employee type required for the shift.
                                          Example: {"stagehand": 5, "crew_chief": 1}
+        client_po_number (str): Client's Purchase Order number related to this shift.
     """
     __tablename__ = "shifts"
 
@@ -144,6 +145,7 @@ class Shift(Base):
     shiftDate = Column(Date, nullable=False)
     shiftPart = Column(Enum(ShiftPart), nullable=False)
     required_employee_counts = Column(JSON, nullable=True)
+    client_po_number = Column(String(50), nullable=True)
 
 
 class ShiftWorker(Base):
