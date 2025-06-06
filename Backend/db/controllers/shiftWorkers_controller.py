@@ -1,8 +1,10 @@
 from __future__ import annotations
+from typing import Type
 from sqlalchemy.orm import Session
 from Backend.db.controllers.base_controller import BaseController
 from Backend.db.repositories.shiftWorkers_repository import ShiftWorkersRepository
 from Backend.db.services.shiftWorkers_service import ShiftWorkersService
+from Backend.db.models import EmployeeType, ShiftWorker
 
 
 class ShiftWorkersController(BaseController):
@@ -91,3 +93,20 @@ class ShiftWorkersController(BaseController):
             List[str]: A list of all workers for the shift.
         """
         return self.repository.convert_shift_workers_by_shift_id_to_client(shift_id)
+
+    def submit_times_for_worker_on_shift(self, shift_id: int, user_id: int, role_assigned_str: str, clock_in_time_str: str | None, clock_out_time_str: str | None) -> Type[ShiftWorker] | None:
+        """
+        Submits clock-in and clock-out times for a specific worker on a shift.
+
+        Args:
+            shift_id (int): ID of the shift.
+            user_id (int): ID of the worker.
+            role_assigned_str (str): The role assigned to the worker for this shift (string representation of EmployeeType).
+            clock_in_time_str (str | None): The clock-in time in ISO 8601 format (e.g., "YYYY-MM-DDTHH:MM:SS").
+            clock_out_time_str (str | None): The clock-out time in ISO 8601 format.
+
+        Returns:
+            ShiftWorker: The updated ShiftWorker entity if found, None otherwise.
+        """
+        role_assigned = EmployeeType(role_assigned_str)
+        return self.service.record_shift_times(shift_id, user_id, role_assigned, clock_in_time_str, clock_out_time_str)
