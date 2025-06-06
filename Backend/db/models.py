@@ -76,14 +76,14 @@ class Job(Base):
         id (int): Unique identifier for the job.
         name (str): Name of the job.
         client_company_id (int): Foreign key to the client company.
-        workplace_id (int): Foreign key to the User (manager) responsible for this job within the agency.
+        workplace_id (int): Foreign key to the User (manager) responsible for this job within the agency. Can be null if created by a client.
     """
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, index=True, nullable=False)
     name = Column(String(NAMES_LEN * 2), nullable=False)
     client_company_id = Column(Integer, ForeignKey('client_companies.id'), nullable=False)
-    workplace_id = Column(Integer, ForeignKey('users.id'), nullable=False) # Agency Manager's ID
+    workplace_id = Column(Integer, ForeignKey('users.id'), nullable=True) # Agency Manager's ID, can be NULL
     # Add other job details here, e.g., description, start_date, end_date
 
 
@@ -134,6 +134,8 @@ class Shift(Base):
         job_id (int): Identifier for the associated job.
         shiftDate (Date): Date and time of the shift.
         shiftPart (str): Part of the day for the shift (e.g., 'morning', 'noon', 'evening').
+        required_employee_counts (JSON): Stores the number of each employee type required for the shift.
+                                         Example: {"stagehand": 5, "crew_chief": 1}
     """
     __tablename__ = "shifts"
 
@@ -141,6 +143,7 @@ class Shift(Base):
     job_id = Column(Integer, ForeignKey('jobs.id'), nullable=False)
     shiftDate = Column(Date, nullable=False)
     shiftPart = Column(Enum(ShiftPart), nullable=False)
+    required_employee_counts = Column(JSON, nullable=True)
 
 
 class ShiftWorker(Base):
