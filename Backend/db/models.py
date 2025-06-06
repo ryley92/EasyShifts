@@ -14,13 +14,11 @@ REQUEST_LEN = 255
 
 
 class EmployeeType(enum.Enum):
-    """Represents different types/roles of employees."""
+    """Represents different types/roles of employees within the agency."""
     CREW_CHIEF = 'crew_chief'
     STAGEHAND = 'stagehand'
     FORK_OPERATOR = 'fork_operator'
     PICKUP_TRUCK_DRIVER = 'pickup_truck_driver'
-    ADMIN = 'admin'
-    CLIENT = 'client'
     # Add other employee types as needed
     GENERAL_EMPLOYEE = 'general_employee'
 
@@ -33,18 +31,22 @@ class User(Base):
         id (str): Unique identifier for the user.
         username (str): User's unique username.
         password (str): User's password.
-        isManager (bool): Indicates if the user is a manager.
+        isManager (bool): Indicates if the user is a manager within the agency.
+        isAdmin (bool): Indicates if the user is an admin within the agency.
+        client_company_id (int): Foreign key to client_companies. If set, user is a client representative.
         isActive (bool): Indicates if the user account is active. Default is True.
         isApproval (bool): Indicates if the user is approved. Default is False.
-        name (str): User's name.
-        employee_type (EmployeeType): The type or role of the employee.
+        name (str): User's name or display name.
+        employee_type (EmployeeType): The type or role of the agency employee. Null for clients or some admins.
     """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True, nullable=False)  # userID
     username = Column(String(NAMES_LEN), unique=True, nullable=False)
     password = Column(String(PASS_LEN), nullable=False)
-    isManager = Column(Boolean, nullable=False)
+    isManager = Column(Boolean, nullable=False, default=False)
+    isAdmin = Column(Boolean, nullable=False, default=False)
+    client_company_id = Column(Integer, ForeignKey('client_companies.id'), nullable=True)
     isActive = Column(Boolean, nullable=False, default=True)
     isApproval = Column(Boolean, nullable=False, default=False)
     name = Column(String(NAMES_LEN), nullable=False)
@@ -74,25 +76,25 @@ class Job(Base):
         id (int): Unique identifier for the job.
         name (str): Name of the job.
         client_company_id (int): Foreign key to the client company.
-        workplace_id (int): Foreign key to the User (manager) responsible for this job.
+        workplace_id (int): Foreign key to the User (manager) responsible for this job within the agency.
     """
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, index=True, nullable=False)
     name = Column(String(NAMES_LEN * 2), nullable=False)
     client_company_id = Column(Integer, ForeignKey('client_companies.id'), nullable=False)
-    workplace_id = Column(Integer, ForeignKey('users.id'), nullable=False) # Manager's ID
+    workplace_id = Column(Integer, ForeignKey('users.id'), nullable=False) # Agency Manager's ID
     # Add other job details here, e.g., description, start_date, end_date
 
 
 class WorkPlace(Base):
     """
-    Represents a workplace associated with a user.
-    This table links employees (users) to their managing entity (a manager user).
+    Represents a workplace associated with a user (employee).
+    This table links agency employees to their managing entity (an agency manager user).
 
     Attributes:
         id (str): User's ID (employee).
-        workPlaceID (int): Manager's User ID, representing the workplace.
+        workPlaceID (int): Manager's User ID, representing the workplace/agency branch.
     """
     __tablename__ = "workPlaces"
 
@@ -102,7 +104,7 @@ class WorkPlace(Base):
 
 class UserRequest(Base):
     """
-    Represents user request for shifts.
+    Represents user request for shifts (typically from agency employees).
 
     Attributes:
         id (str): Unique identifier for the user that send the request.
@@ -143,11 +145,11 @@ class Shift(Base):
 
 class ShiftWorker(Base):
     """
-    Represents all shifts of all workers.
+    Represents agency employees assigned to shifts.
 
     Attributes:
         shiftID (int): ID of the associated shift.
-        userID (int): ID of the associated user.
+        userID (int): ID of the associated user (agency employee).
         role_assigned (EmployeeType): The role the user is fulfilling for this shift.
         clock_in_time (DateTime): The actual clock-in time for the employee on this shift.
         clock_out_time (DateTime): The actual clock-out time for the employee on this shift.
@@ -155,23 +157,23 @@ class ShiftWorker(Base):
     __tablename__ = "shiftWorkers"
 
     shiftID = Column(Integer, ForeignKey('shifts.id'), nullable=False)
-    userID = Column(Integer, ForeignKey('users.id'), nullable=False)
+    userID = Column(Integer, ForeignKey('users.id'), nullable=False) # Agency Employee's ID
     role_assigned = Column(Enum(EmployeeType), nullable=False)
     clock_in_time = Column(DateTime, nullable=True)
     clock_out_time = Column(DateTime, nullable=True)
 
     __table_args__ = (
-        PrimaryKeyConstraint('shiftID', 'userID', 'role_assigned'), # A user might be assigned to the same shift in multiple capacities if needed, or this can be simplified if a user has one role per shift.
+        PrimaryKeyConstraint('shiftID', 'userID', 'role_assigned'), 
     )
 
 
 class ShiftBoard(Base):
     """
-    Represents the workplace's shift-board.
+    Represents the agency's shift-board for a manager.
 
     Attributes:
         weekStartDate (Date): Start date of the week.
-        workplaceID (str): ID of the associated workplace (Manager's ID).
+        workplaceID (str): ID of the associated workplace (Agency Manager's ID).
         isPublished (bool): Indicates if the shift is published and visible to workers.
         content (JSON): Stores the shift-board content.
         preferences (JSON): Stores workplace's preferences/settings.
@@ -179,8 +181,8 @@ class ShiftBoard(Base):
             - max_workers_per_shift
             - closed_days
             - etc.
-        requests_window_start (DateTime): Start date and time of the requests window.
-        requests_window_end (DateTime): End date and time of the requests window.
+        requests_window_start (DateTime): Start date and time of the requests window for employees.
+        requests_window_end (DateTime): End date and time of the requests window for employees.
     """
     __tablename__ = "shiftBoards"
 
