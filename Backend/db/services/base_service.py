@@ -1,4 +1,4 @@
-from Backend.db.repositories.base_repository import BaseRepository
+from db.repositories.base_repository import BaseRepository
 
 
 class BaseService:

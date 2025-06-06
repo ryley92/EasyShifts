@@ -1,9 +1,9 @@
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-from Backend.db.repositories.shiftBoard_repository import ShiftBoardRepository
-from Backend.db.services.shiftBoard_service import ShiftBoardService
-from Backend.db.controllers.users_controller import UsersController
-from Backend.config.constants import next_sunday
+from db.repositories.shiftBoard_repository import ShiftBoardRepository
+from db.services.shiftBoard_service import ShiftBoardService
+from db.controllers.users_controller import UsersController
+from config.constants import next_sunday
 
 
 class ShiftBoardController:

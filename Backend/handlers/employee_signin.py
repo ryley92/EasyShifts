@@ -1,9 +1,9 @@
 from datetime import datetime
-from Backend.config.constants import db
-from Backend.db.controllers.userRequests_controller import UserRequestsController
-from Backend.db.controllers.users_controller import UsersController
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
-from Backend.handlers.login import handle_login
+from config.constants import db
+from db.controllers.userRequests_controller import UserRequestsController
+from db.controllers.users_controller import UsersController
+from db.controllers.workPlaces_controller import WorkPlacesController
+from handlers.login import handle_login
 
 
 def handle_employee_signin(data):

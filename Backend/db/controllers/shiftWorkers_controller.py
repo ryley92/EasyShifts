@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Type
 from sqlalchemy.orm import Session
-from Backend.db.controllers.base_controller import BaseController
-from Backend.db.repositories.shiftWorkers_repository import ShiftWorkersRepository
-from Backend.db.services.shiftWorkers_service import ShiftWorkersService
-from Backend.db.models import EmployeeType, ShiftWorker
+from db.controllers.base_controller import BaseController
+from db.repositories.shiftWorkers_repository import ShiftWorkersRepository
+from db.services.shiftWorkers_service import ShiftWorkersService
+from db.models import EmployeeType, ShiftWorker
 
 
 class ShiftWorkersController(BaseController):

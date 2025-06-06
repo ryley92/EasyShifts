@@ -1,8 +1,8 @@
 from __future__ import annotations
 from sqlalchemy.orm import Session
-from Backend.db.controllers.base_controller import BaseController
-from Backend.db.repositories.users_repository import UsersRepository
-from Backend.db.services.users_service import UsersService
+from db.controllers.base_controller import BaseController
+from db.repositories.users_repository import UsersRepository
+from db.services.users_service import UsersService
 from typing import Tuple
 
 

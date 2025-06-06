@@ -1,6 +1,6 @@
-from Backend.config.constants import db
-from Backend.db.controllers.userRequests_controller import UserRequestsController
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
+from config.constants import db
+from db.controllers.userRequests_controller import UserRequestsController
+from db.controllers.workPlaces_controller import WorkPlacesController
 
 
 def handle_get_employee_requests(data, user_session):

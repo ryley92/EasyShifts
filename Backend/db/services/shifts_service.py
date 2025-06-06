@@ -1,6 +1,6 @@
 from sqlalchemy import Date
-from Backend.db.repositories.shifts_repository import ShiftsRepository
-from Backend.db.services.base_service import BaseService
+from db.repositories.shifts_repository import ShiftsRepository
+from db.services.base_service import BaseService
 
 
 class ShiftsService(BaseService):

@@ -1,6 +1,6 @@
 from sqlalchemy.exc import NoResultFound
-from Backend.config.constants import db
-from Backend.db.controllers.users_controller import UsersController
+from config.constants import db
+from db.controllers.users_controller import UsersController
 
 
 class BackendAuthenticationUser:

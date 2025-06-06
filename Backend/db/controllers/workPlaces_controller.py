@@ -1,9 +1,9 @@
 from __future__ import annotations
 from sqlalchemy.orm import Session
-from Backend.db.controllers.base_controller import BaseController
-from Backend.db.models import WorkPlace
-from Backend.db.repositories.workPlaces_repository import WorkPlacesRepository
-from Backend.db.services.workPlaces_service import WorkPlacesService
+from db.controllers.base_controller import BaseController
+from db.models import WorkPlace
+from db.repositories.workPlaces_repository import WorkPlacesRepository
+from db.services.workPlaces_service import WorkPlacesService
 
 from typing import List, Tuple  # Importing List and Tuple from typing module
 

@@ -1,5 +1,5 @@
-from Backend.db.repositories.users_repository import UsersRepository
-from Backend.db.services.base_service import BaseService
+from db.repositories.users_repository import UsersRepository
+from db.services.base_service import BaseService
 from typing import Tuple
 
 

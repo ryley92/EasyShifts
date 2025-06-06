@@ -2,11 +2,11 @@ from datetime import date, datetime
 from sqlalchemy import Date
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-from Backend.db.controllers.base_controller import BaseController
-from Backend.db.models import Shift
-from Backend.db.repositories.shifts_repository import ShiftsRepository
-from Backend.db.services.shifts_service import ShiftsService
-from Backend.db.controllers.shiftWorkers_controller import ShiftWorkersController
+from db.controllers.base_controller import BaseController
+from db.models import Shift
+from db.repositories.shifts_repository import ShiftsRepository
+from db.services.shifts_service import ShiftsService
+from db.controllers.shiftWorkers_controller import ShiftWorkersController
 
 
 class ShiftsController(BaseController):

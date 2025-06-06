@@ -1,9 +1,9 @@
 from __future__ import annotations
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-from Backend.db.models import WorkPlace, User
-from Backend.db.repositories.base_repository import BaseRepository
-from Backend.db.controllers.users_controller import UsersController
+from db.models import WorkPlace, User
+from db.repositories.base_repository import BaseRepository
+from db.controllers.users_controller import UsersController
 
 
 class WorkPlacesRepository(BaseRepository):

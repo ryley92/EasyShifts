@@ -3,7 +3,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 from sqlalchemy.ext.declarative import declarative_base, DeclarativeMeta
 from typing import Type, TypeVar
-from Backend.db.models import User
+from db.models import User
 
 Base = declarative_base()
 EntityType = TypeVar("EntityType", bound=DeclarativeMeta)

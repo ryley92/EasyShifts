@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from Backend.config.constants import db
-from Backend.db.controllers.shifts_controller import ShiftsController
-from Backend.db.models import ShiftPart
+from config.constants import db
+from db.controllers.shifts_controller import ShiftsController
+from db.models import ShiftPart
 
 class DayName(Enum):
     Sunday = 'Sunday'

@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from Backend.config.constants import db
-from Backend.db.controllers.shiftWorkers_controller import ShiftWorkersController
-from Backend.db.controllers.shifts_controller import ShiftsController
-from Backend.db.controllers.userRequests_controller import UserRequestsController
-from Backend.db.controllers.users_controller import UsersController
-from Backend.db.models import ShiftPart
-from Backend.user_session import UserSession
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
+from config.constants import db
+from db.controllers.shiftWorkers_controller import ShiftWorkersController
+from db.controllers.shifts_controller import ShiftsController
+from db.controllers.userRequests_controller import UserRequestsController
+from db.controllers.users_controller import UsersController
+from db.models import ShiftPart
+from user_session import UserSession
+from db.controllers.workPlaces_controller import WorkPlacesController
 
 
 def handle_manager_insert_shifts(data, user_session: UserSession):

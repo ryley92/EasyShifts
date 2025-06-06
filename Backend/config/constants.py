@@ -1,6 +1,6 @@
 import datetime
 
-from Backend.main import initialize_database_and_session
+from main import initialize_database_and_session
 
 db = None
 session = None

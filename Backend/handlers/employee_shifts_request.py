@@ -1,9 +1,9 @@
 from datetime import datetime
-from Backend.config.constants import db
-from Backend.db.controllers.userRequests_controller import UserRequestsController
-from Backend.db.controllers.shiftBoard_controller import ShiftBoardController
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
-from Backend.user_session import UserSession
+from config.constants import db
+from db.controllers.userRequests_controller import UserRequestsController
+from db.controllers.shiftBoard_controller import ShiftBoardController
+from db.controllers.workPlaces_controller import WorkPlacesController
+from user_session import UserSession
 
 
 def handle_employee_shifts_request(data, user_session):

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from Backend.db.models import User
-from Backend.db.repositories.base_repository import BaseRepository
-from Backend.db.repositories.userRequests_repository import UserRequestsRepository
+from db.models import User
+from db.repositories.base_repository import BaseRepository
+from db.repositories.userRequests_repository import UserRequestsRepository
 
 
 class UsersRepository(BaseRepository):

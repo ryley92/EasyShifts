@@ -1,4 +1,4 @@
-from Backend.db.repositories.shiftBoard_repository import ShiftBoardRepository
+from db.repositories.shiftBoard_repository import ShiftBoardRepository
 
 
 class ShiftBoardService:

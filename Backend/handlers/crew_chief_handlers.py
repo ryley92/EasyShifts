@@ -1,11 +1,11 @@
 from sqlalchemy.exc import NoResultFound
-from Backend.config.constants import db
-from Backend.db.services.shiftWorkers_service import ShiftWorkersService
-from Backend.db.repositories.shiftWorkers_repository import ShiftWorkersRepository
-from Backend.user_session import UserSession
-from Backend.db.models import EmployeeType, User, ShiftWorker
-from Backend.db.controllers.users_controller import UsersController
-from Backend.db.controllers.shiftWorkers_controller import ShiftWorkersController
+from config.constants import db
+from db.services.shiftWorkers_service import ShiftWorkersService
+from db.repositories.shiftWorkers_repository import ShiftWorkersRepository
+from user_session import UserSession
+from db.models import EmployeeType, User, ShiftWorker
+from db.controllers.users_controller import UsersController
+from db.controllers.shiftWorkers_controller import ShiftWorkersController
 
 
 def handle_get_crew_chief_shifts(user_session: UserSession):

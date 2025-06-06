@@ -1,9 +1,9 @@
 from datetime import date
 from typing import List
 from sqlalchemy.orm import Session
-from Backend.db.models import Shift
-from Backend.db.repositories.base_repository import BaseRepository
-from Backend.db.repositories.shiftWorkers_repository import ShiftWorkersRepository
+from db.models import Shift
+from db.repositories.base_repository import BaseRepository
+from db.repositories.shiftWorkers_repository import ShiftWorkersRepository
 
 
 class ShiftsRepository(BaseRepository):

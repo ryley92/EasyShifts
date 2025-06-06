@@ -2,9 +2,9 @@ from datetime import date, datetime
 from typing import List, Type, Tuple
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, aliased
-from Backend.db.models import ShiftWorker, Shift, Job, ClientCompany, EmployeeType
-from Backend.db.repositories.base_repository import BaseRepository
-from Backend.db.repositories.users_repository import UsersRepository
+from db.models import ShiftWorker, Shift, Job, ClientCompany, EmployeeType
+from db.repositories.base_repository import BaseRepository
+from db.repositories.users_repository import UsersRepository
 
 
 class ShiftWorkersRepository(BaseRepository):

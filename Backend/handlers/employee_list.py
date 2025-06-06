@@ -1,9 +1,9 @@
-from Backend.config.constants import db
-from Backend.db.controllers import users_controller
-from Backend.db.controllers.userRequests_controller import UserRequestsController
-from Backend.db.controllers.users_controller import UsersController
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
-from Backend.user_session import UserSession
+from config.constants import db
+from db.controllers import users_controller
+from db.controllers.userRequests_controller import UserRequestsController
+from db.controllers.users_controller import UsersController
+from db.controllers.workPlaces_controller import WorkPlacesController
+from user_session import UserSession
 import json
 
 

@@ -1,9 +1,9 @@
-from Backend.config.constants import db
-from Backend.db.controllers.shiftBoard_controller import ShiftBoardController
-from Backend.db.controllers.users_controller import UsersController
-from Backend.handlers.login import handle_login
-from Backend.config.constants import next_sunday
-from Backend.handlers.auth.authentication import BackendAuthenticationUser
+from config.constants import db
+from db.controllers.shiftBoard_controller import ShiftBoardController
+from db.controllers.users_controller import UsersController
+from handlers.login import handle_login
+from config.constants import next_sunday
+from handlers.auth.authentication import BackendAuthenticationUser
 
 
 def handle_manager_signin(data):

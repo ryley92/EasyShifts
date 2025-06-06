@@ -1,13 +1,13 @@
 from datetime import timedelta, datetime
-from Backend.db.controllers.shiftWorkers_controller import ShiftWorkersController
-from Backend.db.models import ShiftBoard
-from Backend.user_session import UserSession
-from Backend.db.controllers.shiftBoard_controller import ShiftBoardController
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
-from Backend.db.controllers.userRequests_controller import UserRequestsController
-from Backend.db.controllers.users_controller import UsersController
-from Backend.db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
-from Backend.config.constants import db, next_sunday
+from db.controllers.shiftWorkers_controller import ShiftWorkersController
+from db.models import ShiftBoard
+from user_session import UserSession
+from db.controllers.shiftBoard_controller import ShiftBoardController
+from db.controllers.workPlaces_controller import WorkPlacesController
+from db.controllers.userRequests_controller import UserRequestsController
+from db.controllers.users_controller import UsersController
+from db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
+from config.constants import db, next_sunday
 
 
 def handle_create_new_board(user_session: UserSession):

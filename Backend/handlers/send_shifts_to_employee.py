@@ -1,5 +1,5 @@
-from Backend.config.constants import db
-from Backend.db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
+from config.constants import db
+from db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
 
 
 def handle_send_shifts(user_session):

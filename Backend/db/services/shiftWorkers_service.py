@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import List, Type
-from Backend.db.repositories.shiftWorkers_repository import ShiftWorkersRepository
-from Backend.db.services.base_service import BaseService
-from Backend.db.models import EmployeeType, ShiftWorker
+from db.repositories.shiftWorkers_repository import ShiftWorkersRepository
+from db.services.base_service import BaseService
+from db.models import EmployeeType, ShiftWorker
 
 
 class ShiftWorkersService(BaseService):

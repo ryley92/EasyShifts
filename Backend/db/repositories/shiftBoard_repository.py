@@ -3,9 +3,9 @@ from typing import Type
 from sqlalchemy import Date
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
-from Backend.db.models import ShiftBoard, ShiftPart
-from Backend.config.constants import next_sunday
-from Backend.db.controllers.shifts_controller import ShiftsController, convert_shift_for_client
+from db.models import ShiftBoard, ShiftPart
+from config.constants import next_sunday
+from db.controllers.shifts_controller import ShiftsController, convert_shift_for_client
 
 
 class ShiftBoardRepository:

@@ -1,8 +1,8 @@
-from Backend.config.constants import db
-from Backend.db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
-from Backend.db.controllers.users_controller import UsersController
-from Backend.db.controllers.workPlaces_controller import WorkPlacesController
-from Backend.user_session import UserSession
+from config.constants import db
+from db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
+from db.controllers.users_controller import UsersController
+from db.controllers.workPlaces_controller import WorkPlacesController
+from user_session import UserSession
 
 
 def handle_send_profile(user_session: UserSession) -> dict:

@@ -1,6 +1,6 @@
-from Backend.db.controllers.users_controller import UsersController
-from Backend.user_session import UserSession
-from Backend.main import initialize_database_and_session
+from db.controllers.users_controller import UsersController
+from user_session import UserSession
+from main import initialize_database_and_session
 
 # Initialize the database and session
 db, _ = initialize_database_and_session()

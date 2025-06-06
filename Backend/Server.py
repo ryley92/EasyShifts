@@ -1,14 +1,14 @@
 from __future__ import annotations
-from Backend.user_session import UserSession
-from Backend.main import initialize_database_and_session
+from user_session import UserSession
+from main import initialize_database_and_session
 import websockets
 import asyncio
 import json
-from Backend.handlers import login, employee_signin, manager_signin, employee_shifts_request, \
+from handlers import login, employee_signin, manager_signin, employee_shifts_request, \
     get_employee_requests, manager_insert_shifts, employee_list, send_profile, manager_schedule, \
     send_shifts_to_employee, make_shifts
-from Backend.handlers import crew_chief_handlers
-from Backend.db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
+from handlers import crew_chief_handlers
+from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
 # Initialize the database and session
 db, _ = initialize_database_and_session()
