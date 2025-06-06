@@ -1,7 +1,7 @@
-from typing import List, Type
+from typing import List, Type, Tuple
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
-from Backend.db.models import ShiftWorker
+from sqlalchemy.orm import Session, aliased
+from Backend.db.models import ShiftWorker, Shift, Job, ClientCompany, EmployeeType
 from Backend.db.repositories.base_repository import BaseRepository
 from Backend.db.repositories.users_repository import UsersRepository
 
@@ -94,3 +94,49 @@ class ShiftWorkersRepository(BaseRepository):
         users_repository = UsersRepository(self.db)
         workers = self.get_shift_workers_by_shift_id(shift_id)
         return [users_repository.get_entity(worker.userID).name for worker in workers]
+
+    def get_supervised_shifts_details(self, user_id: int) -> List[dict]:
+        """
+        Retrieves detailed information about shifts supervised by a given user (Crew Chief).
+
+        Args:
+            user_id (int): The ID of the user (Crew Chief).
+
+        Returns:
+            List[dict]: A list of dictionaries, where each dictionary contains:
+                - shift_id (int)
+                - shift_date (Date)
+                - shift_part (ShiftPart)
+                - job_id (int)
+                - job_name (str)
+                - client_company_name (str)
+        """
+        results = (
+            self.db.query(
+                Shift.id.label("shift_id"),
+                Shift.shiftDate.label("shift_date"),
+                Shift.shiftPart.label("shift_part"),
+                Job.id.label("job_id"),
+                Job.name.label("job_name"),
+                ClientCompany.name.label("client_company_name"),
+            )
+            .join(Shift, ShiftWorker.shiftID == Shift.id)
+            .join(Job, Shift.job_id == Job.id)
+            .join(ClientCompany, Job.client_company_id == ClientCompany.id)
+            .filter(ShiftWorker.userID == user_id)
+            .filter(ShiftWorker.role_assigned == EmployeeType.CREW_CHIEF)
+            .order_by(Shift.shiftDate.desc(), Shift.shiftPart)
+            .all()
+        )
+
+        return [
+            {
+                "shift_id": row.shift_id,
+                "shift_date": row.shift_date.isoformat() if row.shift_date else None,
+                "shift_part": row.shift_part.value if row.shift_part else None,
+                "job_id": row.job_id,
+                "job_name": row.job_name,
+                "client_company_name": row.client_company_name,
+            }
+            for row in results
+        ]

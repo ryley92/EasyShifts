@@ -1,5 +1,6 @@
 from Backend.db.repositories.shiftWorkers_repository import ShiftWorkersRepository
 from Backend.db.services.base_service import BaseService
+from typing import List
 
 
 class ShiftWorkersService(BaseService):
@@ -22,3 +23,9 @@ class ShiftWorkersService(BaseService):
         Actual implementation is not provided yet.
         """
         pass
+
+    def get_supervised_shifts_details(self, user_id: int) -> List[dict]:
+        """
+        Service method to get detailed information about shifts supervised by a Crew Chief.
+        """
+        return self.repository.get_supervised_shifts_details(user_id)

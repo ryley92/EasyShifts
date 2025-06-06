@@ -156,6 +156,7 @@ class ShiftWorker(Base):
         role_assigned (EmployeeType): The role the user is fulfilling for this shift.
         clock_in_time (DateTime): The actual clock-in time for the employee on this shift.
         clock_out_time (DateTime): The actual clock-out time for the employee on this shift.
+        times_submitted_at (DateTime): Timestamp when the Crew Chief submitted the times for this worker on this shift.
     """
     __tablename__ = "shiftWorkers"
 
@@ -164,6 +165,7 @@ class ShiftWorker(Base):
     role_assigned = Column(Enum(EmployeeType), nullable=False)
     clock_in_time = Column(DateTime, nullable=True)
     clock_out_time = Column(DateTime, nullable=True)
+    times_submitted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (
         PrimaryKeyConstraint('shiftID', 'userID', 'role_assigned'), 

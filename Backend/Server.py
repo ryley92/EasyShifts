@@ -7,6 +7,8 @@ import json
 from Backend.handlers import login, employee_signin, manager_signin, employee_shifts_request, \
     get_employee_requests, manager_insert_shifts, employee_list, send_profile, manager_schedule, \
     send_shifts_to_employee, make_shifts
+from Backend.handlers import crew_chief_handlers
+
 # Initialize the database and session
 db, _ = initialize_database_and_session()
 
@@ -123,6 +125,10 @@ def handle_request(request_id, data):
         print("Get change schedule")
         manager_schedule.handle_schedules(user_session.get_id, data)
         return {"request_id": request_id, "success": True}
+
+    elif request_id == 100: # New request ID for Crew Chief to get their shifts
+        print("Received Get Crew Chief Shifts request")
+        return crew_chief_handlers.handle_get_crew_chief_shifts(user_session)
 
     elif request_id == 991:
         # Set preferences
