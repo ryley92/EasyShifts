@@ -269,8 +269,14 @@ def handle_request(request_id, data):
         return {"request_id": request_id, "success": False, "error": f"Unknown request ID: {request_id}"}
 
 
-async def handle_client(websocket, path):
+async def handle_client(websocket, path=None): # Add default value for path
     print("new client connected")
+    if path is not None:
+        print(f"Connection path: {path}")
+    else:
+        print("Connection path not provided.")
+ 
+        
     try:
         async for message in websocket:
             # Parse the JSON message
@@ -312,8 +318,6 @@ async def start_server():
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
 
-
-asyncio.run(start_server())
 
 if __name__ == "__main__":
     asyncio.run(start_server())
