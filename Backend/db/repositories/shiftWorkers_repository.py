@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from typing import List, Type, Tuple
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, aliased
@@ -27,6 +28,24 @@ class ShiftWorkersRepository(BaseRepository):
             raise NoResultFound(f"No shift worker found with shiftID {shift_id} and userID {user_id}")
         return entity
 
+    def get_entity_shift_worker_by_composite_key(self, shift_id: int, user_id: int, role_assigned: EmployeeType) -> Type[ShiftWorker] | None:
+        """
+        Retrieves a shift worker by its composite primary key (shiftID, userID, role_assigned).
+
+        Args:
+            shift_id (int): ID of the shift.
+            user_id (int): ID of the worker.
+            role_assigned (EmployeeType): The role assigned to the worker for this shift.
+
+        Returns:
+            ShiftWorker: The ShiftWorker entity if found, None otherwise.
+        """
+        return self.db.query(ShiftWorker).filter(
+            ShiftWorker.shiftID == shift_id,
+            ShiftWorker.userID == user_id,
+            ShiftWorker.role_assigned == role_assigned
+        ).first()
+
     def delete_entity_shift_worker(self, shift_id: str, user_id: str):
         db_entity = self.get_entity_shift_worker(shift_id, user_id)
 
@@ -35,6 +54,30 @@ class ShiftWorkersRepository(BaseRepository):
 
         self.db.delete(db_entity)
         self.db.commit()
+
+    def update_shift_worker_times(self, shift_id: int, user_id: int, role_assigned: EmployeeType, clock_in_time: datetime | None, clock_out_time: datetime | None) -> Type[ShiftWorker] | None:
+        """
+        Updates the clock-in and clock-out times for a specific ShiftWorker entity.
+
+        Args:
+            shift_id (int): ID of the shift.
+            user_id (int): ID of the worker.
+            role_assigned (EmployeeType): The role assigned to the worker for this shift.
+            clock_in_time (datetime | None): The new clock-in time.
+            clock_out_time (datetime | None): The new clock-out time.
+
+        Returns:
+            ShiftWorker: The updated ShiftWorker entity if found, None otherwise.
+        """
+        db_entity = self.get_entity_shift_worker_by_composite_key(shift_id, user_id, role_assigned)
+
+        if db_entity:
+            db_entity.clock_in_time = clock_in_time
+            db_entity.clock_out_time = clock_out_time
+            db_entity.times_submitted_at = datetime.now()
+            self.db.commit()
+            self.db.refresh(db_entity)
+        return db_entity
 
     def get_worker_shifts_by_worker_id(self, worker_id: str) -> List[ShiftWorker]:
         """
