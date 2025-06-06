@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../utils';
 import '../css/CrewChiefDashboard.css'; // We'll create this CSS file next
 
 const CrewChiefDashboard = () => {
+  const navigate = useNavigate();
   const socket = useSocket();
   const [supervisedShifts, setSupervisedShifts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +81,11 @@ const CrewChiefDashboard = () => {
           </thead>
           <tbody>
             {supervisedShifts.map((shift) => (
-              <tr key={shift.shift_id}>
+              <tr
+                key={shift.shift_id}
+                className="clickable-row"
+                onClick={() => navigate(`/crew-chief/shift/${shift.shift_id}/times`, { state: { shiftDetails: shift } })}
+              >
                 <td>{new Date(shift.shift_date).toLocaleDateString()}</td>
                 <td>{shift.shift_part}</td>
                 <td>{shift.job_name}</td>

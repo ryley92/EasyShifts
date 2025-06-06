@@ -16,12 +16,22 @@ import ManagerWorkersList from '../components/ManagerWorkersList';
 import ShiftsPage from '../components/ShiftsPage';
 import EmployeeListPage from '../components/EmployeeListPage';
 import CrewChiefDashboard from '../components/CrewChiefDashboard'; // Import the new component
+import CrewShiftTimeEntry from '../components/CrewShiftTimeEntry'; // Import the new component
 import Toolbar from '../components/Toolbar';
 import './App.css';
-import * as socket_object from '../utils'
+import * => REPLACE
+````
 
-function App() {
-  socket_object.useSocket();
+````javascript
+app/src/App/App.jsx
+<<<<<<< SEARCH
+          <Route path="/shiftsPage" element={<ShiftsPage  />} />
+          <Route path="/employeeListPage" element={<EmployeeListPage  />} />
+          <Route path="/crew-chief-dashboard" element={<CrewChiefDashboard />} /> {/* Add new route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </Router>
 
   return (
     <Router>

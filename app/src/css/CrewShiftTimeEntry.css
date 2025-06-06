@@ -1,0 +1,112 @@
+.crew-time-entry-container {
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  max-width: 900px;
+  margin: auto;
+}
+
+.crew-time-entry-container h2 {
+  text-align: center;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.shift-info-header {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.shift-info-header p {
+  margin: 5px 0;
+  font-size: 1.1em;
+}
+
+.crew-time-entry-loading,
+.error-message,
+.success-message {
+  text-align: center;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.crew-times-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.crew-times-table th,
+.crew-times-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: left;
+}
+
+.crew-times-table th {
+  background-color: #f2f2f2;
+}
+
+.crew-times-table input[type="datetime-local"] {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1em;
+}
+
+.crew-times-table input[type="datetime-local"].disabled-input {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.submit-times-button, .back-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.2s;
+  display: block;
+  margin: 20px auto 0 auto;
+}
+
+.submit-times-button:hover, .back-button:hover {
+  background-color: #0056b3;
+}
+
+.submit-times-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.back-button {
+    margin-bottom: 20px;
+    background-color: #6c757d;
+}
+
+.back-button:hover {
+    background-color: #545b62;
+}
+
+/* Add to CrewChiefDashboard.css or a shared CSS file */
+.shifts-table tbody tr.clickable-row:hover {
+  background-color: #e9ecef; /* Light grey background on hover */
+  cursor: pointer;
+}
