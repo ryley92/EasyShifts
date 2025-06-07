@@ -3,7 +3,7 @@ from db.models import Job
 from db.repositories.jobs_repository import JobsRepository
 from db.services.jobs_service import JobsService
 from db.controllers.base_controller import BaseController
-from typing import List, dict
+from typing import List, Dict # Corrected: Dict instead of dict
 
 
 class JobsController(BaseController):

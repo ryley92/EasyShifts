@@ -1,3 +1,4 @@
+
 from datetime import date, datetime
 from typing import List, Type, Tuple
 from sqlalchemy.exc import NoResultFound
@@ -79,6 +80,17 @@ class ShiftWorkersRepository(BaseRepository):
             self.db.refresh(db_entity)
         return db_entity
 
+    def delete_entity_by_composite_key(self, shift_id: int, user_id: int, role_assigned: EmployeeType):
+        """
+        Deletes a ShiftWorker entity by its composite primary key.
+        """
+        db_entity = self.get_entity_shift_worker_by_composite_key(shift_id, user_id, role_assigned)
+        if db_entity:
+            self.db.delete(db_entity)
+            self.db.commit()
+            return db_entity
+        return None
+
     def get_worker_shifts_by_worker_id(self, worker_id: str) -> List[ShiftWorker]:
         """
         Retrieves all shifts for a worker by worker ID.
@@ -125,18 +137,29 @@ class ShiftWorkersRepository(BaseRepository):
             ShiftWorker.userID == worker_id
         ).first() is not None
 
-    def convert_shift_workers_by_shift_id_to_client(self, shift_id: str) -> list[str]:
+    def convert_shift_workers_by_shift_id_to_client(self, shift_id: str) -> list[dict]:
         """
-        Retrieves all workers for a shift by shift ID.
+        Retrieves all workers for a shift by shift ID, formatted for the client.
         Args:
             shift_id (str): ID of the shift to retrieve workers for.
 
         Returns:
-            List[str]: A list of all workers for the shift.
+            List[dict]: A list of dictionaries, each containing worker id, name, and role_assigned.
         """
         users_repository = UsersRepository(self.db)
-        workers = self.get_shift_workers_by_shift_id(shift_id)
-        return [users_repository.get_entity(worker.userID).name for worker in workers]
+        shift_worker_entities = self.get_shift_workers_by_shift_id(shift_id)
+        worker_details_list = []
+        for sw_entity in shift_worker_entities:
+            try:
+                user = users_repository.get_entity(sw_entity.userID)
+                worker_details_list.append({
+                    "id": user.id,
+                    "name": user.name,
+                    "role_assigned": sw_entity.role_assigned.value # Assuming role_assigned is an Enum
+                })
+            except NoResultFound:
+                print(f"Warning: User with ID {sw_entity.userID} not found during shift worker conversion for shift {shift_id}.")
+        return worker_details_list
 
     def get_supervised_shifts_details(self, user_id: int) -> List[dict]:
         """

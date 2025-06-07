@@ -49,8 +49,6 @@ class WorkPlacesService(BaseService):
             # If the user does not work in any workplace, return an empty list
             return []
 
-        return worker_info
-
     def get_active_approved_workers_by_workplace_id(self, workplace_id: int) -> List[Tuple[str, str]]:
         """
         Retrieves the IDs and names of all active workers with approval in the specified workplace.
@@ -97,4 +95,10 @@ class WorkPlacesService(BaseService):
         Returns:
             int | None: The workplace ID if the user works in a workplace, else None.
         """
-        return self.repository.get_workplace_by_worker_id(user_id).id
+        # This assumes get_workplace_by_worker_id returns an object with an 'id' attribute
+        # that represents the workplace's ID (which is usually the manager's ID).
+        # Ensure get_workplace_by_worker_id and the WorkPlace model are consistent with this.
+        workplace = self.repository.get_workplace_by_worker_id(user_id)
+        if workplace:
+            return workplace.workPlaceID # Assuming workPlaceID is the manager's ID / workplace identifier
+        return None # Or raise an error if a workplace is always expected

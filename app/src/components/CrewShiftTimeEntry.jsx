@@ -29,14 +29,13 @@ const CrewShiftTimeEntry = () => {
         if (response.request_id === 101 && response.data) {
           if (response.success) {
             setCrewMembers(response.data);
-            // Initialize workerTimes state based on fetched crew members
             const initialTimes = {};
             response.data.forEach(member => {
               const key = `${member.user_id}_${member.role_assigned}`;
               initialTimes[key] = {
-                clock_in_time: member.clock_in_time ? member.clock_in_time.substring(0, 16) : '', // Format for datetime-local
+                clock_in_time: member.clock_in_time ? member.clock_in_time.substring(0, 16) : '',
                 clock_out_time: member.clock_out_time ? member.clock_out_time.substring(0, 16) : '',
-                role_assigned: member.role_assigned, // Store role for submission
+                role_assigned: member.role_assigned,
                 times_submitted_at: member.times_submitted_at
               };
             });
@@ -49,20 +48,18 @@ const CrewShiftTimeEntry = () => {
           if (response.success) {
             setSuccessMessage(response.message || 'Times submitted successfully!');
             setError(null);
-            // Optionally, re-fetch crew members to show updated submitted times
-            // Or update local state to reflect submission
             const updatedCrewMembers = crewMembers.map(cm => ({
                 ...cm,
-                times_submitted_at: new Date().toISOString() // Approximate, or use server's confirmation
+                times_submitted_at: new Date().toISOString()
             }));
             setCrewMembers(updatedCrewMembers);
-            // Update workerTimes to reflect submission and make fields read-only
             const newWorkerTimes = { ...workerTimes };
             Object.keys(newWorkerTimes).forEach(key => {
-                newWorkerTimes[key].times_submitted_at = new Date().toISOString();
+                if (response.data?.updated_workers?.find(w => `${w.user_id}_${w.role_assigned}` === key)) { // Check if this worker was part of the successful submission
+                    newWorkerTimes[key].times_submitted_at = new Date().toISOString();
+                }
             });
             setWorkerTimes(newWorkerTimes);
-
           } else {
             setError(response.error || 'Failed to submit times.');
             setSuccessMessage(null);
@@ -84,12 +81,25 @@ const CrewShiftTimeEntry = () => {
       };
       socket.send(JSON.stringify(request));
     } else {
-      setError('WebSocket is not open. Cannot fetch crew members.');
-      setLoading(false);
+        const timeoutId = setTimeout(() => {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                const request = {
+                    request_id: 101,
+                    data: { shift_id: parseInt(shiftId) }
+                };
+                socket.send(JSON.stringify(request));
+            } else {
+                setError('WebSocket is not open. Cannot fetch crew members.');
+                setLoading(false);
+            }
+        }, 1000);
+        return () => clearTimeout(timeoutId);
     }
 
     return () => {
-      socket.removeEventListener('message', handleMessage);
+      if (socket && typeof socket.removeEventListener === 'function') {
+        socket.removeEventListener('message', handleMessage);
+      }
     };
   }, [socket, shiftId]);
 
@@ -100,7 +110,7 @@ const CrewShiftTimeEntry = () => {
       [key]: {
         ...prev[key],
         [field]: value,
-        role_assigned: role // Ensure role is part of the state for this worker
+        role_assigned: role
       }
     }));
   };
@@ -113,15 +123,22 @@ const CrewShiftTimeEntry = () => {
     setError(null);
     setSuccessMessage(null);
 
-    const payloadWorkerTimes = Object.entries(workerTimes).map(([key, times]) => {
-      const [userId] = key.split('_');
-      return {
-        user_id: parseInt(userId),
-        role_assigned: times.role_assigned,
-        clock_in_time: times.clock_in_time ? new Date(times.clock_in_time).toISOString() : null,
-        clock_out_time: times.clock_out_time ? new Date(times.clock_out_time).toISOString() : null,
-      };
-    });
+    const payloadWorkerTimes = Object.entries(workerTimes)
+      .filter(([key, times]) => !times.times_submitted_at)
+      .map(([key, times]) => {
+        const [userId] = key.split('_');
+        return {
+          user_id: parseInt(userId),
+          role_assigned: times.role_assigned,
+          clock_in_time: times.clock_in_time ? new Date(times.clock_in_time).toISOString() : null,
+          clock_out_time: times.clock_out_time ? new Date(times.clock_out_time).toISOString() : null,
+        };
+      });
+    
+    if (payloadWorkerTimes.length === 0) {
+        setSuccessMessage("All times already submitted or no changes to submit.");
+        return;
+    }
 
     const request = {
       request_id: 102,

@@ -7,6 +7,9 @@ import SignUp from '../components/SignUp';
 import ManagerSchedule from '../components/ManagerSchedule/ManagerSchedule';
 import ManagerProfile from '../components/ManagerProfile';
 import ManagerSettings from '../components/ManagerSettings';
+import ManagerJobDashboard from '../components/ManagerJobDashboard';
+import ManagerShiftEditor from '../components/ManagerShiftEditor';
+import ManagerClientCompaniesPage from '../components/ManagerClientCompaniesPage';
 import SignUpManager from '../components/SignUpManager';
 import SignUpEmployee from '../components/SignUpEmployee';
 import EmployeeProfile from '../components/EmployeeProfile';
@@ -34,6 +37,9 @@ function App() {
           <Route path="/manager-schedule" element={<ManagerSchedule />} />
           <Route path="/manager-profile" element={<ManagerProfile />} />
           <Route path="/manager-settings" element={<ManagerSettings />} />
+          <Route path="/manager-jobs" element={<ManagerJobDashboard />} />
+          <Route path="/manager-jobs/:jobId/shifts" element={<ManagerShiftEditor />} />
+          <Route path="/manager-clients" element={<ManagerClientCompaniesPage />} />
           <Route path="/signupManager" element={<SignUpManager />} />
           <Route path="/signupEmployee" element={<SignUpEmployee />} />
           <Route path="/employeeProfile" element={<EmployeeProfile />} />

@@ -42,3 +42,34 @@ def handle_is_in_request_window(user_session: UserSession) -> bool:  # When the 
         return True
 
     return False
+
+def handle_get_request_window_times(user_session: UserSession) -> dict:
+    """
+    Handles the request to get the start and end times of the request window.
+    """
+    request_id = 42
+    if not user_session:
+        return {"request_id": request_id, "success": False, "error": "User session not found."}
+
+    try:
+        shift_board_controller = ShiftBoardController(db)
+        workPlaces_controller = WorkPlacesController(db)
+        workplace_id = workPlaces_controller.get_workplace_id_by_user_id(user_session.get_id)
+
+        if workplace_id is None:
+            return {"request_id": request_id, "success": False, "error": "User not associated with a workplace."}
+
+        last_shift_board = shift_board_controller.get_last_shift_board(workplace_id)
+
+        return {
+            "request_id": request_id,
+            "success": True,
+            "data": {
+                "requests_window_start": last_shift_board.requests_window_start.isoformat() if last_shift_board.requests_window_start else None,
+                "requests_window_end": last_shift_board.requests_window_end.isoformat() if last_shift_board.requests_window_end else None,
+            }
+        }
+    except Exception as e:
+        print(f"Error in handle_get_request_window_times: {e}")
+        return {"request_id": request_id, "success": False, "error": f"An error occurred: {str(e)}"}
+

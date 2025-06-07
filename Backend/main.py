@@ -15,10 +15,10 @@ def initialize_database_and_session():
     """
     # Create a SQLAlchemy engine and session
     # TODO: Replace placeholders with your remote MySQL server details
-    DB_HOST = "easyshiftsdb-hol619.c.aivencloud.com"  # e.g., "mydb.example.com" or an IP address
-    DB_PORT = "12297"  # Default MySQL port, change if different
-    DB_USER = "avnadmin"
-    DB_NAME = "defaultdb" # e.g., "easyshiftsdb"
+    DB_HOST = "miano.h.filess.io"  # e.g., "mydb.example.com" or an IP address
+    DB_PORT = "3305"  # Default MySQL port, change if different
+    DB_USER = "easyshiftsdb_danceshall"
+    DB_NAME = "easyshiftsdb_danceshall" # e.g., "easyshiftsdb"
 
     engine = create_engine(
         f'mariadb+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'

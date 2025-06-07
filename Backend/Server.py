@@ -7,7 +7,7 @@ import json
 from handlers import login, employee_signin, manager_signin, employee_shifts_request, \
     get_employee_requests, manager_insert_shifts, employee_list, send_profile, manager_schedule, \
     send_shifts_to_employee, make_shifts
-from handlers import crew_chief_handlers, client_company_handlers, job_handlers
+from handlers import crew_chief_handlers, client_company_handlers, job_handlers, shift_management_handlers
 from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
 # Initialize the database and session
@@ -190,6 +190,12 @@ def handle_request(request_id, data):
         print(res)
         return {"request_id": request_id, "success": True, "data": res}
 
+    elif request_id == 94: # Get All Approved Worker Details
+        print("Received Get All Approved Worker Details request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return manager_schedule.handle_get_all_approved_worker_details(user_session)
+
     elif request_id == 95:
         # Get preferences for Manager Schedule
         print("Get preferences for Manager Schedule")
@@ -244,6 +250,34 @@ def handle_request(request_id, data):
         if not user_session:
             return {"request_id": request_id, "success": False, "error": "User session not found."}
         return crew_chief_handlers.handle_submit_shift_times(data, user_session)
+
+    elif request_id == 200: # Get All Client Companies
+        print("Received Get All Client Companies request")
+        return client_company_handlers.handle_get_all_client_companies(user_session)
+
+    elif request_id == 210: # Create Job
+        print("Received Create Job request")
+        return job_handlers.handle_create_job(data, user_session)
+
+    elif request_id == 211: # Get Jobs by Manager
+        print("Received Get Jobs by Manager request")
+        return job_handlers.handle_get_jobs_by_manager(user_session)
+
+    elif request_id == 220: # Create Shift
+        print("Received Create Shift request")
+        return shift_management_handlers.handle_create_shift(data, user_session)
+
+    elif request_id == 221: # Get Shifts by Job ID
+        print("Received Get Shifts by Job ID request")
+        return shift_management_handlers.handle_get_shifts_by_job(data, user_session)
+
+    elif request_id == 230: # Assign Worker to Shift
+        print("Received Assign Worker to Shift request")
+        return shift_management_handlers.handle_assign_worker_to_shift(data, user_session)
+
+    elif request_id == 231: # Unassign Worker from Shift
+        print("Received Unassign Worker from Shift request")
+        return shift_management_handlers.handle_unassign_worker_from_shift(data, user_session)
 
     elif request_id == 991:
         # Set preferences

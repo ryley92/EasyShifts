@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../utils';
-import '../css/CrewChiefDashboard.css'; // We'll create this CSS file next
+import '../css/CrewChiefDashboard.css';
 
 const CrewChiefDashboard = () => {
   const navigate = useNavigate();
@@ -29,21 +29,24 @@ const CrewChiefDashboard = () => {
               setError(response.error || 'Failed to fetch supervised shifts.');
             }
             setLoading(false);
-            socket.removeEventListener('message', handleMessage);
+            if (socket && typeof socket.removeEventListener === 'function') {
+              socket.removeEventListener('message', handleMessage);
+            }
           }
         } catch (e) {
           setError('Error parsing response from server.');
           setLoading(false);
           console.error('Error parsing WebSocket message:', e);
-          socket.removeEventListener('message', handleMessage);
+          if (socket && typeof socket.removeEventListener === 'function') {
+            socket.removeEventListener('message', handleMessage);
+          }
         }
       };
 
       socket.addEventListener('message', handleMessage);
 
-      // Cleanup function
       return () => {
-        if (socket && socket.readyState === WebSocket.OPEN) {
+        if (socket && typeof socket.removeEventListener === 'function') {
           socket.removeEventListener('message', handleMessage);
         }
       };

@@ -1,2 +1,2 @@
 # Replace with the password for your remote MySQL user specified in Backend\main.py
-PASSWORD = "your_remote_mysql_password"
+PASSWORD = "a61d15d9b4f2671739338d1082cc7b75c0084e21"

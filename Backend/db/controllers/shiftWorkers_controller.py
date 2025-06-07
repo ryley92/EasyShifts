@@ -94,6 +94,19 @@ class ShiftWorkersController(BaseController):
         """
         return self.repository.convert_shift_workers_by_shift_id_to_client(shift_id)
 
+    def delete_entity_by_composite_key(self, shift_id: int, user_id: int, role_assigned_str: str):
+        """
+        Deletes a ShiftWorker entity by its composite primary key.
+        Converts role_assigned_str to EmployeeType enum.
+        """
+        try:
+            role_assigned = EmployeeType(role_assigned_str)
+            return self.repository.delete_entity_by_composite_key(shift_id, user_id, role_assigned)
+        except ValueError:
+            # Handle invalid role_assigned_str
+            print(f"Invalid role assigned string: {role_assigned_str}")
+            return None
+
     def submit_times_for_worker_on_shift(self, shift_id: int, user_id: int, role_assigned_str: str, clock_in_time_str: str | None, clock_out_time_str: str | None) -> Type[ShiftWorker] | None:
         """
         Submits clock-in and clock-out times for a specific worker on a shift.

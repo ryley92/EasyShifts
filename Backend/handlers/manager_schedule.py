@@ -336,3 +336,39 @@ def handle_get_assigned_shifts(user_session, data):
     # Return the array
     print("assigned_shifts: ", assigned_shifts)
     return assigned_shifts
+
+
+def get_all_approved_workers_details_by_workplace_id(user_session: UserSession):
+    """
+    Retrieves details (id, name, employee_type) of all active and approved workers 
+    in the workplace associated with the user_session (manager).
+    """
+    if not user_session or not user_session.can_access_manager_page():
+        print("Unauthorized access attempt in get_all_approved_workers_details_by_workplace_id")
+        return []
+
+    workplace_controller = WorkPlacesController(db)
+    manager_id = user_session.get_id
+    
+    all_workers_in_workplace = workplace_controller.get_all_workers_by_workplace_id(manager_id) 
+    
+    approved_workers_details = []
+    if all_workers_in_workplace:
+        for worker in all_workers_in_workplace:
+            if worker.isActive and worker.isApproval:
+                approved_workers_details.append({
+                    "id": worker.id,
+                    "name": worker.name,
+                    "employee_type": worker.employee_type.value if worker.employee_type else None
+                })
+    return approved_workers_details
+
+def handle_get_all_approved_worker_details(user_session: UserSession):
+    """
+    Handler for request ID 94.
+    """
+    if not user_session or not user_session.can_access_manager_page():
+        return {"request_id": 94, "success": False, "error": "Unauthorized access."}
+    
+    details = get_all_approved_workers_details_by_workplace_id(user_session)
+    return {"request_id": 94, "success": True, "data": details}

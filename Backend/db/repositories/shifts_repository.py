@@ -10,6 +10,12 @@ class ShiftsRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db, Shift)
 
+    def get_shifts_by_job_id(self, job_id: int) -> List[Shift]:
+        """
+        Retrieves all shifts associated with a specific job ID, ordered by date and part.
+        """
+        return self.db.query(Shift).filter(Shift.job_id == job_id).order_by(Shift.shiftDate, Shift.shiftPart).all()
+
     def get_shift_by_day_and_part_and_workplace(self, day: str, part: str, workplace: int):
         return self.db.query(Shift).filter(Shift.shiftDay == day, Shift.shiftPart == part,
                                            Shift.workPlaceID == workplace).first()

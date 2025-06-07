@@ -1,35 +1,59 @@
 import React, {useState} from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 import '../css/ManagerProfile.css';
 import {SolarSettingsBoldDuotone} from "./Icons/SolarSettingsBoldDuotone";
 import {UimSchedule} from "./Icons/UimSchedule";
 import {FluentPeopleTeam20Filled} from "./Icons/Team";
+import {UimClockNine} from "./Icons/UimClockNine"; // Using UimClockNine as a placeholder for Clients icon
 import {useSocket} from '../utils';
 import ManagerSchedule from "./ManagerSchedule/ManagerSchedule";
 import ManagerSettings from "./ManagerSettings";
 import EmployeeListPage from "./EmployeeListPage";
+import ManagerClientCompaniesPage from "./ManagerClientCompaniesPage"; // Add this import
 
 const ManagerProfile = ({name = "Joe's Caffe"}) => {
+    const navigate = useNavigate(); // Initialize useNavigate
     const socket = useSocket();
-    const [showSettings, setShowSettings] = useState(false);
-    const [showSchedule, setShowSchedule] = useState(false);
-    const [showWorkers, setShowWorkers] = useState(false);
+    // const [showSettings, setShowSettings] = useState(false); // Already removed
+    // const [showSchedule, setShowSchedule] = useState(false); // Already removed
+    // const [showWorkers, setShowWorkers] = useState(false); // Already removed
+    // const [showClientsDirectory, setShowClientsDirectory] = useState(false); // Remove this state
 
     const handleSettingsClick = () => {
-        setShowSettings(!showSettings);
-        setShowSchedule(false);
+        navigate('/manager-settings');
+        // setShowSchedule(false); // Already removed
         setShowWorkers(false);
+        setShowClientsDirectory(false);
     };
 
     const handleScheduleClick = () => {
+        navigate('/manager-schedule');
         setShowSettings(false);
-        setShowSchedule(!showSchedule);
         setShowWorkers(false);
+        setShowClientsDirectory(false);
     };
 
     const handleWorkersClick = () => {
+        navigate('/employeeListPage');
+        // setShowSettings(false); // Already removed
+        // setShowSchedule(false); // Already removed
+        setShowClientsDirectory(false);
+    };
+
+    const handleClientsDirectoryClick = () => {
+        navigate('/manager-clients');
+        // setShowSettings(false); // Already removed
+        // setShowSchedule(false); // Already removed
+        // setShowWorkers(false); // Already removed
+    };
+
+    const handleJobManagementClick = () => {
+        navigate('/manager-jobs');
+        // Ensure other submenu states are false if they are rendered within this component
         setShowSettings(false);
         setShowSchedule(false);
-        setShowWorkers(!showWorkers);
+        setShowWorkers(false);
+        setShowClientsDirectory(false);
     };
 
     return (
@@ -58,6 +82,19 @@ const ManagerProfile = ({name = "Joe's Caffe"}) => {
                         <br/>
                         Workers
                     </div>
+
+                    <div className="icon-wrapper" onClick={handleClientsDirectoryClick}>
+                        {/* Using UimClockNine as a placeholder for Clients icon */}
+                        <UimClockNine className="icon" style={{width: '5em', height: '5em'}}/>
+                        <br/>
+                        Clients Directory
+                    </div>
+
+                    <div className="icon-wrapper" onClick={handleJobManagementClick}>
+                        <UimSchedule className="icon" style={{width: '5em', height: '5em'}}/>
+                        <br/>
+                        Job Management
+                    </div>
                 </div>
             </div>
 
@@ -68,19 +105,6 @@ const ManagerProfile = ({name = "Joe's Caffe"}) => {
                 </div>
             )}
 
-            {showSettings && (
-                <div className="submenu">
-                    {/* Add submenu content for Settings here */}
-                    <ManagerSettings socket={socket}/>
-                </div>
-            )}
-
-            {showWorkers && (
-                <div className="submenu">
-                    {/* Add submenu content for Workers here */}
-                    <EmployeeListPage socket={socket}/>
-                </div>
-            )}
         </div>
     );
 };

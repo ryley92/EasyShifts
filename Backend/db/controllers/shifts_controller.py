@@ -2,6 +2,8 @@ from datetime import date, datetime
 from sqlalchemy import Date
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
+from typing import List
+from typing import List
 from db.controllers.base_controller import BaseController
 from db.models import Shift
 from db.repositories.shifts_repository import ShiftsRepository
@@ -26,6 +28,14 @@ class ShiftsController(BaseController):
         self.repository = ShiftsRepository(db)
         self.service = ShiftsService(self.repository)
         super().__init__(self.repository, self.service)
+
+    def get_shifts_by_job_id(self, job_id: int, is_manager: bool = True) -> List[dict]:
+        """
+        Retrieves all shifts for a given job ID and formats them for the client.
+        """
+        shifts = self.service.get_shifts_by_job_id(job_id)
+        # Ensure convert_shifts_for_client also includes client_po_number and required_employee_counts
+        return convert_shifts_for_client(shifts, self.repository.db, is_manager)
 
     def get_shift_date_by_shift_id(self, shift_id: str) -> Date:
         """
@@ -145,13 +155,14 @@ def convert_shift_for_client(shift: Shift, db, is_manager=True) -> dict:
     """
     shift_workers_controller = ShiftWorkersController(db)
     shifts_for_client = {
-        # JSON can't handle date objects, so we convert them to strings
+        'id': shift.id,
+        'job_id': shift.job_id,
         'shiftDate': shift.shiftDate.isoformat() if shift.shiftDate else None,
-        # JSON can't handle enum objects, so we take their values
-        "shiftPart": shift.shiftPart.value
+        "shiftPart": shift.shiftPart.value if shift.shiftPart else None,
+        "required_employee_counts": shift.required_employee_counts if shift.required_employee_counts else {},
+        "client_po_number": shift.client_po_number if shift.client_po_number else ""
     }
 
-    # If the user is a manager, we also include the workers assigned to the shift
     if is_manager:
         workers = shift_workers_controller.convert_shift_workers_by_shift_id_to_client(shift.id)
         shifts_for_client["workers"] = workers

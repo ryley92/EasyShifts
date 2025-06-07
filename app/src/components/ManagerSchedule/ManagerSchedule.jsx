@@ -1,10 +1,9 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import EmployeeShifts from './EmployeeShifts';
 import ScheduleBoard from "./ScheduleBoard";
 import '../../css/ManagerSchedule.css';
 
-function ManagerSchedule({socket}) {
-    // State
+function ManagerSchedule({ socket }) {
     const [loading, setLoading] = useState(true);
     const [employeesRequests, setEmployeesRequests] = useState([]);
     const [allWorkers, setAllWorkers] = useState([]);
@@ -13,319 +12,252 @@ function ManagerSchedule({socket}) {
         closed_days: []
     });
     const [startDate, setStartDate] = useState(null);
-    const [assignedShifts, setAssignedShifts] = useState([]);
+    const [assignedShifts, setAssignedShifts] = useState([]); 
+    
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
+    const [isPublished, setIsPublished] = useState(false);
+    const [boardContent, setBoardContent] = useState({});
 
-    const getEmployeesRequestsData = () => {
-        return new Promise((resolve, reject) => {
-            try {
-                if (!socket) {
-                    console.error('Socket connection is not available - GERD.');
-                    reject('Socket connection is not available - GERD.');
-                    return;
-                }
+    const sendGetEmployeesRequestsData = useCallback(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ request_id: 91 }));
+        }
+    }, [socket]);
 
-                const request = {
-                    request_id: 91,
-                };
+    const sendGetAllWorkers = useCallback(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ request_id: 93 }));
+        }
+    }, [socket]);
 
-                // Send the request to the server
-                socket.send(JSON.stringify(request));
+    const sendGetPreferences = useCallback(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ request_id: 95 }));
+        }
+    }, [socket]);
 
-                // Create a separate function to handle the message event
-                const handleMessage = (event) => {
-                    // Check if the WebSocket connection is still open
-                    if (socket.readyState === WebSocket.OPEN) {
-                        const response = JSON.parse(event.data);
-                        if (response.request_id === 91) {
-                            resolve(response.data);
-                        }
-                    } else {
-                        reject('WebSocket connection is closed');
-                    }
-                };
-                if (socket) {
-                    console.log("Action: addEventListener")
-                    // Attach the message handler to the onmessage event
-                    socket.addEventListener('message', handleMessage);
-                }
-            } catch (error) {
-                console.error('Error occurred while getting employees requests data:', error);
-                reject(error);
-            }
-        });
-    };
+    const sendGetStartDate = useCallback(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ request_id: 97 }));
+        }
+    }, [socket]);
 
-    const getAllWorkers = () => {
-        return new Promise((resolve, reject) => {
-            try {
-                if (!socket) {
-                    console.error('Socket connection is not available - GAW.');
-                    reject('Socket connection is not available - GAW.');
-                    return;
-                }
+    const sendGetAssignedShifts = useCallback((currentStartDate) => {
+        if (socket && socket.readyState === WebSocket.OPEN && currentStartDate) {
+            socket.send(JSON.stringify({
+                request_id: 98,
+                data: { start_date: currentStartDate.toISOString() } 
+            }));
+        }
+    }, [socket]);
 
-                const request = {
-                    request_id: 93,
-                };
-
-                // Send the request to the server
-                socket.send(JSON.stringify(request));
-
-                // Create a separate function to handle the message event
-                const handleMessage = (event) => {
-                    // Check if the WebSocket connection is still open
-                    if (socket.readyState === WebSocket.OPEN) {
-                        const data = JSON.parse(event.data);
-                        if (data.request_id === 93) {
-                            resolve(data.data);
-                        }
-                    } else {
-                        reject('WebSocket connection is closed');
-                    }
-                };
-
-                // Attach the message handler to the onmessage event
-                socket.addEventListener('message', handleMessage);
-            } catch (error) {
-                console.error('Error occurred while getting all employees names:', error);
-                reject(error);
-            }
-        });
-    };
-
-    const getPreferences = () => {
-        return new Promise((resolve, reject) => {
-            try {
-                if (!socket) {
-                    console.error('Socket connection is not available - GP.');
-                    reject('Socket connection is not available - GP.');
-                    return;
-                }
-
-                const request = {
-                    request_id: 95,
-                };
-
-                // Send the request to the server
-                socket.send(JSON.stringify(request));
-
-                // Create a separate function to handle the message event
-                const handleMessage = (event) => {
-                    // Check if the WebSocket connection is still open
-                    if (socket.readyState === WebSocket.OPEN) {
-                        const response = JSON.parse(event.data);
-                        if (response.request_id === 95) {
-                            resolve(response.data);
-                        }
-                    } else {
-                        reject('WebSocket connection is closed');
-                    }
-                };
-
-                // Attach the message handler to the onmessage event
-                socket.addEventListener('message', handleMessage);
-            } catch (error) {
-                console.error('Error occurred while getting preferences:', error);
-                reject(error);
-            }
-        });
-    };
-
-    const getStartDate = () => {
-        return new Promise((resolve, reject) => {
-            try {
-                if (!socket) {
-                    console.error('Socket connection is not available - GP.');
-                    reject('Socket connection is not available - GP.');
-                    return;
-                }
-
-                const request = {
-                    request_id: 97,
-                };
-
-                // Send the request to the server
-                socket.send(JSON.stringify(request));
-
-                // Create a separate function to handle the message event
-                const handleMessage = (event) => {
-                    // Check if the WebSocket connection is still open
-                    if (socket.readyState === WebSocket.OPEN) {
-                        const data = JSON.parse(event.data);
-                        if (data.request_id === 97) {
-                            resolve(new Date(data.data));
-                        }
-                    } else {
-                        reject('WebSocket connection is closed');
-                    }
-                };
-
-                // Attach the message handler to the onmessage event
-                socket.addEventListener('message', handleMessage);
-            } catch (error) {
-                console.error('Error occurred while getting preferences:', error);
-                reject(error);
-            }
-        });
-    };
-
-    const getAssignedShifts = ({startDate}) => {
-        return new Promise((resolve, reject) => {
-            try {
-                if (!socket) {
-                    console.error('Socket connection is not available - GP.');
-                    reject('Socket connection is not available - GP.');
-                    return;
-                }
-
-                if (startDate === null || startDate === undefined) {
-                    console.error('Start date is not available in getAssignedShifts.');
-                    reject('Start date is not available in getAssignedShifts.');
-                    return;
-                }
-
-                const request = {
-                    request_id: 98,
-                    data: {
-                        start_date: startDate,
-                    },
-                };
-
-                // Send the request to the server
-                socket.send(JSON.stringify(request));
-
-                // Create a separate function to handle the message event
-                const handleMessage = (event) => {
-                    // Check if the WebSocket connection is still open
-                    if (socket.readyState === WebSocket.OPEN) {
-                        const data = JSON.parse(event.data);
-                        console.log('recived:: ', data);
-                        if (data.request_id === 98) {
-                            resolve(data.data);
-                        }
-                    } else {
-                        reject('WebSocket connection is closed');
-                    }
-                };
-
-                // Attach the message handler to the onmessage event
-                socket.addEventListener('message', handleMessage);
-            } catch (error) {
-                console.error('Error occurred while getting preferences:', error);
-                reject(error);
-            }
-        });
-    };
+    const sendGetBoardStatus = useCallback(() => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ request_id: 86 })); 
+        }
+    }, [socket]);
+    
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        setErrorMessage('');
+        setSuccessMessage('');
+        sendGetEmployeesRequestsData();
+        sendGetAllWorkers();
+        sendGetPreferences();
+        sendGetStartDate(); 
+        sendGetBoardStatus();
+    }, [socket, sendGetEmployeesRequestsData, sendGetAllWorkers, sendGetPreferences, sendGetStartDate, sendGetBoardStatus]);
 
 
     useEffect(() => {
-        // Function to handle the message event
-        const handleMessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
+        if (socket && startDate) {
+            sendGetAssignedShifts(startDate);
+        }
+    }, [socket, startDate, sendGetAssignedShifts]);
 
-                switch (data.request_id) {
-                    case 91:
-                        setEmployeesRequests(data.data);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleMessage = (event) => {
+            setLoading(false); 
+            try {
+                const response = JSON.parse(event.data);
+                console.log("ManagerSchedule received:", response);
+
+                if (response.success === false && response.error) {
+                    setErrorMessage(response.error);
+                } else {
+                    setErrorMessage(''); 
+                }
+
+                switch (response.request_id) {
+                    case 91: 
+                        if (response.success) setEmployeesRequests(response.data || []);
+                        else setErrorMessage(response.error || 'Failed to get employee requests.');
                         break;
-                    case 93:
-                        setAllWorkers(data.data);
+                    case 93: 
+                        if (response.success) setAllWorkers(response.data || []);
+                        else setErrorMessage(response.error || 'Failed to get workers.');
                         break;
-                    case 95:
-                        setPreferences(data.data);
+                    case 95: 
+                        if (response.success) setPreferences(response.data || { number_of_shifts_per_day: 2, closed_days: [] });
+                        else setErrorMessage(response.error || 'Failed to get preferences.');
                         break;
-                    case 97:
-                        setStartDate(new Date(data.data));
+                    case 97: 
+                        if (response.success && response.data) setStartDate(new Date(response.data));
+                        else setErrorMessage(response.error || 'Failed to get start date.');
                         break;
-                    case 98:
-                        setAssignedShifts(data.data);
-                        console.log('DONE: assignedShifts:', data.data);
+                    case 98: 
+                        if (response.success) {
+                            setAssignedShifts(response.data || []);
+                        } else {
+                             setErrorMessage(response.error || 'Failed to get assigned shifts.');
+                        }
+                        break;
+                    case 86: 
+                        if (response.success && typeof response.data?.is_published === 'boolean') {
+                            setIsPublished(response.data.is_published);
+                            if (response.data.content) {
+                                setBoardContent(response.data.content);
+                            }
+                        } else {
+                            setErrorMessage(response.error || 'Failed to get board status.');
+                        }
+                        break;
+                    case 81: 
+                    case 82: 
+                    case 83: 
+                    case 84: 
+                    case 85: 
+                        if (response.success) {
+                            setSuccessMessage(response.message || response.data?.message || 'Operation successful.');
+                            if (response.data && typeof response.data.is_published === 'boolean') {
+                                setIsPublished(response.data.is_published);
+                            }
+                            fetchData(); 
+                        } else {
+                            setErrorMessage(response.error || 'Board operation failed.');
+                        }
                         break;
                     default:
-                        // Handle other cases if needed
                         break;
                 }
             } catch (error) {
-                console.error('Error parsing WebSocket message:', error);
+                console.error('Error parsing WebSocket message in ManagerSchedule:', error);
+                setErrorMessage('Error processing server response.');
             }
         };
 
-        // Attach the message handler to the onmessage event
-        if (socket) {
-            console.log("Action: addEventListener")
-            socket.addEventListener('message', handleMessage);
+        socket.addEventListener('message', handleMessage);
+        if (socket.readyState === WebSocket.OPEN) {
+            fetchData();
         }
 
-        // Fetch initial data
-        const fetchData = async () => {
-            try {
-                // Set loading to true
-                setLoading(true);
-
-                console.log('socket2: ' + socket);
-
-                const employeesRequests = await getEmployeesRequestsData();
-                setEmployeesRequests(employeesRequests);
-
-                const allWorkers = await getAllWorkers();
-                setAllWorkers(allWorkers);
-
-                const preferences = await getPreferences();
-                setPreferences(preferences);
-
-                const startDate = await getStartDate();
-                setStartDate(startDate);
-
-                const assignedShifts = await getAssignedShifts({startDate});
-                setAssignedShifts(assignedShifts);
-                console.log('DONE: assignedShifts:', assignedShifts);
-            } catch (error) {
-                console.log(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData(); // Fetch data when the component mounts
-
-        // Clean up the event listener when the component is unmounted
         return () => {
-            if (socket) {
-                console.log("Action: removeEventListener");
-                socket.removeEventListener('message', handleMessage);
-            }
+            socket.removeEventListener('message', handleMessage);
         };
-    }, [socket]);
-    // Render the ManagerSchedule component
+    }, [socket, fetchData]); 
+
+    const handleBoardAction = (requestId, actionData = null) => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            setErrorMessage('WebSocket is not connected.');
+            return;
+        }
+        setLoading(true);
+        setErrorMessage('');
+        setSuccessMessage('');
+        const request = { request_id: requestId };
+        if (actionData) {
+            request.data = actionData;
+        }
+        socket.send(JSON.stringify(request));
+    };
+    
+    const handleCreateNewBoard = () => handleBoardAction(81);
+    
+    const handleSaveBoard = () => {
+        if (!startDate) {
+            setErrorMessage("Start date is not available to save the board.");
+            return;
+        }
+
+        const newBoardContent = {};
+        const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const shiftPartsOrder = ['morning', 'noon', 'evening']; 
+
+        daysOfWeek.forEach(day => {
+            newBoardContent[day] = {};
+            shiftPartsOrder.forEach(part => {
+                newBoardContent[day][part] = []; 
+            });
+        });
+
+        (assignedShifts || []).forEach(workerEntry => {
+            const workerName = workerEntry.name;
+            (workerEntry.shifts || []).forEach(shift => {
+                try {
+                    const shiftDateObj = new Date(shift.shiftDate);
+                    const dayName = shiftDateObj.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+                    const shiftPart = shift.shiftPart; 
+
+                    if (newBoardContent[dayName] && newBoardContent[dayName][shiftPart]) {
+                        if (!newBoardContent[dayName][shiftPart].includes(workerName)) {
+                             newBoardContent[dayName][shiftPart].push(workerName);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error processing shift for saving board content:", shift, e);
+                }
+            });
+        });
+        
+        handleBoardAction(82, {
+            week_start_date: startDate.toISOString().split('T')[0], 
+            content: newBoardContent, 
+        });
+    };
+
+    const handleResetBoard = () => handleBoardAction(83);
+    const handlePublishBoard = () => handleBoardAction(84);
+    const handleUnpublishBoard = () => handleBoardAction(85);
+
     return (
         <div className="manager-schedule">
-            {/* Display EmployeeShifts and ScheduleBoard components */}
+            {successMessage && <p style={{ color: 'green', border: '1px solid green', padding: '10px' }}>{successMessage}</p>}
+            {errorMessage && <p style={{ color: 'red', border: '1px solid red', padding: '10px' }}>Error: {errorMessage}</p>}
+
             {loading ? (
-                <div>Loading...</div>
+                <div>Loading schedule data...</div>
             ) : (
                 <div className="board-and-requests">
                     <EmployeeShifts employees={employeesRequests} className="EmployeeShifts" />
-                    {preferences ? (
+                    {preferences && startDate ? (
                         <ScheduleBoard
                             partsCount={preferences.number_of_shifts_per_day}
                             closedDays={preferences.closed_days}
                             startDate={startDate}
-                            allWorkers={allWorkers}
-                            assignedShifts={assignedShifts}
+                            allWorkers={allWorkers} 
+                            assignedShifts={assignedShifts} 
                             className="ScheduleBoard"
                         />
                     ) : (
-                        <div>No preferences available</div>
+                        <div>Loading preferences or start date...</div>
                     )}
                 </div>
             )}
 
-            {/* Action Buttons */}
-            {/*<div className="buttons">*/}
-            {/*    <button>Save</button>*/}
-            {/*    <button>Clean</button>*/}
-            {/*    <button>Publish</button>*/}
-            {/*</div>*/}
+            <div className="buttons">
+                <button onClick={handleCreateNewBoard} disabled={loading}>Create New Board</button>
+                <button onClick={handleSaveBoard} disabled={loading || isPublished}>Save Current Board</button>
+                <button onClick={handleResetBoard} disabled={loading || isPublished}>Reset Current Board</button>
+                {isPublished ? (
+                    <button onClick={handleUnpublishBoard} disabled={loading}>Unpublish Board</button>
+                ) : (
+                    <button onClick={handlePublishBoard} disabled={loading}>Publish Board</button>
+                )}
+            </div>
         </div>
     );
 }
