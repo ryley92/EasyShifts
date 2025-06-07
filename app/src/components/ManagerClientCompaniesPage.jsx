@@ -1,23 +1,92 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSocket } from '../utils';
-// import './ManagerClientCompaniesPage.css'; // To be created later
+import '../css/ManagerClientCompanies.css';
 
 const ManagerClientCompaniesPage = () => {
   const socket = useSocket();
   const [clientCompanies, setClientCompanies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Form state for creating new client company
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newCompanyName, setNewCompanyName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Edit state
+  const [editingCompany, setEditingCompany] = useState(null);
+  const [editCompanyName, setEditCompanyName] = useState('');
 
   const fetchClientCompanies = useCallback(() => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       setIsLoading(true);
       setError('');
+      setSuccessMessage('');
       const request = { request_id: 200 }; // GET_ALL_CLIENT_COMPANIES
       socket.send(JSON.stringify(request));
     } else {
       setError('Cannot fetch client companies: WebSocket is not connected.');
     }
   }, [socket]);
+
+  const handleCreateCompany = () => {
+    if (!newCompanyName.trim()) {
+      setError('Company name is required.');
+      return;
+    }
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      setIsCreating(true);
+      setError('');
+      setSuccessMessage('');
+      const request = {
+        request_id: 201, // CREATE_CLIENT_COMPANY
+        data: { name: newCompanyName.trim() }
+      };
+      socket.send(JSON.stringify(request));
+    } else {
+      setError('Cannot create company: WebSocket is not connected.');
+    }
+  };
+
+  const handleUpdateCompany = () => {
+    if (!editCompanyName.trim()) {
+      setError('Company name is required.');
+      return;
+    }
+
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      setError('');
+      setSuccessMessage('');
+      const request = {
+        request_id: 202, // UPDATE_CLIENT_COMPANY
+        data: {
+          id: editingCompany.id,
+          name: editCompanyName.trim()
+        }
+      };
+      socket.send(JSON.stringify(request));
+    } else {
+      setError('Cannot update company: WebSocket is not connected.');
+    }
+  };
+
+  const handleDeleteCompany = (companyId) => {
+    if (window.confirm('Are you sure you want to delete this client company? This action cannot be undone.')) {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        setError('');
+        setSuccessMessage('');
+        const request = {
+          request_id: 203, // DELETE_CLIENT_COMPANY
+          data: { id: companyId }
+        };
+        socket.send(JSON.stringify(request));
+      } else {
+        setError('Cannot delete company: WebSocket is not connected.');
+      }
+    }
+  };
 
   useEffect(() => {
     if (socket) {
@@ -32,6 +101,7 @@ const ManagerClientCompaniesPage = () => {
       try {
         const response = JSON.parse(event.data);
         setIsLoading(false);
+        setIsCreating(false);
 
         if (response.request_id === 200) { // Get All Client Companies
           if (response.success && Array.isArray(response.data)) {
@@ -40,9 +110,35 @@ const ManagerClientCompaniesPage = () => {
             setError(response.error || 'Failed to fetch client companies.');
             setClientCompanies([]);
           }
+        } else if (response.request_id === 201) { // Create Client Company
+          if (response.success) {
+            setSuccessMessage('Client company created successfully!');
+            setNewCompanyName('');
+            setShowCreateForm(false);
+            fetchClientCompanies(); // Refresh the list
+          } else {
+            setError(response.error || 'Failed to create client company.');
+          }
+        } else if (response.request_id === 202) { // Update Client Company
+          if (response.success) {
+            setSuccessMessage('Client company updated successfully!');
+            setEditingCompany(null);
+            setEditCompanyName('');
+            fetchClientCompanies(); // Refresh the list
+          } else {
+            setError(response.error || 'Failed to update client company.');
+          }
+        } else if (response.request_id === 203) { // Delete Client Company
+          if (response.success) {
+            setSuccessMessage('Client company deleted successfully!');
+            fetchClientCompanies(); // Refresh the list
+          } else {
+            setError(response.error || 'Failed to delete client company.');
+          }
         }
       } catch (e) {
         setIsLoading(false);
+        setIsCreating(false);
         setError('Error processing server response for client companies.');
         console.error('WebSocket message error in ManagerClientCompaniesPage:', e);
       }
@@ -52,28 +148,130 @@ const ManagerClientCompaniesPage = () => {
     return () => {
       socket.removeEventListener('message', handleMessage);
     };
-  }, [socket, fetchClientCompanies]); // Added fetchClientCompanies to ensure re-fetch if it changes, though it's stable with useCallback
+  }, [socket, fetchClientCompanies]);
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h2>Client Companies Directory</h2>
+    <div className="client-companies-container">
+      <div className="header-section">
+        <h2>Client Companies Directory</h2>
+        <button
+          className="create-button"
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          disabled={isLoading}
+        >
+          {showCreateForm ? 'Cancel' : 'Add New Client'}
+        </button>
+      </div>
 
-      {error && <p style={{ color: 'red', border: '1px solid red', padding: '10px', borderRadius: '4px' }}>Error: {error}</p>}
-      
-      {isLoading && <p>Loading client companies...</p>}
-      
-      {!isLoading && clientCompanies.length === 0 && !error && <p>No client companies found.</p>}
-      
+      {error && <div className="error-message">{error}</div>}
+      {successMessage && <div className="success-message">{successMessage}</div>}
+
+      {/* Create Form */}
+      {showCreateForm && (
+        <div className="create-form">
+          <h3>Add New Client Company</h3>
+          <div className="form-group">
+            <input
+              type="text"
+              placeholder="Company Name"
+              value={newCompanyName}
+              onChange={(e) => setNewCompanyName(e.target.value)}
+              disabled={isCreating}
+              className="form-input"
+            />
+          </div>
+          <div className="form-actions">
+            <button
+              onClick={handleCreateCompany}
+              disabled={isCreating || !newCompanyName.trim()}
+              className="submit-button"
+            >
+              {isCreating ? 'Creating...' : 'Create Company'}
+            </button>
+            <button
+              onClick={() => {
+                setShowCreateForm(false);
+                setNewCompanyName('');
+                setError('');
+              }}
+              className="cancel-button"
+              disabled={isCreating}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isLoading && <div className="loading-message">Loading client companies...</div>}
+
+      {!isLoading && clientCompanies.length === 0 && !error && (
+        <div className="empty-state">
+          <p>No client companies found.</p>
+          <p>Click "Add New Client" to create your first client company.</p>
+        </div>
+      )}
+
       {clientCompanies.length > 0 && (
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
+        <div className="companies-list">
           {clientCompanies.map((company) => (
-            <li key={company.id} style={{ border: '1px solid #eee', padding: '15px', marginBottom: '10px', borderRadius: '4px', backgroundColor: '#fff' }}>
-              <h4>{company.name}</h4>
-              <p>Client ID: {company.id}</p>
-              {/* Future: Add link to view jobs for this client, or contact details etc. */}
-            </li>
+            <div key={company.id} className="company-card">
+              {editingCompany && editingCompany.id === company.id ? (
+                <div className="edit-form">
+                  <input
+                    type="text"
+                    value={editCompanyName}
+                    onChange={(e) => setEditCompanyName(e.target.value)}
+                    className="form-input"
+                  />
+                  <div className="form-actions">
+                    <button
+                      onClick={handleUpdateCompany}
+                      disabled={!editCompanyName.trim()}
+                      className="submit-button"
+                    >
+                      Save
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingCompany(null);
+                        setEditCompanyName('');
+                        setError('');
+                      }}
+                      className="cancel-button"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="company-info">
+                  <h4 className="company-name">{company.name}</h4>
+                  <p className="company-id">Client ID: {company.id}</p>
+                  <div className="company-actions">
+                    <button
+                      onClick={() => {
+                        setEditingCompany(company);
+                        setEditCompanyName(company.name);
+                        setError('');
+                        setSuccessMessage('');
+                      }}
+                      className="edit-button"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCompany(company.id)}
+                      className="delete-button"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

@@ -12,38 +12,111 @@ body {
     width: 100%;
     background-color: #3498db;
     color: #fff;
-    padding: 15px 20px; /* Slightly reduce the padding for a sleeker look */
-    z-index: 1;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Add a subtle shadow for depth */
+    padding: 15px 20px;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-sizing: border-box;
 }
 
-/* Styling for the toolbar title */
-.toolbar h3 {
+/* Styling for the toolbar logo */
+.toolbar-logo {
+    text-decoration: none;
+    color: inherit;
+}
+
+.toolbar-logo h3 {
     margin: 0;
     padding: 0;
-    float: left; /* Float the h3 to the left */
-    font-size: 24px; /* Increase font size for emphasis */
-    font-weight: 700; /* Add boldness for a stronger presence */
+    font-size: 24px;
+    font-weight: 700;
 }
 
-/* Styling for the navigation button */
-.but {
-    position: fixed;
-    top: 5px;
-    right: 20px;
-    background-color: #fff; /* Make the background white */
-    color: #3498db; /* Set initial font color to the toolbar color */
-    padding: 10px 15px; /* Adjust padding for better visual balance */
-    border: none; /* Remove border for a cleaner appearance */
+.toolbar-logo:hover {
+    opacity: 0.8;
+}
+
+/* Styling for the navigation area */
+.toolbar-nav {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.user-info {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Styling for navigation links */
+.toolbar-link {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 4px;
     text-decoration: none;
     cursor: pointer;
-    transition: background-color 0.3s, color 0.3s;
-    font-size: 18px; /* Ensure consistent font size */
+    transition: all 0.3s ease;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: inherit;
 }
 
-/* Styling for the navigation button on hover */
-.but:hover {
-    background-color: #2980b9;
-    color: #fff; /* Set font color to white on hover */
+.logout-button {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.logout-button:hover {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+/* Styling for navigation links on hover */
+.toolbar-link:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Add margin to body to account for fixed toolbar */
+body {
+    margin-top: 70px;
+}
+
+/* Responsive Design for Toolbar */
+@media (max-width: 768px) {
+    .toolbar {
+        padding: 10px 15px;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-logo h3 {
+        font-size: 20px;
+    }
+
+    .toolbar-nav {
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .toolbar-link {
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    .user-info {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
 }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useSocket } from '../utils';
-import ShiftAssignmentRow from './ShiftAssignmentRow'; // Import the new component
-// import './ManagerShiftEditor.css'; // To be created later
+import ShiftAssignmentRow from './ShiftAssignmentRow';
+import RoleRequirementBuilder from './RoleRequirementBuilder';
+import './ManagerShiftEditor.css';
 
 // Helper to get EmployeeType values - in a real app, this might come from an API or a shared constant
 const employeeTypes = [
@@ -160,7 +161,7 @@ const ManagerShiftEditor = () => {
     const count = parseInt(value, 10);
     setNewRequiredCounts(prev => ({
       ...prev,
-      [role]: Math.max(0, count) // Ensure count is not negative
+      [role]: Math.max(0, count || 0) // Ensure count is not negative
     }));
   };
 
@@ -229,74 +230,105 @@ const ManagerShiftEditor = () => {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '900px', margin: '0 auto' }}>
-      <button onClick={() => navigate('/manager-jobs')} style={{ marginBottom: '20px' }}>&larr; Back to Jobs</button>
-      <h2>Manage Shifts for Job: {jobName || `ID ${jobId}`}</h2>
-      {clientCompanyId && <p>Client Company ID: {clientCompanyId}</p>}
+    <div className="manager-shift-editor">
+      <button onClick={() => navigate('/manager-jobs')} className="back-button">
+        &larr; Back to Jobs
+      </button>
 
-      {error && <p style={{ color: 'red', border: '1px solid red', padding: '10px', borderRadius: '4px' }}>Error: {error}</p>}
-      {successMessage && <p style={{ color: 'green', border: '1px solid green', padding: '10px', borderRadius: '4px' }}>{successMessage}</p>}
+      <div className="page-header">
+        <h2 className="page-title">Manage Shifts for Job: {jobName || `ID ${jobId}`}</h2>
+        {clientCompanyId && <p className="client-info">Client Company ID: {clientCompanyId}</p>}
+      </div>
 
-      <div style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ccc', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
-        <h3>Create New Shift</h3>
+      {error && <div className="alert alert-error">Error: {error}</div>}
+      {successMessage && <div className="alert alert-success">{successMessage}</div>}
+
+      <div className="create-shift-section">
+        <h3 className="section-title">Create New Shift</h3>
         <form onSubmit={handleCreateShiftSubmit}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-            <div>
-              <label htmlFor="newShiftDate" style={{ display: 'block', marginBottom: '5px' }}>Shift Date:</label>
-              <input type="date" id="newShiftDate" value={newShiftDate} onChange={(e) => setNewShiftDate(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="newShiftDate" className="form-label">Shift Date:</label>
+              <input
+                type="date"
+                id="newShiftDate"
+                value={newShiftDate}
+                onChange={(e) => setNewShiftDate(e.target.value)}
+                required
+                className="form-input"
+              />
             </div>
-            <div>
-              <label htmlFor="newShiftPart" style={{ display: 'block', marginBottom: '5px' }}>Shift Part:</label>
-              <select id="newShiftPart" value={newShiftPart} onChange={(e) => setNewShiftPart(e.target.value)} required style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}>
+            <div className="form-group">
+              <label htmlFor="newShiftPart" className="form-label">Shift Part:</label>
+              <select
+                id="newShiftPart"
+                value={newShiftPart}
+                onChange={(e) => setNewShiftPart(e.target.value)}
+                required
+                className="form-select"
+              >
                 <option value="morning">Morning</option>
                 <option value="noon">Noon</option>
                 <option value="evening">Evening</option>
               </select>
             </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <label htmlFor="newClientPoNumber" style={{ display: 'block', marginBottom: '5px' }}>Client PO # (Optional):</label>
-              <input type="text" id="newClientPoNumber" value={newClientPoNumber} onChange={(e) => setNewClientPoNumber(e.target.value)} style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }} />
+            <div className="form-group form-group-full">
+              <label htmlFor="newClientPoNumber" className="form-label">Client PO # (Optional):</label>
+              <input
+                type="text"
+                id="newClientPoNumber"
+                value={newClientPoNumber}
+                onChange={(e) => setNewClientPoNumber(e.target.value)}
+                className="form-input"
+              />
             </div>
           </div>
           
-          <h4 style={{ marginTop: '20px', marginBottom: '10px' }}>Required Employee Counts:</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '10px' }}>
-            {employeeTypes.map(type => (
-              <div key={type.value}>
-                <label htmlFor={`count-${type.value}`} style={{ display: 'block', marginBottom: '3px', fontSize: '0.9em' }}>{type.label}:</label>
-                <input
-                  type="number"
-                  id={`count-${type.value}`}
-                  min="0"
-                  value={newRequiredCounts[type.value] || 0}
-                  onChange={(e) => handleRequiredCountChange(type.value, e.target.value)}
-                  style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-                />
-              </div>
-            ))}
-          </div>
-          <button type="submit" disabled={isLoading} style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: isLoading ? '#ccc' : '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+          <RoleRequirementBuilder
+            requiredCounts={newRequiredCounts}
+            onCountChange={handleRequiredCountChange}
+            disabled={isLoading}
+          />
+          <button type="submit" disabled={isLoading} className="submit-button">
             {isLoading ? 'Creating Shift...' : 'Create Shift'}
           </button>
         </form>
       </div>
 
-      <h3>Existing Shifts for this Job</h3>
-      {isLoading && shifts.length === 0 && <p>Loading shifts...</p>}
-      {!isLoading && shifts.length === 0 && !error && <p>No shifts found for this job. Create one above!</p>}
+      <div className="shifts-section">
+        <h3 className="section-title">Existing Shifts for this Job</h3>
+        {isLoading && shifts.length === 0 && <p className="loading-message">Loading shifts...</p>}
+        {!isLoading && shifts.length === 0 && !error && <p className="empty-message">No shifts found for this job. Create one above!</p>}
       {shifts.length > 0 && (
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
+        <ul className="shifts-list">
           {shifts.map((shift) => (
-            <li key={shift.id} style={{ border: '1px solid #eee', padding: '15px', marginBottom: '10px', borderRadius: '4px', backgroundColor: '#fff' }}>
-              <p><strong>Date:</strong> {new Date(shift.shiftDate).toLocaleDateString()} | <strong>Part:</strong> {shift.shiftPart}</p>
-              {shift.client_po_number && <p><strong>Client PO #:</strong> {shift.client_po_number}</p>}
-              <p><strong>Required Counts:</strong></p>
-              <ul style={{ listStyleType: 'disc', marginLeft: '20px' }}>
-                {Object.entries(shift.required_employee_counts || {}).map(([role, count]) => 
-                  count > 0 && <li key={role}>{role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}: {count}</li>
-                )}
-              </ul>
-              <p><strong>Assigned Workers:</strong></p>
+            <li key={shift.id} className="shift-card">
+              <div className="shift-header">
+                <div className="shift-info">
+                  <h4 className="shift-date">
+                    {new Date(shift.shiftDate).toLocaleDateString()} - {shift.shiftPart}
+                  </h4>
+                  {shift.client_po_number && (
+                    <p className="shift-details">Client PO #: {shift.client_po_number}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="required-counts">
+                <h5>Required Workers:</h5>
+                <ul className="counts-list">
+                  {Object.entries(shift.required_employee_counts || {}).map(([role, count]) =>
+                    count > 0 && (
+                      <li key={role} className="count-item">
+                        {role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}: {count}
+                      </li>
+                    )
+                  )}
+                </ul>
+              </div>
+
+              <div className="assignments-section">
+                <h5 className="assignments-title">Worker Assignments:</h5>
               {/* Render ShiftAssignmentRow for each role based on required_employee_counts */}
               {Object.entries(shift.required_employee_counts || {}).map(([roleKey, requiredCount]) => {
                 if (requiredCount === 0 && !(shift.workers || []).some(w => w.role_assigned === roleKey)) {
@@ -319,17 +351,21 @@ const ManagerShiftEditor = () => {
                   />
                 );
               })}
-              {/* Fallback for shifts that might have assigned workers but no corresponding required_employee_counts entry (less ideal) */}
-              {(shift.workers || []).filter(w => !(shift.required_employee_counts || {}).hasOwnProperty(w.role_assigned)).map(worker => (
-                 <div key={`${shift.id}-${worker.id}-${worker.role_assigned}-adhoc`} style={{color: 'orange', fontSize: '0.9em'}}>
-                    * Assigned (adhoc): {worker.name} as {worker.role_assigned.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    <button onClick={() => handleUnassignWorkerFromShiftSlot(shift.id, worker.id, worker.role_assigned)} style={{marginLeft: '5px'}}>Unassign</button>
-                 </div>
-              ))}
+                {/* Fallback for shifts that might have assigned workers but no corresponding required_employee_counts entry (less ideal) */}
+                {(shift.workers || []).filter(w => !(shift.required_employee_counts || {}).hasOwnProperty(w.role_assigned)).map(worker => (
+                   <div key={`${shift.id}-${worker.id}-${worker.role_assigned}-adhoc`} className="adhoc-assignment">
+                      * Assigned (adhoc): {worker.name} as {worker.role_assigned.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      <button onClick={() => handleUnassignWorkerFromShiftSlot(shift.id, worker.id, worker.role_assigned)} className="unassign-btn">
+                        Unassign
+                      </button>
+                   </div>
+                ))}
+              </div>
             </li>
           ))}
         </ul>
       )}
+      </div>
     </div>
   );
 };

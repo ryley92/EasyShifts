@@ -52,6 +52,9 @@ class User(Base):
     name = Column(String(NAMES_LEN), nullable=False)
     employee_type = Column(Enum(EmployeeType), nullable=True)
 
+    # Relationships
+    certifications = relationship("EmployeeCertification", back_populates="user", uselist=False)
+
 
 class ClientCompany(Base):
     """

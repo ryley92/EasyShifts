@@ -42,8 +42,22 @@ const SignUp = () => {
                             Employee
                         </label>
                     </div>
+                    <div>
+                        <div className="icons-container">
+                            <img src="/businessman.png" alt="Client Icon" className="icon"/>
+                        </div>
+                        <label>
+                            <input
+                                type="radio"
+                                value="client"
+                                checked={role === 'client'}
+                                onChange={handleRoleChange}
+                            />
+                            Client
+                        </label>
+                    </div>
                     <Link
-                        to={role === 'manager' ? '/SignUpManager' : (role === 'employee' ? '/SignUpEmployee' : '/signup')}>
+                        to={role === 'manager' ? '/SignUpManager' : (role === 'employee' ? '/SignUpEmployee' : (role === 'client' ? '/SignUpClient' : '/signup'))}>
                         <button disabled={!role}>Continue</button>
                     </Link>
                 </form>

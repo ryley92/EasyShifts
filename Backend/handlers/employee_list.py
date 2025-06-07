@@ -1,6 +1,7 @@
 from config.constants import db
 from db.controllers.users_controller import UsersController
 from db.controllers.workPlaces_controller import WorkPlacesController
+from db.controllers.employee_certifications_controller import EmployeeCertificationsController
 from user_session import UserSession
 
 def handle_employee_list(user_session: UserSession) -> dict:
@@ -31,6 +32,32 @@ def handle_employee_list(user_session: UserSession) -> dict:
             return {"request_id": request_id, "success": False, "error": f"An error occurred while fetching employee list: {str(e)}"}
     else:
         print("User does not have access to manager-specific pages.")
+        return {"request_id": request_id, "success": False, "error": "User does not have access to manager-specific pages."}
+
+
+def handle_get_all_approved_worker_details(user_session: UserSession) -> dict:
+    """
+    Get all approved workers with their certification details for the manager.
+    This is used for shift assignment with role filtering.
+    """
+    request_id = 94
+    if user_session is None:
+        return {"request_id": request_id, "success": False, "error": "User session not found."}
+
+    if user_session.can_access_manager_page():
+        try:
+            certifications_controller = EmployeeCertificationsController(db)
+            manager_id = user_session.get_id
+
+            # Get all employees with certifications for this manager's workplace
+            employees_with_certs = certifications_controller.get_all_employees_with_certifications(manager_id)
+
+            return {"request_id": request_id, "success": True, "data": employees_with_certs}
+
+        except Exception as e:
+            print(f"Error fetching employee details with certifications: {e}")
+            return {"request_id": request_id, "success": False, "error": f"An error occurred: {str(e)}"}
+    else:
         return {"request_id": request_id, "success": False, "error": "User does not have access to manager-specific pages."}
 
 

@@ -29,15 +29,18 @@ from .manager_schedule import (
 from .send_shifts_to_employee import handle_send_shifts
 from .make_shifts import make_shifts
 from .shift_management_handlers import handle_create_shift, handle_get_shifts_by_job, handle_assign_worker_to_shift, handle_unassign_worker_from_shift
-from .client_company_handlers import handle_get_all_client_companies
+from .client_company_handlers import (
+    handle_get_all_client_companies,
+    handle_create_client_company,
+    handle_update_client_company,
+    handle_delete_client_company
+)
 from .job_handlers import handle_create_job, handle_get_jobs_by_manager
 from .crew_chief_handlers import (
     handle_get_crew_chief_shifts,
     handle_get_crew_members_for_shift,
     handle_submit_shift_times
 )
-from .client_company_handlers import handle_get_all_client_companies
-from .job_handlers import handle_create_job, handle_get_jobs_by_manager
 
 # You can also define an __all__ list if you want to control what `from handlers import *` imports
 # For example:

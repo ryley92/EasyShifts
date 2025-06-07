@@ -56,6 +56,10 @@ const ManagerProfile = ({name = "Joe's Caffe"}) => {
         // setShowClientsDirectory(false);
     };
 
+    const handleTimesheetsClick = () => {
+        navigate('/manager-timesheets');
+    };
+
  return (
         <div className="full-page">
             <div className="manager-profile">
@@ -90,6 +94,12 @@ const ManagerProfile = ({name = "Joe's Caffe"}) => {
                         <UimSchedule className="icon" style={{width: '5em', height: '5em'}}/>
                         <br/>
                         Job Management
+                    </div>
+
+                    <div className="icon-wrapper" onClick={handleTimesheetsClick}>
+                        <UimClockNine className="icon" style={{width: '5em', height: '5em'}}/>
+                        <br/>
+                        Timesheets
                     </div>
                 </div>
             </div>

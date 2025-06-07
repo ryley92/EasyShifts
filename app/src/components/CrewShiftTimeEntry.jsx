@@ -170,7 +170,17 @@ const CrewShiftTimeEntry = () => {
       {successMessage && <div className="success-message">{successMessage}</div>}
       {crewMembers.length === 0 && !loading && !error && <p>No crew members found for this shift.</p>}
       {crewMembers.length > 0 && (
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmitTimes(); }}>
+        <div className="crew-times-form">
+          <div className="form-actions">
+            <button
+              type="button"
+              onClick={handleSubmitTimes}
+              className="submit-times-button"
+              disabled={Object.values(workerTimes).every(times => times.times_submitted_at)}
+            >
+              Submit All Times
+            </button>
+          </div>
           <table className="crew-times-table">
             <thead>
               <tr>
@@ -178,6 +188,7 @@ const CrewShiftTimeEntry = () => {
                 <th>Role</th>
                 <th>Clock In</th>
                 <th>Clock Out</th>
+                <th>Hours</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -186,10 +197,21 @@ const CrewShiftTimeEntry = () => {
                 const key = `${member.user_id}_${member.role_assigned}`;
                 const times = workerTimes[key] || { clock_in_time: '', clock_out_time: '', role_assigned: member.role_assigned, times_submitted_at: null };
                 const isSubmitted = !!times.times_submitted_at;
+
+                // Calculate hours worked
+                let hoursWorked = '';
+                if (times.clock_in_time && times.clock_out_time) {
+                  const clockIn = new Date(times.clock_in_time);
+                  const clockOut = new Date(times.clock_out_time);
+                  const diffMs = clockOut - clockIn;
+                  const diffHours = diffMs / (1000 * 60 * 60);
+                  hoursWorked = diffHours > 0 ? `${diffHours.toFixed(2)}h` : 'Invalid';
+                }
+
                 return (
-                  <tr key={key}>
-                    <td>{member.name}</td>
-                    <td>{member.role_assigned}</td>
+                  <tr key={key} className={isSubmitted ? 'submitted-row' : ''}>
+                    <td className="name-cell">{member.name}</td>
+                    <td className="role-cell">{member.role_assigned}</td>
                     <td>
                       <input
                         type="datetime-local"
@@ -208,16 +230,23 @@ const CrewShiftTimeEntry = () => {
                         className={isSubmitted ? 'disabled-input' : ''}
                       />
                     </td>
-                    <td>{isSubmitted ? `Submitted: ${new Date(times.times_submitted_at).toLocaleString()}` : 'Pending'}</td>
+                    <td className="hours-cell">{hoursWorked}</td>
+                    <td className="status-cell">
+                      {isSubmitted ? (
+                        <span className="status-submitted">
+                          ✓ Submitted<br/>
+                          <small>{new Date(times.times_submitted_at).toLocaleString()}</small>
+                        </span>
+                      ) : (
+                        <span className="status-pending">⏳ Pending</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-          <button type="submit" className="submit-times-button" disabled={crewMembers.every(m => workerTimes[`${m.user_id}_${m.role_assigned}`]?.times_submitted_at)}>
-            Submit All Times
-          </button>
-        </form>
+        </div>
       )}
     </div>
   );

@@ -100,42 +100,92 @@ const EmployeeListPage = () => {
         <div className="employee-container">
             <h1 className="employee-title">Employee Management</h1>
 
-            {error && <p style={{ color: 'red' }}>Error: {error}</p>}
-            {successMessage && <p style={{ color: 'green' }}>{successMessage}</p>}
-
-            <h2 className="section-title">Approved Employees</h2>
-            {employees.filter(emp => emp.approved).length > 0 ? (
-                <ul className="employee-list">
-                    {employees.filter(employee => employee.approved).map(employee => (
-                        <li key={employee.userName} className="employee-item approved">
-                            {employee.name} ({employee.userName})
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <p>No approved employees.</p>
+            {error && (
+                <div className="error-message">
+                    <strong>Error:</strong> {error}
+                    {error.includes("Workplace for user") && (
+                        <div className="error-help">
+                            <p><strong>Possible Solution:</strong> This error typically occurs when the manager account doesn't have a workplace setup. Please contact your system administrator to initialize your workplace data.</p>
+                        </div>
+                    )}
+                </div>
             )}
+            {successMessage && <div className="success-message">{successMessage}</div>}
 
-            <h2 className="section-title">Waiting for Approval</h2>
-            {employees.filter(emp => !emp.approved).length > 0 ? (
-                <ul className="employee-list">
-                    {employees.filter(employee => !employee.approved).map(employee => (
-                        <li key={employee.userName} className="employee-item">
-                            <span>{employee.name} ({employee.userName})</span>
-                            <div>
-                                <button className="approve-button" onClick={() => handleApprove(employee.userName)}>
-                                    Approve
-                                </button>
-                                <button className="reject-button" onClick={() => handleReject(employee.userName)}>
-                                    Reject
-                                </button>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <p>No employees awaiting approval.</p>
-            )}
+            <div className="employee-stats">
+                <div className="stat-card">
+                    <h3>Total Employees</h3>
+                    <span className="stat-number">{employees.length}</span>
+                </div>
+                <div className="stat-card">
+                    <h3>Approved</h3>
+                    <span className="stat-number approved">{employees.filter(emp => emp.approved).length}</span>
+                </div>
+                <div className="stat-card">
+                    <h3>Pending Approval</h3>
+                    <span className="stat-number pending">{employees.filter(emp => !emp.approved).length}</span>
+                </div>
+            </div>
+
+            <div className="employee-sections">
+                <div className="employee-section">
+                    <h2 className="section-title">Approved Employees</h2>
+                    {employees.filter(emp => emp.approved).length > 0 ? (
+                        <div className="employee-grid">
+                            {employees.filter(employee => employee.approved).map(employee => (
+                                <div key={employee.userName} className="employee-card approved">
+                                    <div className="employee-info">
+                                        <h4 className="employee-name">{employee.name}</h4>
+                                        <p className="employee-username">@{employee.userName}</p>
+                                        <span className="employee-status approved">✓ Approved</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="empty-state">
+                            <p>No approved employees.</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="employee-section">
+                    <h2 className="section-title">Waiting for Approval</h2>
+                    {employees.filter(emp => !emp.approved).length > 0 ? (
+                        <div className="employee-grid">
+                            {employees.filter(employee => !employee.approved).map(employee => (
+                                <div key={employee.userName} className="employee-card pending">
+                                    <div className="employee-info">
+                                        <h4 className="employee-name">{employee.name}</h4>
+                                        <p className="employee-username">@{employee.userName}</p>
+                                        <span className="employee-status pending">⏳ Pending</span>
+                                    </div>
+                                    <div className="employee-actions">
+                                        <button
+                                            className="approve-button"
+                                            onClick={() => handleApprove(employee.userName)}
+                                            title="Approve Employee"
+                                        >
+                                            ✓ Approve
+                                        </button>
+                                        <button
+                                            className="reject-button"
+                                            onClick={() => handleReject(employee.userName)}
+                                            title="Reject Employee"
+                                        >
+                                            ✗ Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="empty-state">
+                            <p>No employees awaiting approval.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };

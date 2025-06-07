@@ -1,9 +1,12 @@
 // components/Home.js
 import React from 'react';
 import {Link} from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './../css/Home.css';
 
 const Home = () => {
+    const { isAuthenticated } = useAuth();
+
     return (
         <div className="home-container">
             <img src="/easyshifts-logo.png" alt="Easy Shifts" className="easy-shifts-image"/>
@@ -21,8 +24,14 @@ const Home = () => {
             </div>
 
             <div className="button-container">
-                <Link to="/login" className="login-button">Login</Link>
-                <Link to="/signup" className="signup-button">Sign Up</Link>
+                {isAuthenticated ? (
+                    <Link to="/dashboard" className="login-button">Go to Dashboard</Link>
+                ) : (
+                    <>
+                        <Link to="/login" className="login-button">Login</Link>
+                        <Link to="/signup" className="signup-button">Sign Up</Link>
+                    </>
+                )}
             </div>
         </div>
     );

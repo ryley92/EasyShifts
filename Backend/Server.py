@@ -194,7 +194,7 @@ def handle_request(request_id, data):
         print("Received Get All Approved Worker Details request")
         if not user_session:
             return {"request_id": request_id, "success": False, "error": "User session not found."}
-        return manager_schedule.handle_get_all_approved_worker_details(user_session)
+        return employee_list.handle_get_all_approved_worker_details(user_session)
 
     elif request_id == 95:
         # Get preferences for Manager Schedule
@@ -254,6 +254,18 @@ def handle_request(request_id, data):
     elif request_id == 200: # Get All Client Companies
         print("Received Get All Client Companies request")
         return client_company_handlers.handle_get_all_client_companies(user_session)
+
+    elif request_id == 201: # Create Client Company
+        print("Received Create Client Company request")
+        return client_company_handlers.handle_create_client_company(data, user_session)
+
+    elif request_id == 202: # Update Client Company
+        print("Received Update Client Company request")
+        return client_company_handlers.handle_update_client_company(data, user_session)
+
+    elif request_id == 203: # Delete Client Company
+        print("Received Delete Client Company request")
+        return client_company_handlers.handle_delete_client_company(data, user_session)
 
     elif request_id == 210: # Create Job
         print("Received Create Job request")
