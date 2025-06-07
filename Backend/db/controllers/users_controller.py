@@ -121,3 +121,66 @@ class UsersController(BaseController):
             bool: True if the username exists, False otherwise.
         """
         return self.repository.get_user_by_username(username) is not None
+
+    # Google OAuth methods
+    def find_user_by_google_id(self, google_id: str):
+        """
+        Find user by Google ID.
+
+        Parameters:
+            google_id (str): The Google OAuth ID to search for.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.repository.get_user_by_google_id(google_id)
+
+    def find_user_by_google_id_or_email(self, google_id: str, email: str):
+        """
+        Find user by Google ID or email address.
+
+        Parameters:
+            google_id (str): The Google OAuth ID to search for.
+            email (str): The email address to search for.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        # First try to find by Google ID
+        user = self.repository.get_user_by_google_id(google_id)
+        if user:
+            return user
+
+        # If not found, try to find by email
+        return self.repository.get_user_by_email(email)
+
+    def link_google_account_to_user(self, user_id: int, google_data: dict):
+        """
+        Link Google account to existing user.
+
+        Parameters:
+            user_id (int): The user ID to link Google account to.
+            google_data (dict): Google user information.
+        """
+        return self.repository.link_google_account(user_id, google_data)
+
+    def create_user_with_google(self, user_data: dict):
+        """
+        Create new user with Google information.
+
+        Parameters:
+            user_data (dict): User data including Google information.
+
+        Returns:
+            User: The created user object.
+        """
+        return self.repository.create_user_with_google(user_data)
+
+    def update_user_last_login(self, user_id: int):
+        """
+        Update user's last login time.
+
+        Parameters:
+            user_id (int): The user ID to update.
+        """
+        return self.repository.update_last_login(user_id)

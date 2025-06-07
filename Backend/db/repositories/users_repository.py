@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from db.models import User
 from db.repositories.base_repository import BaseRepository
 from db.repositories.userRequests_repository import UserRequestsRepository
+from datetime import datetime
 
 
 class UsersRepository(BaseRepository):
@@ -111,3 +112,106 @@ class UsersRepository(BaseRepository):
             User: The user object if found, None otherwise.
         """
         return self.db.query(User).filter(User.name == name).first()
+
+    # Google OAuth methods
+    def get_user_by_google_id(self, google_id: str):
+        """
+        Retrieves a user by Google ID.
+
+        Parameters:
+            google_id (str): The Google ID of the user to retrieve.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.db.query(User).filter(User.google_id == google_id).first()
+
+    def get_user_by_email(self, email: str):
+        """
+        Retrieves a user by email address.
+
+        Parameters:
+            email (str): The email address of the user to retrieve.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.db.query(User).filter(User.email == email).first()
+
+    def link_google_account(self, user_id: int, google_data: dict):
+        """
+        Link Google account to existing user.
+
+        Parameters:
+            user_id (int): The user ID to link Google account to.
+            google_data (dict): Google user information.
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user:
+                user.google_id = google_data.get('sub')
+                user.email = google_data.get('email')
+                user.google_picture = google_data.get('picture')
+                user.last_login = datetime.now()
+                self.db.commit()
+                return True
+            return False
+        except Exception as e:
+            self.db.rollback()
+            raise e
+
+    def create_user_with_google(self, user_data: dict):
+        """
+        Create new user with Google information.
+
+        Parameters:
+            user_data (dict): User data including Google information.
+
+        Returns:
+            User: The created user object.
+        """
+        try:
+            new_user = User(
+                username=user_data['username'],
+                name=user_data['name'],
+                email=user_data['email'],
+                google_id=user_data['google_id'],
+                google_picture=user_data.get('google_picture'),
+                isManager=user_data.get('is_manager', False),
+                isApproval=user_data.get('approved', False),
+                isActive=True,
+                last_login=datetime.now(),
+                password=None  # No password for Google OAuth users
+            )
+
+            self.db.add(new_user)
+            self.db.commit()
+            self.db.refresh(new_user)
+            return new_user
+        except Exception as e:
+            self.db.rollback()
+            raise e
+
+    def update_last_login(self, user_id: int):
+        """
+        Update user's last login time.
+
+        Parameters:
+            user_id (int): The user ID to update.
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        try:
+            user = self.db.query(User).filter(User.id == user_id).first()
+            if user:
+                user.last_login = datetime.now()
+                self.db.commit()
+                return True
+            return False
+        except Exception as e:
+            self.db.rollback()
+            raise e

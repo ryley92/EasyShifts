@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../utils';
+import { useAuth } from '../contexts/AuthContext';
+import GoogleSignIn from './auth/GoogleSignIn';
 import '../css/SignUpClient.css';
 
 const SignUpClient = () => {
@@ -18,6 +20,7 @@ const SignUpClient = () => {
     const [isLoading, setIsLoading] = useState(false);
     const socket = useSocket();
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const handleChange = (e) => {
         setFormData({
@@ -104,13 +107,59 @@ const SignUpClient = () => {
         }
     };
 
+    const handleGoogleSuccess = async (result) => {
+        if (result.needsSignup) {
+            // Handle Google signup for client
+            try {
+                const request = {
+                    request_id: 71, // GOOGLE_SIGNUP_CLIENT
+                    data: {
+                        username: result.googleData.email.split('@')[0], // Default username from email
+                        name: result.googleData.name,
+                        email: result.googleData.email,
+                        companyName: formData.companyName || result.googleData.name + ' Company',
+                        googleData: result.googleData
+                    }
+                };
+
+                socket.send(JSON.stringify(request));
+            } catch (error) {
+                setError('Google signup failed. Please try again.');
+            }
+        } else if (result.username) {
+            // User successfully signed up
+            login(result.username, null, result.isManager, true);
+            navigate('/client-profile');
+        }
+    };
+
+    const handleGoogleError = (errorMessage) => {
+        setError(errorMessage);
+    };
+
     return (
         <div className="signup-client-container">
             <div className="signup-client-form">
                 <h2>Client Registration</h2>
                 <p>Register your company to request staffing services</p>
-                
+
                 {error && <div className="error-message">{error}</div>}
+
+                {/* Google Signup Option */}
+                <div className="google-signup-section">
+                    <GoogleSignIn
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        buttonText="signup_with"
+                    />
+                    <div className="google-signup-note">
+                        <small>Quick signup with your Google account</small>
+                    </div>
+                </div>
+
+                <div className="divider">
+                    <span>or fill out the form below</span>
+                </div>
                 
                 <form onSubmit={handleSubmit}>
                     <div className="form-section">

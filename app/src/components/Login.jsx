@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import GoogleSignIn from './auth/GoogleSignIn';
+import GoogleAccountLinking from './auth/GoogleAccountLinking';
 import './../css/Login.css';
 
 function Login() {
@@ -8,7 +11,10 @@ function Login() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showGoogleLinking, setShowGoogleLinking] = useState(false);
+    const [googleLinkingData, setGoogleLinkingData] = useState(null);
     const { login, isAuthenticated, isManager } = useAuth();
+    const { isConfigured } = useGoogleAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -45,46 +51,117 @@ function Login() {
         }
     };
 
+    const handleGoogleSuccess = (result) => {
+        if (result.needsLinking) {
+            setGoogleLinkingData(result.googleData);
+            setShowGoogleLinking(true);
+        } else {
+            // User successfully logged in with Google
+            const from = location.state?.from?.pathname || (result.isManager ? '/manager-profile' : '/employee-profile');
+            navigate(from, { replace: true });
+        }
+    };
+
+    const handleGoogleError = (errorMessage) => {
+        setError(errorMessage);
+    };
+
+    const handleLinkingSuccess = (userData) => {
+        setShowGoogleLinking(false);
+        setGoogleLinkingData(null);
+        const from = location.state?.from?.pathname || (userData.isManager ? '/manager-profile' : '/employee-profile');
+        navigate(from, { replace: true });
+    };
+
+    const handleLinkingCancel = () => {
+        setShowGoogleLinking(false);
+        setGoogleLinkingData(null);
+    };
+
     return (
-        <div className="login-container">
-            <div className="login-form">
-                <label htmlFor="username">Username:</label>
-                <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={isLoading}
-                    required
-                />
-                <br/>
-                <label htmlFor="password">Password:</label>
-                <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    disabled={isLoading}
-                    required
-                />
-                <br/>
-                <button
-                    type="submit"
-                    onClick={handleLogin}
-                    disabled={isLoading}
-                >
-                    {isLoading ? 'Logging in...' : 'Log In'}
-                </button>
-                <div id="log">{error}</div>
-                <div className="signup-link">
-                    Don't have an account? <a href="/signup">Sign Up</a>
+        <>
+            <div className="login-container">
+                <div className="login-form">
+                    <h2 className="login-title">Sign In to EasyShifts</h2>
+
+                    {error && (
+                        <div className="error-message">
+                            <span className="error-icon">⚠️</span>
+                            {error}
+                        </div>
+                    )}
+
+                    <GoogleSignIn
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        buttonText="sign_in_with"
+                    />
+
+                    {!isConfigured && (
+                        <div className="oauth-setup-link">
+                            <a href="/google-oauth-setup" target="_blank" rel="noopener noreferrer">
+                                ⚙️ Setup Google Sign-In
+                            </a>
+                        </div>
+                    )}
+
+                    <div className="divider">
+                        <span>or</span>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="username">Username:</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            disabled={isLoading}
+                            placeholder="Enter your username"
+                            required
+                        />
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="password">Password:</label>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            disabled={isLoading}
+                            placeholder="Enter your password"
+                            required
+                        />
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="login-button"
+                        onClick={handleLogin}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? 'Signing in...' : 'Sign In'}
+                    </button>
+
+                    <div className="signup-link">
+                        Don't have an account? <a href="/signup">Sign Up</a>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            {showGoogleLinking && googleLinkingData && (
+                <GoogleAccountLinking
+                    googleData={googleLinkingData}
+                    onSuccess={handleLinkingSuccess}
+                    onCancel={handleLinkingCancel}
+                />
+            )}
+        </>
     );
 }
 

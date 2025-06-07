@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../utils';
+import { useAuth } from '../contexts/AuthContext';
+import GoogleSignIn from './auth/GoogleSignIn';
 import './../css/SignUpEmployee.css';
 
 const SignUpEmployee = () => {
     const socket = useSocket();
     const navigate = useNavigate();
+    const { login } = useAuth();
 
     const [formData, setFormData] = useState({
         username: '',
@@ -78,6 +81,41 @@ const SignUpEmployee = () => {
         }
     };
 
+    const handleGoogleSuccess = async (result) => {
+        if (result.needsSignup) {
+            // Handle Google signup for employee
+            try {
+                const request = {
+                    request_id: 69, // GOOGLE_SIGNUP_EMPLOYEE
+                    data: {
+                        username: result.googleData.email.split('@')[0], // Default username from email
+                        name: result.googleData.name,
+                        email: result.googleData.email,
+                        businessName: formData.businessName || '',
+                        googleData: result.googleData,
+                        certifications: {
+                            canCrewChief: formData.canCrewChief,
+                            canForklift: formData.canForklift,
+                            canTruck: formData.canTruck
+                        }
+                    }
+                };
+
+                socket.send(JSON.stringify(request));
+            } catch (error) {
+                setError('Google signup failed. Please try again.');
+            }
+        } else if (result.username) {
+            // User successfully signed up
+            login(result.username, null, result.isManager, true);
+            navigate('/employee-profile');
+        }
+    };
+
+    const handleGoogleError = (errorMessage) => {
+        setError(errorMessage);
+    };
+
     useEffect(() => {
         if (!socket) return;
 
@@ -116,6 +154,22 @@ const SignUpEmployee = () => {
                 <p>Join as a stagehand with optional specialized certifications</p>
 
                 {error && <div className="error-message">{error}</div>}
+
+                {/* Google Signup Option */}
+                <div className="google-signup-section">
+                    <GoogleSignIn
+                        onSuccess={handleGoogleSuccess}
+                        onError={handleGoogleError}
+                        buttonText="signup_with"
+                    />
+                    <div className="google-signup-note">
+                        <small>Quick signup with your Google account</small>
+                    </div>
+                </div>
+
+                <div className="divider">
+                    <span>or fill out the form below</span>
+                </div>
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-section">

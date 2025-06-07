@@ -1,23 +1,17 @@
-import React, {useState} from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import '../css/ManagerProfile.css';
 import {SolarSettingsBoldDuotone} from "./Icons/SolarSettingsBoldDuotone";
 import {UimSchedule} from "./Icons/UimSchedule";
 import {FluentPeopleTeam20Filled} from "./Icons/Team";
-import {UimClockNine} from "./Icons/UimClockNine"; // Using UimClockNine as a placeholder for Clients icon
-import {useSocket} from '../utils';
+import {UimClockNine} from "./Icons/UimClockNine";
 //import ManagerSchedule from "./ManagerSchedule/ManagerSchedule";
 //import ManagerSettings from "./ManagerSettings";
 //import EmployeeListPage from "./EmployeeListPage";
 //import ManagerClientCompaniesPage from "./ManagerClientCompaniesPage"; // Add this import
 
 const ManagerProfile = ({name = "Joe's Caffe"}) => {
-    const navigate = useNavigate(); // Initialize useNavigate
-    const socket = useSocket();
-    // const [showSettings, setShowSettings] = useState(false); // Already removed
-    // const [showSchedule, setShowSchedule] = useState(false); // Already removed
-    // const [showWorkers, setShowWorkers] = useState(false); // Already removed
-    // const [showClientsDirectory, setShowClientsDirectory] = useState(false); // Remove this state
+    const navigate = useNavigate();
 
     const handleSettingsClick = () => {
         navigate('/manager-settings');
@@ -35,9 +29,6 @@ const ManagerProfile = ({name = "Joe's Caffe"}) => {
 
     const handleWorkersClick = () => {
         navigate('/employeeListPage');
-        // setShowSettings(false); // Already removed
-        // setShowSchedule(false); // Already removed
-        // setShowClientsDirectory(false);
     };
 
     const handleClientsDirectoryClick = () => {
@@ -78,10 +69,10 @@ const ManagerProfile = ({name = "Joe's Caffe"}) => {
                         Schedule
                     </div>
 
-                    <div className="icon-wrapper" onClick={handleWorkersClick}>
+                    <div className="icon-wrapper" onClick={handleWorkersClick} title="Enhanced Employee Directory">
                         <FluentPeopleTeam20Filled className="icon" style={{width: '5em', height: '5em'}}/>
                         <br/>
-                        Workers
+                        Employee Directory
                     </div>
 
                     <div className="icon-wrapper" onClick={handleClientsDirectoryClick}>

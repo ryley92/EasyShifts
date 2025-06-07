@@ -2,6 +2,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
+import { GoogleAuthContextProvider } from '../contexts/GoogleAuthContext';
 import ProtectedRoute from '../components/ProtectedRoute';
 import DashboardRouter from '../components/DashboardRouter';
 import Home from '../components/Home';
@@ -25,6 +26,9 @@ import EmployeeListPage from '../components/EmployeeListPage';
 import CrewChiefDashboard from '../components/CrewChiefDashboard'; // Import the new component
 import CrewShiftTimeEntry from '../components/CrewShiftTimeEntry'; // Import the new component
 import ManagerTimesheets from '../components/ManagerTimesheets';
+import EnhancedTimesheetManager from '../components/EnhancedTimesheetManager';
+import EnhancedScheduleView from '../components/schedule/EnhancedScheduleView';
+import GoogleOAuthSetup from '../components/GoogleOAuthSetup';
 import Toolbar from '../components/Toolbar';
 import './App.css';
 
@@ -32,8 +36,9 @@ import './App.css';
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <GoogleAuthContextProvider>
+      <AuthProvider>
+        <Router>
         <div className="App">
           <Toolbar />
           <Routes>
@@ -60,11 +65,15 @@ function App() {
           <Route path="/crew-chief-dashboard" element={<ProtectedRoute><CrewChiefDashboard /></ProtectedRoute>} />
           <Route path="/crew-chief/shift/:shiftId/times" element={<ProtectedRoute><CrewShiftTimeEntry /></ProtectedRoute>} />
           <Route path="/manager-timesheets" element={<ProtectedRoute requireManager={true}><ManagerTimesheets /></ProtectedRoute>} />
+          <Route path="/timesheet/:shiftId" element={<ProtectedRoute><EnhancedTimesheetManager /></ProtectedRoute>} />
+          <Route path="/enhanced-schedule" element={<ProtectedRoute requireManager={true}><EnhancedScheduleView /></ProtectedRoute>} />
+          <Route path="/google-oauth-setup" element={<GoogleOAuthSetup />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </div>
-      </Router>
-    </AuthProvider>
+        </Router>
+      </AuthProvider>
+    </GoogleAuthContextProvider>
   );
 }
 

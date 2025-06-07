@@ -11,45 +11,73 @@ from user_session import UserSession
 def handle_create_shift(data: dict, user_session: UserSession):
     """
     Handles the request to create a new shift.
-    'data' should include: job_id, shiftDate (YYYY-MM-DD), shiftPart (morning/noon/evening),
+    'data' should include: job_id, shift_start_datetime (ISO format), shift_end_datetime (optional),
                          required_employee_counts (JSON string or dict), client_po_number (optional)
+
+    For backward compatibility, also accepts: shiftDate (YYYY-MM-DD), shiftPart (morning/noon/evening)
     """
     if not user_session or not user_session.can_access_manager_page():
         return {"request_id": 220, "success": False, "error": "Unauthorized access."}
 
     try:
         job_id = data.get("job_id")
-        shift_date_str = data.get("shiftDate")
-        shift_part_str = data.get("shiftPart")
         required_counts_input = data.get("required_employee_counts")
         client_po_number = data.get("client_po_number")
 
-        if not all([job_id, shift_date_str, shift_part_str, required_counts_input is not None]):
-            return {"request_id": 220, "success": False, "error": "Missing required fields (job_id, shiftDate, shiftPart, required_employee_counts)."}
+        # Check for new datetime format first
+        shift_start_datetime_str = data.get("shift_start_datetime")
+        shift_end_datetime_str = data.get("shift_end_datetime")
 
-        shift_date = datetime.strptime(shift_date_str, "%Y-%m-%d").date()
-        shift_part = ShiftPart(shift_part_str) # Convert string to Enum
+        # Legacy format support
+        shift_date_str = data.get("shiftDate")
+        shift_part_str = data.get("shiftPart")
 
+        if not job_id:
+            return {"request_id": 220, "success": False, "error": "Missing required field: job_id."}
+
+        # Process required employee counts
         if isinstance(required_counts_input, str):
             required_employee_counts = json.loads(required_counts_input)
         elif isinstance(required_counts_input, dict):
             required_employee_counts = required_counts_input
         else:
-            return {"request_id": 220, "success": False, "error": "required_employee_counts must be a JSON string or a dictionary."}
-        
+            required_employee_counts = {}
+
         # Validate required_employee_counts keys against EmployeeType enum
         for role_key in required_employee_counts.keys():
             if role_key not in EmployeeType._value2member_map_:
                 return {"request_id": 220, "success": False, "error": f"Invalid role '{role_key}' in required_employee_counts."}
 
-
         shift_data = {
             "job_id": int(job_id),
-            "shiftDate": shift_date,
-            "shiftPart": shift_part,
             "required_employee_counts": required_employee_counts,
             "client_po_number": client_po_number
         }
+
+        # Handle new datetime format
+        if shift_start_datetime_str:
+            try:
+                # Parse ISO datetime string
+                shift_start_datetime = datetime.fromisoformat(shift_start_datetime_str.replace('Z', '+00:00'))
+                shift_data["shift_start_datetime"] = shift_start_datetime
+
+                if shift_end_datetime_str:
+                    shift_end_datetime = datetime.fromisoformat(shift_end_datetime_str.replace('Z', '+00:00'))
+                    shift_data["shift_end_datetime"] = shift_end_datetime
+
+            except ValueError as e:
+                return {"request_id": 220, "success": False, "error": f"Invalid datetime format: {str(e)}"}
+
+        # Handle legacy format for backward compatibility
+        elif shift_date_str and shift_part_str:
+            try:
+                shift_date = datetime.strptime(shift_date_str, "%Y-%m-%d").date()
+                shift_data["shiftDate"] = shift_date
+                shift_data["shiftPart"] = ShiftPart(shift_part_str)
+            except ValueError as e:
+                return {"request_id": 220, "success": False, "error": f"Invalid legacy format: {str(e)}"}
+        else:
+            return {"request_id": 220, "success": False, "error": "Missing required fields. Provide either shift_start_datetime or both shiftDate and shiftPart."}
 
         controller = ShiftsController(db)
         created_shift = controller.create_entity(shift_data)
@@ -64,12 +92,22 @@ def handle_create_shift(data: dict, user_session: UserSession):
         response_data = {
             "id": new_shift_details.id,
             "job_id": new_shift_details.job_id,
-            "shiftDate": new_shift_details.shiftDate.isoformat(),
-            "shiftPart": new_shift_details.shiftPart.value,
             "required_employee_counts": new_shift_details.required_employee_counts,
             "client_po_number": new_shift_details.client_po_number,
             "workers": [] # New shift has no workers initially
         }
+
+        # Add datetime fields if available
+        if hasattr(new_shift_details, 'shift_start_datetime') and new_shift_details.shift_start_datetime:
+            response_data["shift_start_datetime"] = new_shift_details.shift_start_datetime.isoformat()
+            if hasattr(new_shift_details, 'shift_end_datetime') and new_shift_details.shift_end_datetime:
+                response_data["shift_end_datetime"] = new_shift_details.shift_end_datetime.isoformat()
+
+        # Add legacy fields for backward compatibility
+        if hasattr(new_shift_details, 'shiftDate') and new_shift_details.shiftDate:
+            response_data["shiftDate"] = new_shift_details.shiftDate.isoformat()
+        if hasattr(new_shift_details, 'shiftPart') and new_shift_details.shiftPart:
+            response_data["shiftPart"] = new_shift_details.shiftPart.value
         return {"request_id": 220, "success": True, "data": response_data}
     except ValueError as ve:
         return {"request_id": 220, "success": False, "error": f"Invalid data: {str(ve)}"}

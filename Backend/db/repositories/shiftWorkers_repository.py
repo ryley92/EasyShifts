@@ -206,3 +206,109 @@ class ShiftWorkersRepository(BaseRepository):
             }
             for row in results
         ]
+
+    def get_workers_for_shift(self, shift_id: int) -> List[ShiftWorker]:
+        """
+        Get all workers for a specific shift.
+
+        Args:
+            shift_id (int): The shift ID
+
+        Returns:
+            List[ShiftWorker]: List of shift worker records
+        """
+        return self.db.query(ShiftWorker).filter(ShiftWorker.shiftID == shift_id).all()
+
+    def get_shift_worker(self, shift_id: int, user_id: int, role_assigned) -> ShiftWorker:
+        """
+        Get a specific shift worker record.
+
+        Args:
+            shift_id (int): The shift ID
+            user_id (int): The user ID
+            role_assigned (EmployeeType): The role assigned
+
+        Returns:
+            ShiftWorker: The shift worker record if found, None otherwise
+        """
+        return self.db.query(ShiftWorker).filter(
+            ShiftWorker.shiftID == shift_id,
+            ShiftWorker.userID == user_id,
+            ShiftWorker.role_assigned == role_assigned
+        ).first()
+
+    def get_workers_for_shift_and_user(self, shift_id: int, user_id: int) -> List[ShiftWorker]:
+        """
+        Get all shift worker records for a specific user on a specific shift.
+
+        Args:
+            shift_id (int): The shift ID
+            user_id (int): The user ID
+
+        Returns:
+            List[ShiftWorker]: List of ShiftWorker records
+        """
+        return self.db.query(ShiftWorker).filter(
+            ShiftWorker.shiftID == shift_id,
+            ShiftWorker.userID == user_id
+        ).all()
+
+    def get_employee_shifts_with_details(self, employee_id: int, start_date=None, end_date=None) -> List[dict]:
+        """
+        Get all shifts for an employee with shift and job details.
+
+        Args:
+            employee_id (int): The employee's user ID
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+
+        Returns:
+            List[dict]: List of shift records with details
+        """
+        from ..models import Shift, Job, ClientCompany
+
+        query = (
+            self.db.query(
+                ShiftWorker,
+                Shift.id.label("shift_id"),
+                Shift.shiftDate.label("shift_date"),
+                Shift.shiftPart.label("shift_part"),
+                Shift.shift_start_datetime.label("shift_start_datetime"),
+                Shift.shift_end_datetime.label("shift_end_datetime"),
+                Shift.client_po_number.label("client_po_number"),
+                Job.jobName.label("job_name"),
+                Job.location.label("job_location"),
+                ClientCompany.companyName.label("client_company_name"),
+            )
+            .join(Shift, ShiftWorker.shiftID == Shift.id)
+            .join(Job, Shift.job_id == Job.id)
+            .left_join(ClientCompany, Job.client_company_id == ClientCompany.id)
+            .filter(ShiftWorker.userID == employee_id)
+        )
+
+        if start_date:
+            query = query.filter(Shift.shiftDate >= start_date)
+        if end_date:
+            query = query.filter(Shift.shiftDate <= end_date)
+
+        results = query.order_by(Shift.shiftDate.desc()).all()
+
+        timesheet_records = []
+        for row in results:
+            sw = row.ShiftWorker
+            record = {
+                "shift_id": row.shift_id,
+                "shift_date": row.shift_date.isoformat() if row.shift_date else None,
+                "shift_part": row.shift_part.value if row.shift_part else None,
+                "shift_start_datetime": row.shift_start_datetime.isoformat() if row.shift_start_datetime else None,
+                "shift_end_datetime": row.shift_end_datetime.isoformat() if row.shift_end_datetime else None,
+                "job_name": row.job_name,
+                "job_location": row.job_location,
+                "client_company_name": row.client_company_name,
+                "client_po_number": row.client_po_number,
+                "role_assigned": sw.role_assigned.value,
+                "timesheet": sw.to_dict()
+            }
+            timesheet_records.append(record)
+
+        return timesheet_records

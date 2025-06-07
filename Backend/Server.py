@@ -6,8 +6,9 @@ import asyncio
 import json
 from handlers import login, employee_signin, manager_signin, employee_shifts_request, \
     get_employee_requests, manager_insert_shifts, employee_list, send_profile, manager_schedule, \
-    send_shifts_to_employee, make_shifts
+    send_shifts_to_employee, make_shifts, timesheet_management_handlers, enhanced_schedule_handlers
 from handlers import crew_chief_handlers, client_company_handlers, job_handlers, shift_management_handlers
+from handlers.google_auth import google_auth_handler
 from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
 # Initialize the database and session
@@ -309,6 +310,146 @@ def handle_request(request_id, data):
         # manager_schedule.get_last_shift_board_window_times(user_session.get_id) # This seems like a debug/logging line
         return {"request_id": request_id, "success": True, "message": "Schedule window time set."}
 
+    # === TIMESHEET MANAGEMENT HANDLERS ===
+    elif request_id == 1010: # Get shift timesheet details
+        print("Received Get Shift Timesheet Details request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_get_shift_timesheet_details(data, user_session)
+
+    elif request_id == 1011: # Update worker timesheet
+        print("Received Update Worker Timesheet request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_update_worker_timesheet(data, user_session)
+
+    elif request_id == 1012: # Submit shift timesheet
+        print("Received Submit Shift Timesheet request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_submit_shift_timesheet(data, user_session)
+
+    elif request_id == 1013: # Approve shift timesheet
+        print("Received Approve Shift Timesheet request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_approve_shift_timesheet(data, user_session)
+
+    elif request_id == 1014: # Get employee timesheet history
+        print("Received Get Employee Timesheet History request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_get_employee_timesheet_history(data, user_session)
+
+    # === ENHANCED SCHEDULE HANDLERS ===
+    elif request_id == 2001: # Get schedule data
+        print("Received Get Schedule Data request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_schedule_handlers.handle_get_schedule_data(data, user_session)
+
+    elif request_id == 2002: # Assign worker to shift (enhanced)
+        print("Received Assign Worker to Shift (Enhanced) request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_schedule_handlers.handle_assign_worker_to_shift_enhanced(data, user_session)
+
+    elif request_id == 2003: # Unassign worker from shift (enhanced)
+        print("Received Unassign Worker from Shift (Enhanced) request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_schedule_handlers.handle_unassign_worker_from_shift_enhanced(data, user_session)
+
+    elif request_id == 2004: # Create shift (enhanced)
+        print("Received Create Shift (Enhanced) request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_schedule_handlers.handle_create_shift_enhanced(data, user_session)
+
+    elif request_id == 2005: # Update shift (enhanced)
+        print("Received Update Shift (Enhanced) request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_schedule_handlers.handle_update_shift_enhanced(data, user_session)
+
+    elif request_id == 2006: # Delete shift (enhanced)
+        print("Received Delete Shift (Enhanced) request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_schedule_handlers.handle_delete_shift_enhanced(data, user_session)
+
+    # Google OAuth Authentication handlers
+    elif request_id == 66: # GOOGLE_AUTH_LOGIN
+        print("Received Google Auth Login request")
+        response = google_auth_handler.handle_google_auth_login(data)
+
+        # If login successful and user exists, set user_session
+        if response.get('success') and response.get('data', {}).get('user_exists'):
+            user_session = response['data'].get('user_session')
+            # Remove user_session from response data as it's not JSON serializable
+            response['data'].pop('user_session', None)
+
+        return {"request_id": request_id, **response}
+
+    elif request_id == 67: # LINK_GOOGLE_ACCOUNT
+        print("Received Link Google Account request")
+        response = google_auth_handler.handle_link_google_account(data)
+
+        # If linking successful, set user_session
+        if response.get('success'):
+            user_session = response['data'].get('user_session')
+            # Remove user_session from response data as it's not JSON serializable
+            response['data'].pop('user_session', None)
+
+        return {"request_id": request_id, **response}
+
+    elif request_id == 68: # CREATE_ACCOUNT_WITH_GOOGLE
+        print("Received Create Account with Google request")
+        response = google_auth_handler.handle_create_account_with_google(data)
+
+        # If account creation successful, set user_session
+        if response.get('success'):
+            user_session = response['data'].get('user_session')
+            # Remove user_session from response data as it's not JSON serializable
+            response['data'].pop('user_session', None)
+
+        return {"request_id": request_id, **response}
+
+    elif request_id == 69: # GOOGLE_SIGNUP_EMPLOYEE
+        print("Received Google Signup Employee request")
+        response = google_auth_handler.handle_google_signup_employee(data)
+
+        # If signup successful, set user_session
+        if response.get('success'):
+            user_session = response['data'].get('user_session')
+            # Remove user_session from response data as it's not JSON serializable
+            response['data'].pop('user_session', None)
+
+        return {"request_id": request_id, **response}
+
+    elif request_id == 70: # GOOGLE_SIGNUP_MANAGER
+        print("Received Google Signup Manager request")
+        response = google_auth_handler.handle_google_signup_manager(data)
+
+        # If signup successful, set user_session
+        if response.get('success'):
+            user_session = response['data'].get('user_session')
+            # Remove user_session from response data as it's not JSON serializable
+            response['data'].pop('user_session', None)
+
+        return {"request_id": request_id, **response}
+
+    elif request_id == 71: # GOOGLE_SIGNUP_CLIENT
+        print("Received Google Signup Client request")
+        response = google_auth_handler.handle_google_signup_client(data)
+
+        # If signup successful, set user_session
+        if response.get('success'):
+            user_session = response['data'].get('user_session')
+            # Remove user_session from response data as it's not JSON serializable
+            response['data'].pop('user_session', None)
+
+        return {"request_id": request_id, **response}
 
     else:
         print("Unknown request ID:", request_id)

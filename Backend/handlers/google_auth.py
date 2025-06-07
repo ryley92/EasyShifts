@@ -1,0 +1,410 @@
+# Google OAuth Authentication Handler for EasyShifts
+import json
+import os
+import logging
+from google.auth.transport import requests
+from google.oauth2 import id_token
+from dotenv import load_dotenv
+
+from db.controllers.users_controller import UsersController
+from user_session import UserSession
+from main import initialize_database_and_session
+
+# Load environment variables
+load_dotenv()
+
+# Initialize the database and session
+db, _ = initialize_database_and_session()
+
+# Google OAuth configuration
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+
+class GoogleAuthHandler:
+    def __init__(self):
+        self.google_client_id = GOOGLE_CLIENT_ID
+        self.users_controller = UsersController(db)
+        
+    def verify_google_token(self, token):
+        """Verify Google ID token and extract user information"""
+        try:
+            # Verify the token
+            idinfo = id_token.verify_oauth2_token(
+                token, 
+                requests.Request(), 
+                self.google_client_id
+            )
+            
+            # Token is valid, extract user info
+            return {
+                'success': True,
+                'user': {
+                    'google_id': idinfo['sub'],
+                    'email': idinfo['email'],
+                    'name': idinfo['name'],
+                    'picture': idinfo.get('picture'),
+                    'email_verified': idinfo.get('email_verified', False)
+                }
+            }
+            
+        except ValueError as e:
+            logging.error(f"Google token verification failed: {e}")
+            return {
+                'success': False,
+                'error': 'Invalid Google token'
+            }
+    
+    def handle_google_auth_login(self, data):
+        """Handle Google authentication login (Request ID 66)"""
+        try:
+            credential = data.get('credential')
+            client_id = data.get('clientId')
+            
+            if not credential:
+                return {
+                    'success': False,
+                    'error': 'Missing credential'
+                }
+            
+            # Verify Google token
+            verification = self.verify_google_token(credential)
+            if not verification['success']:
+                return {
+                    'success': False,
+                    'error': verification['error']
+                }
+            
+            google_user = verification['user']
+            
+            # Check if user exists in database
+            existing_user = self.users_controller.find_user_by_google_id_or_email(
+                google_user['google_id'], 
+                google_user['email']
+            )
+            
+            if existing_user:
+                # User exists, log them in
+                # Update last login
+                self.users_controller.update_user_last_login(existing_user.id)
+                
+                # Create user session
+                user_session = UserSession(user_id=existing_user.id, is_manager=existing_user.isManager)
+                
+                response_data = {
+                    'user_exists': True,
+                    'username': existing_user.username,
+                    'is_manager': existing_user.isManager,
+                    'email': existing_user.email,
+                    'google_linked': True,
+                    'user_session': user_session
+                }
+                
+                return {
+                    'success': True,
+                    'data': response_data
+                }
+            else:
+                # User doesn't exist, need account linking or creation
+                response_data = {
+                    'user_exists': False,
+                    'google_user_info': google_user
+                }
+                
+                return {
+                    'success': True,
+                    'data': response_data
+                }
+                
+        except Exception as e:
+            logging.error(f"Google auth login error: {e}")
+            return {
+                'success': False,
+                'error': 'Authentication failed'
+            }
+    
+    def handle_link_google_account(self, data):
+        """Handle linking Google account to existing account (Request ID 67)"""
+        try:
+            username = data.get('username')
+            password = data.get('password')
+            google_data = data.get('googleData')
+            
+            # Verify existing user credentials
+            user_exists, is_manager = self.users_controller.check_user_existence_and_manager_status(username, password)
+            if not user_exists:
+                return {
+                    'success': False,
+                    'error': 'Invalid username or password'
+                }
+
+            # Get the actual user object
+            user_id = self.users_controller.get_user_id_by_username_and_password(username, password)
+            user = self.users_controller.get_entity(user_id)
+
+            # Check if Google account is already linked to another user
+            existing_google_user = self.users_controller.find_user_by_google_id(google_data['sub'])
+            if existing_google_user and existing_google_user.id != user.id:
+                return {
+                    'success': False,
+                    'error': 'Google account already linked to another user'
+                }
+
+            # Link Google account to existing user
+            self.users_controller.link_google_account_to_user(user.id, google_data)
+
+            # Create user session
+            user_session = UserSession(user_id=user.id, is_manager=user.isManager)
+            
+            response_data = {
+                'username': user.username,
+                'is_manager': is_manager,
+                'google_linked': True,
+                'user_session': user_session
+            }
+            
+            return {
+                'success': True,
+                'data': response_data
+            }
+            
+        except Exception as e:
+            logging.error(f"Link Google account error: {e}")
+            return {
+                'success': False,
+                'error': 'Failed to link Google account'
+            }
+    
+    def handle_create_account_with_google(self, data):
+        """Handle creating new account with Google (Request ID 68)"""
+        try:
+            username = data.get('username')
+            google_data = data.get('googleData')
+            name = data.get('name')
+            email = data.get('email')
+            
+            # Check if username already exists
+            if self.users_controller.check_username_existence(username):
+                return {
+                    'success': False,
+                    'error': 'Username already exists'
+                }
+            
+            # Check if Google account is already linked
+            existing_google_user = self.users_controller.find_user_by_google_id(google_data['sub'])
+            if existing_google_user:
+                return {
+                    'success': False,
+                    'error': 'Google account already linked to another user'
+                }
+            
+            # Create new user account
+            new_user = self.users_controller.create_user_with_google({
+                'username': username,
+                'name': name,
+                'email': email,
+                'google_id': google_data['sub'],
+                'google_picture': google_data.get('picture'),
+                'is_manager': False,  # New accounts are employees by default
+                'approved': False  # Require approval unless auto-approved
+            })
+            
+            # Create user session
+            user_session = UserSession(user_id=new_user.id, is_manager=new_user.isManager)
+            
+            response_data = {
+                'username': new_user.username,
+                'is_manager': new_user.isManager,
+                'google_linked': True,
+                'user_session': user_session
+            }
+            
+            return {
+                'success': True,
+                'data': response_data
+            }
+            
+        except Exception as e:
+            logging.error(f"Create account with Google error: {e}")
+            return {
+                'success': False,
+                'error': 'Failed to create account'
+            }
+
+    def handle_google_signup_employee(self, data):
+        """Handle Google signup for employee (Request ID 69)"""
+        try:
+            username = data.get('username')
+            google_data = data.get('googleData')
+            name = data.get('name')
+            email = data.get('email')
+            business_name = data.get('businessName')
+            certifications = data.get('certifications', {})
+
+            # Check if username already exists
+            if self.users_controller.check_username_existence(username):
+                return {
+                    'success': False,
+                    'error': 'Username already exists'
+                }
+
+            # Check if Google account is already linked
+            existing_google_user = self.users_controller.find_user_by_google_id(google_data['sub'])
+            if existing_google_user:
+                return {
+                    'success': False,
+                    'error': 'Google account already linked to another user'
+                }
+
+            # Create new employee account
+            new_user = self.users_controller.create_user_with_google({
+                'username': username,
+                'name': name,
+                'email': email,
+                'google_id': google_data['sub'],
+                'google_picture': google_data.get('picture'),
+                'is_manager': False,
+                'approved': False  # Require approval for employees
+            })
+
+            # TODO: Handle business_name and certifications
+            # This would require additional database operations
+
+            # Create user session
+            user_session = UserSession(user_id=new_user.id, is_manager=new_user.isManager)
+
+            response_data = {
+                'username': new_user.username,
+                'is_manager': new_user.isManager,
+                'google_linked': True,
+                'user_session': user_session
+            }
+
+            return {
+                'success': True,
+                'data': response_data
+            }
+
+        except Exception as e:
+            logging.error(f"Google signup employee error: {e}")
+            return {
+                'success': False,
+                'error': 'Failed to create employee account'
+            }
+
+    def handle_google_signup_manager(self, data):
+        """Handle Google signup for manager (Request ID 70)"""
+        try:
+            username = data.get('username')
+            google_data = data.get('googleData')
+            name = data.get('name')
+            email = data.get('email')
+
+            # Check if username already exists
+            if self.users_controller.check_username_existence(username):
+                return {
+                    'success': False,
+                    'error': 'Username already exists'
+                }
+
+            # Check if Google account is already linked
+            existing_google_user = self.users_controller.find_user_by_google_id(google_data['sub'])
+            if existing_google_user:
+                return {
+                    'success': False,
+                    'error': 'Google account already linked to another user'
+                }
+
+            # Create new manager account
+            new_user = self.users_controller.create_user_with_google({
+                'username': username,
+                'name': name,
+                'email': email,
+                'google_id': google_data['sub'],
+                'google_picture': google_data.get('picture'),
+                'is_manager': True,
+                'approved': True  # Auto-approve managers
+            })
+
+            # Create user session
+            user_session = UserSession(user_id=new_user.id, is_manager=new_user.isManager)
+
+            response_data = {
+                'username': new_user.username,
+                'is_manager': new_user.isManager,
+                'google_linked': True,
+                'user_session': user_session
+            }
+
+            return {
+                'success': True,
+                'data': response_data
+            }
+
+        except Exception as e:
+            logging.error(f"Google signup manager error: {e}")
+            return {
+                'success': False,
+                'error': 'Failed to create manager account'
+            }
+
+    def handle_google_signup_client(self, data):
+        """Handle Google signup for client (Request ID 71)"""
+        try:
+            username = data.get('username')
+            google_data = data.get('googleData')
+            name = data.get('name')
+            email = data.get('email')
+            company_name = data.get('companyName')
+
+            # Check if username already exists
+            if self.users_controller.check_username_existence(username):
+                return {
+                    'success': False,
+                    'error': 'Username already exists'
+                }
+
+            # Check if Google account is already linked
+            existing_google_user = self.users_controller.find_user_by_google_id(google_data['sub'])
+            if existing_google_user:
+                return {
+                    'success': False,
+                    'error': 'Google account already linked to another user'
+                }
+
+            # TODO: Handle client company creation
+            # This would require additional database operations for client companies
+
+            # Create new client account
+            new_user = self.users_controller.create_user_with_google({
+                'username': username,
+                'name': name,
+                'email': email,
+                'google_id': google_data['sub'],
+                'google_picture': google_data.get('picture'),
+                'is_manager': False,  # Clients are not managers
+                'approved': True  # Auto-approve clients
+            })
+
+            # Create user session
+            user_session = UserSession(user_id=new_user.id, is_manager=new_user.isManager)
+
+            response_data = {
+                'username': new_user.username,
+                'is_manager': new_user.isManager,
+                'google_linked': True,
+                'user_session': user_session
+            }
+
+            return {
+                'success': True,
+                'data': response_data
+            }
+
+        except Exception as e:
+            logging.error(f"Google signup client error: {e}")
+            return {
+                'success': False,
+                'error': 'Failed to create client account'
+            }
+
+# Global instance for use in Server.py
+google_auth_handler = GoogleAuthHandler()

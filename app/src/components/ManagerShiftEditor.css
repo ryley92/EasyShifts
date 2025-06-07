@@ -173,6 +173,33 @@
   border-bottom: 1px solid #dee2e6;
 }
 
+.shift-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.timesheet-link {
+  background: #3498db;
+  color: white;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.timesheet-link:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+  text-decoration: none;
+  color: white;
+}
+
 .shift-info {
   flex: 1;
 }
@@ -238,6 +265,25 @@
 
 .error-message {
   color: #dc3545;
+}
+
+.adhoc-assignment {
+  color: #856404;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 4px 0;
+  font-size: 0.9em;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.adhoc-assignment .unassign-btn {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 0.8em;
 }
 
 /* Responsive design */

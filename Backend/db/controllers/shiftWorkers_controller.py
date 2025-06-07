@@ -123,3 +123,121 @@ class ShiftWorkersController(BaseController):
         """
         role_assigned = EmployeeType(role_assigned_str)
         return self.service.record_shift_times(shift_id, user_id, role_assigned, clock_in_time_str, clock_out_time_str)
+
+    def get_shift_worker(self, shift_id: int, user_id: int, role_assigned_str: str):
+        """
+        Get a specific shift worker record.
+
+        Args:
+            shift_id (int): The shift ID
+            user_id (int): The user ID
+            role_assigned_str (str): The role assigned as string
+
+        Returns:
+            ShiftWorker: The shift worker record if found, None otherwise
+        """
+        from ..models import EmployeeType
+        role_assigned = EmployeeType(role_assigned_str)
+        return self.repository.get_shift_worker(shift_id, user_id, role_assigned)
+
+    def update_shift_worker_times(self, shift_id: int, user_id: int, role_assigned_str: str, update_data: dict):
+        """
+        Update timesheet data for a shift worker.
+
+        Args:
+            shift_id (int): The shift ID
+            user_id (int): The user ID
+            role_assigned_str (str): The role assigned as string
+            update_data (dict): Dictionary of fields to update
+
+        Returns:
+            ShiftWorker: The updated shift worker record
+        """
+        from ..models import EmployeeType
+        role_assigned = EmployeeType(role_assigned_str)
+        shift_worker = self.repository.get_shift_worker(shift_id, user_id, role_assigned)
+
+        if shift_worker:
+            for key, value in update_data.items():
+                if hasattr(shift_worker, key):
+                    setattr(shift_worker, key, value)
+
+            self.repository.db.commit()
+            self.repository.db.refresh(shift_worker)
+            return shift_worker
+        return None
+
+    def submit_timesheet_for_worker(self, shift_id: int, worker_id: int, submitted_by_id: int) -> bool:
+        """
+        Mark timesheet as submitted for a worker.
+
+        Args:
+            shift_id (int): The shift ID
+            worker_id (int): The worker's user ID
+            submitted_by_id (int): ID of user submitting (crew chief or manager)
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            from datetime import datetime
+
+            # Get all shift worker records for this worker on this shift
+            shift_workers = self.repository.get_workers_for_shift_and_user(shift_id, worker_id)
+
+            for sw in shift_workers:
+                sw.times_submitted_at = datetime.now()
+                sw.times_submitted_by = submitted_by_id
+                # Recalculate hours when submitting
+                sw.calculate_total_hours()
+
+            self.repository.db.commit()
+            return True
+        except Exception as e:
+            print(f"Error submitting timesheet: {e}")
+            self.repository.db.rollback()
+            return False
+
+    def approve_timesheet_for_worker(self, shift_id: int, worker_id: int, approved_by_id: int) -> bool:
+        """
+        Approve timesheet for a worker.
+
+        Args:
+            shift_id (int): The shift ID
+            worker_id (int): The worker's user ID
+            approved_by_id (int): ID of manager approving
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            from datetime import datetime
+
+            # Get all shift worker records for this worker on this shift
+            shift_workers = self.repository.get_workers_for_shift_and_user(shift_id, worker_id)
+
+            for sw in shift_workers:
+                sw.is_approved = True
+                sw.approved_at = datetime.now()
+                sw.approved_by = approved_by_id
+
+            self.repository.db.commit()
+            return True
+        except Exception as e:
+            print(f"Error approving timesheet: {e}")
+            self.repository.db.rollback()
+            return False
+
+    def get_employee_timesheet_history(self, employee_id: int, start_date: str = None, end_date: str = None) -> list:
+        """
+        Get timesheet history for an employee.
+
+        Args:
+            employee_id (int): The employee's user ID
+            start_date (str): Optional start date filter (YYYY-MM-DD)
+            end_date (str): Optional end date filter (YYYY-MM-DD)
+
+        Returns:
+            list: List of timesheet records with shift details
+        """
+        return self.service.get_employee_timesheet_history(employee_id, start_date, end_date)

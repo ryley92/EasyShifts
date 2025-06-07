@@ -87,7 +87,7 @@ const CrewChiefDashboard = () => {
               <tr
                 key={shift.shift_id}
                 className="clickable-row"
-                onClick={() => navigate(`/crew-chief/shift/${shift.shift_id}/times`, { state: { shiftDetails: shift } })}
+                onClick={() => navigate(`/timesheet/${shift.shift_id}`, { state: { shiftDetails: shift } })}
               >
                 <td>{new Date(shift.shift_date).toLocaleDateString()}</td>
                 <td>{shift.shift_part}</td>

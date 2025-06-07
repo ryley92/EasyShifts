@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import NoResultFound
 from typing import Optional, List
 from .base_repository import BaseRepository
-from ..models.employee_certifications import EmployeeCertification
+from ..models import EmployeeCertification
 
 
 class EmployeeCertificationsRepository(BaseRepository):

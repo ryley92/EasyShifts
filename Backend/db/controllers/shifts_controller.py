@@ -157,11 +157,21 @@ def convert_shift_for_client(shift: Shift, db, is_manager=True) -> dict:
     shifts_for_client = {
         'id': shift.id,
         'job_id': shift.job_id,
-        'shiftDate': shift.shiftDate.isoformat() if shift.shiftDate else None,
-        "shiftPart": shift.shiftPart.value if shift.shiftPart else None,
         "required_employee_counts": shift.required_employee_counts if shift.required_employee_counts else {},
         "client_po_number": shift.client_po_number if shift.client_po_number else ""
     }
+
+    # Add new datetime fields if available
+    if hasattr(shift, 'shift_start_datetime') and shift.shift_start_datetime:
+        shifts_for_client['shift_start_datetime'] = shift.shift_start_datetime.isoformat()
+        if hasattr(shift, 'shift_end_datetime') and shift.shift_end_datetime:
+            shifts_for_client['shift_end_datetime'] = shift.shift_end_datetime.isoformat()
+
+    # Add legacy fields for backward compatibility
+    if hasattr(shift, 'shiftDate') and shift.shiftDate:
+        shifts_for_client['shiftDate'] = shift.shiftDate.isoformat()
+    if hasattr(shift, 'shiftPart') and shift.shiftPart:
+        shifts_for_client['shiftPart'] = shift.shiftPart.value
 
     if is_manager:
         workers = shift_workers_controller.convert_shift_workers_by_shift_id_to_client(shift.id)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useSocket } from '../utils';
 import ShiftAssignmentRow from './ShiftAssignmentRow';
 import RoleRequirementBuilder from './RoleRequirementBuilder';
@@ -30,8 +30,8 @@ const ManagerShiftEditor = () => {
   const [successMessage, setSuccessMessage] = useState('');
 
   // Form state for new shift
-  const [newShiftDate, setNewShiftDate] = useState('');
-  const [newShiftPart, setNewShiftPart] = useState('morning'); // Default to morning
+  const [newShiftStartDateTime, setNewShiftStartDateTime] = useState('');
+  const [newShiftEndDateTime, setNewShiftEndDateTime] = useState('');
   const [newClientPoNumber, setNewClientPoNumber] = useState('');
   const [newRequiredCounts, setNewRequiredCounts] = useState(
     employeeTypes.reduce((acc, type) => ({ ...acc, [type.value]: 0 }), {})
@@ -87,10 +87,15 @@ const ManagerShiftEditor = () => {
         } else if (response.request_id === 220) { // Create Shift
           if (response.success && response.data) {
             setSuccessMessage(`Shift created successfully!`);
-            setShifts(prevShifts => [...prevShifts, response.data].sort((a, b) => new Date(a.shiftDate) - new Date(b.shiftDate) || a.shiftPart.localeCompare(b.shiftPart)));
+            // Sort by start datetime or fallback to legacy date/part
+            setShifts(prevShifts => [...prevShifts, response.data].sort((a, b) => {
+              const aDateTime = a.shift_start_datetime || `${a.shiftDate}T00:00:00`;
+              const bDateTime = b.shift_start_datetime || `${b.shiftDate}T00:00:00`;
+              return new Date(aDateTime) - new Date(bDateTime);
+            }));
             // Reset form
-            setNewShiftDate('');
-            setNewShiftPart('morning');
+            setNewShiftStartDateTime('');
+            setNewShiftEndDateTime('');
             setNewClientPoNumber('');
             setNewRequiredCounts(employeeTypes.reduce((acc, type) => ({ ...acc, [type.value]: 0 }), {}));
             setError('');
@@ -167,23 +172,37 @@ const ManagerShiftEditor = () => {
 
   const handleCreateShiftSubmit = (e) => {
     e.preventDefault();
-    if (!newShiftDate || !newShiftPart) {
-      setError('Shift date and part are required.');
+    if (!newShiftStartDateTime) {
+      setError('Shift start date and time are required.');
       return;
     }
+
+    // Validate end time is after start time if provided
+    if (newShiftEndDateTime && new Date(newShiftEndDateTime) <= new Date(newShiftStartDateTime)) {
+      setError('End time must be after start time.');
+      return;
+    }
+
     if (socket && socket.readyState === WebSocket.OPEN && jobId) {
       setIsLoading(true);
       setError('');
       setSuccessMessage('');
+
+      const requestData = {
+        job_id: parseInt(jobId, 10),
+        shift_start_datetime: newShiftStartDateTime,
+        client_po_number: newClientPoNumber,
+        required_employee_counts: newRequiredCounts,
+      };
+
+      // Add end datetime if provided
+      if (newShiftEndDateTime) {
+        requestData.shift_end_datetime = newShiftEndDateTime;
+      }
+
       const request = {
         request_id: 220, // CREATE_SHIFT
-        data: {
-          job_id: parseInt(jobId, 10),
-          shiftDate: newShiftDate,
-          shiftPart: newShiftPart,
-          client_po_number: newClientPoNumber,
-          required_employee_counts: newRequiredCounts,
-        },
+        data: requestData,
       };
       socket.send(JSON.stringify(request));
     } else {
@@ -248,29 +267,27 @@ const ManagerShiftEditor = () => {
         <form onSubmit={handleCreateShiftSubmit}>
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="newShiftDate" className="form-label">Shift Date:</label>
+              <label htmlFor="newShiftStartDateTime" className="form-label">Shift Start Date & Time:</label>
               <input
-                type="date"
-                id="newShiftDate"
-                value={newShiftDate}
-                onChange={(e) => setNewShiftDate(e.target.value)}
+                type="datetime-local"
+                id="newShiftStartDateTime"
+                value={newShiftStartDateTime}
+                onChange={(e) => setNewShiftStartDateTime(e.target.value)}
                 required
                 className="form-input"
+                min={new Date().toISOString().slice(0, 16)} // Prevent past dates
               />
             </div>
             <div className="form-group">
-              <label htmlFor="newShiftPart" className="form-label">Shift Part:</label>
-              <select
-                id="newShiftPart"
-                value={newShiftPart}
-                onChange={(e) => setNewShiftPart(e.target.value)}
-                required
-                className="form-select"
-              >
-                <option value="morning">Morning</option>
-                <option value="noon">Noon</option>
-                <option value="evening">Evening</option>
-              </select>
+              <label htmlFor="newShiftEndDateTime" className="form-label">Shift End Date & Time (Optional):</label>
+              <input
+                type="datetime-local"
+                id="newShiftEndDateTime"
+                value={newShiftEndDateTime}
+                onChange={(e) => setNewShiftEndDateTime(e.target.value)}
+                className="form-input"
+                min={newShiftStartDateTime || new Date().toISOString().slice(0, 16)}
+              />
             </div>
             <div className="form-group form-group-full">
               <label htmlFor="newClientPoNumber" className="form-label">Client PO # (Optional):</label>
@@ -306,11 +323,29 @@ const ManagerShiftEditor = () => {
               <div className="shift-header">
                 <div className="shift-info">
                   <h4 className="shift-date">
-                    {new Date(shift.shiftDate).toLocaleDateString()} - {shift.shiftPart}
+                    {shift.shift_start_datetime ? (
+                      <>
+                        {new Date(shift.shift_start_datetime).toLocaleString()}
+                        {shift.shift_end_datetime && (
+                          <span> - {new Date(shift.shift_end_datetime).toLocaleString()}</span>
+                        )}
+                      </>
+                    ) : (
+                      // Fallback to legacy format
+                      `${new Date(shift.shiftDate).toLocaleDateString()} - ${shift.shiftPart}`
+                    )}
                   </h4>
                   {shift.client_po_number && (
                     <p className="shift-details">Client PO #: {shift.client_po_number}</p>
                   )}
+                </div>
+                <div className="shift-actions">
+                  <Link
+                    to={`/timesheet/${shift.id}`}
+                    className="timesheet-link"
+                  >
+                    📋 Manage Timesheet
+                  </Link>
                 </div>
               </div>
 

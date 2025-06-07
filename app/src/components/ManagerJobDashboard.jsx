@@ -110,7 +110,27 @@ const ManagerJobDashboard = () => {
 
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h2>Job Management</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>Job Management</h2>
+        <button
+          onClick={() => navigate('/enhanced-schedule')}
+          style={{
+            padding: '12px 20px',
+            backgroundColor: '#3498db',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+        >
+          📅 Enhanced Schedule View
+        </button>
+      </div>
 
       {error && <p style={{ color: 'red', border: '1px solid red', padding: '10px', borderRadius: '4px' }}>Error: {error}</p>}
       {successMessage && <p style={{ color: 'green', border: '1px solid green', padding: '10px', borderRadius: '4px' }}>{successMessage}</p>}

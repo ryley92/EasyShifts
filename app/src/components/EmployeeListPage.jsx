@@ -1,17 +1,42 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback, useMemo } from 'react'; // Added useCallback
 import { useSocket } from '../utils';
+import { useNavigate } from 'react-router-dom';
+import EmployeeCard from './employees/EmployeeCard';
+import EmployeeDetailsModal from './employees/EmployeeDetailsModal';
+import EmployeeFilters from './employees/EmployeeFilters';
+import EmployeeStats from './employees/EmployeeStats';
+import BulkActions from './employees/BulkActions';
+import AddEmployeeModal from './employees/AddEmployeeModal';
 import './../css/EmployeeListPage.css';
 
 const EmployeeListPage = () => {
+    const navigate = useNavigate();
     const [employees, setEmployees] = useState([]);
+    const [filteredEmployees, setFilteredEmployees] = useState([]);
+    const [selectedEmployees, setSelectedEmployees] = useState([]);
+    const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAddEmployeeModalOpen, setIsAddEmployeeModalOpen] = useState(false);
     const [error, setError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filters, setFilters] = useState({
+        status: 'all', // all, approved, pending
+        role: 'all', // all, stagehand, crew_chief, forklift, truck
+        certification: 'all', // all, crew_chief, forklift, truck
+        availability: 'all' // all, available, unavailable
+    });
+    const [sortBy, setSortBy] = useState('name'); // name, username, role, status
+    const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
+    const [viewMode, setViewMode] = useState('grid'); // grid, list, table
     const socket = useSocket();
 
     const fetchEmployees = useCallback(() => {
         if (socket && socket.readyState === WebSocket.OPEN) {
-            setError(''); // Clear previous errors
-            setSuccessMessage(''); // Clear previous success messages
+            setIsLoading(true);
+            setError('');
+            setSuccessMessage('');
             const request = {
                 request_id: 60, // FETCH_EMPLOYEES
             };
@@ -19,8 +44,11 @@ const EmployeeListPage = () => {
         } else {
             console.error('WebSocket connection not open when trying to fetch employees.');
             setError('Cannot fetch employees: WebSocket is not connected.');
+            setIsLoading(false);
         }
-    }, [socket]); // Dependency: socket
+    }, [socket]);
+
+
 
     const handleApprove = (userName) => {
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -52,6 +80,114 @@ const EmployeeListPage = () => {
         }
     };
 
+    // Handle employee selection for bulk operations
+    const handleEmployeeSelect = (employeeId, isSelected) => {
+        if (isSelected) {
+            setSelectedEmployees(prev => [...prev, employeeId]);
+        } else {
+            setSelectedEmployees(prev => prev.filter(id => id !== employeeId));
+        }
+    };
+
+    const handleSelectAll = (isSelected) => {
+        if (isSelected) {
+            setSelectedEmployees(filteredEmployees.map(emp => emp.userName));
+        } else {
+            setSelectedEmployees([]);
+        }
+    };
+
+    const handleEmployeeClick = (employee) => {
+        setSelectedEmployee(employee);
+        setIsModalOpen(true);
+    };
+
+    const handleCreateEmployee = (employeeData) => {
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            setError('');
+            setSuccessMessage('');
+            const request = {
+                request_id: 65, // CREATE_EMPLOYEE_BY_MANAGER
+                data: employeeData
+            };
+            socket.send(JSON.stringify(request));
+        } else {
+            setError('Cannot create employee: WebSocket is not connected.');
+        }
+    };
+
+    // Filter and sort employees
+    const processedEmployees = useMemo(() => {
+        let filtered = employees.filter(employee => {
+            // Search filter
+            if (searchTerm) {
+                const searchLower = searchTerm.toLowerCase();
+                const matchesSearch =
+                    employee.name.toLowerCase().includes(searchLower) ||
+                    employee.userName.toLowerCase().includes(searchLower) ||
+                    (employee.certifications && employee.certifications.some(cert =>
+                        cert.toLowerCase().includes(searchLower)
+                    ));
+                if (!matchesSearch) return false;
+            }
+
+            // Status filter
+            if (filters.status !== 'all') {
+                if (filters.status === 'approved' && !employee.approved) return false;
+                if (filters.status === 'pending' && employee.approved) return false;
+            }
+
+            // Role filter
+            if (filters.role !== 'all') {
+                if (!employee.employee_type || employee.employee_type !== filters.role) return false;
+            }
+
+            // Certification filter
+            if (filters.certification !== 'all') {
+                if (!employee.certifications || !employee.certifications.includes(filters.certification)) return false;
+            }
+
+            return true;
+        });
+
+        // Sort employees
+        filtered.sort((a, b) => {
+            let aValue, bValue;
+
+            switch (sortBy) {
+                case 'name':
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+                    break;
+                case 'username':
+                    aValue = a.userName.toLowerCase();
+                    bValue = b.userName.toLowerCase();
+                    break;
+                case 'role':
+                    aValue = a.employee_type || '';
+                    bValue = b.employee_type || '';
+                    break;
+                case 'status':
+                    aValue = a.approved ? 'approved' : 'pending';
+                    bValue = b.approved ? 'approved' : 'pending';
+                    break;
+                default:
+                    aValue = a.name.toLowerCase();
+                    bValue = b.name.toLowerCase();
+            }
+
+            if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
+            if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+        });
+
+        return filtered;
+    }, [employees, searchTerm, filters, sortBy, sortOrder]);
+
+    useEffect(() => {
+        setFilteredEmployees(processedEmployees);
+    }, [processedEmployees]);
+
     useEffect(() => {
         if (socket) {
             fetchEmployees(); // Initial fetch when socket is ready
@@ -61,11 +197,22 @@ const EmployeeListPage = () => {
                     const response = JSON.parse(event.data);
 
                     if (response.request_id === 60) { // Fetch employees response
+                        setIsLoading(false);
                         if (response.success && Array.isArray(response.data)) {
                             setEmployees(response.data);
                         } else {
                             setError(response.error || 'Error fetching employees list.');
                             setEmployees([]); // Clear employees on error
+                        }
+                    } else if (response.request_id === 61) { // Fetch employee details with certifications
+                        if (response.success && Array.isArray(response.data)) {
+                            // Merge certification data with existing employees
+                            setEmployees(prevEmployees => {
+                                return prevEmployees.map(emp => {
+                                    const detailedEmp = response.data.find(d => d.userName === emp.userName);
+                                    return detailedEmp ? { ...emp, ...detailedEmp } : emp;
+                                });
+                            });
                         }
                     } else if (response.request_id === 62) { // Approve employee response
                         if (response.success) {
@@ -80,6 +227,14 @@ const EmployeeListPage = () => {
                             fetchEmployees(); // Re-fetch the list
                         } else {
                             setError(response.error || 'Failed to reject employee.');
+                        }
+                    } else if (response.request_id === 65) { // Create employee response
+                        if (response.success) {
+                            setSuccessMessage(response.message || 'Employee created successfully.');
+                            setIsAddEmployeeModalOpen(false);
+                            fetchEmployees(); // Re-fetch the list
+                        } else {
+                            setError(response.error || 'Failed to create employee.');
                         }
                     }
                 } catch (e) {
@@ -97,95 +252,171 @@ const EmployeeListPage = () => {
     }, [socket, fetchEmployees]); // fetchEmployees is now a stable useCallback dependency
 
     return (
-        <div className="employee-container">
-            <h1 className="employee-title">Employee Management</h1>
-
-            {error && (
-                <div className="error-message">
-                    <strong>Error:</strong> {error}
-                    {error.includes("Workplace for user") && (
-                        <div className="error-help">
-                            <p><strong>Possible Solution:</strong> This error typically occurs when the manager account doesn't have a workplace setup. Please contact your system administrator to initialize your workplace data.</p>
-                        </div>
-                    )}
+        <div className="employee-directory">
+            <div className="employee-header">
+                <div className="header-top">
+                    <h1 className="employee-title">
+                        <span className="title-icon">👥</span>
+                        Employee Directory
+                    </h1>
+                    <div className="header-actions">
+                        <button
+                            className="btn btn-success"
+                            onClick={() => setIsAddEmployeeModalOpen(true)}
+                        >
+                            ➕ Add Employee
+                        </button>
+                        <button
+                            className="btn btn-primary"
+                            onClick={() => navigate('/enhanced-schedule')}
+                        >
+                            📅 Schedule View
+                        </button>
+                        <button
+                            className="btn btn-secondary"
+                            onClick={() => navigate('/manager-timesheets')}
+                        >
+                            ⏰ Timesheets
+                        </button>
+                    </div>
                 </div>
+
+                {error && (
+                    <div className="alert alert-error">
+                        <span className="alert-icon">⚠️</span>
+                        <div className="alert-content">
+                            <strong>Error:</strong> {error}
+                            {error.includes("Workplace for user") && (
+                                <div className="error-help">
+                                    <p><strong>Possible Solution:</strong> This error typically occurs when the manager account doesn't have a workplace setup. Please contact your system administrator to initialize your workplace data.</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {successMessage && (
+                    <div className="alert alert-success">
+                        <span className="alert-icon">✅</span>
+                        {successMessage}
+                    </div>
+                )}
+            </div>
+
+            <EmployeeStats
+                employees={employees}
+                filteredEmployees={filteredEmployees}
+            />
+
+            <EmployeeFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                filters={filters}
+                onFiltersChange={setFilters}
+                sortBy={sortBy}
+                onSortByChange={setSortBy}
+                sortOrder={sortOrder}
+                onSortOrderChange={setSortOrder}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                employees={employees}
+            />
+
+            {selectedEmployees.length > 0 && (
+                <BulkActions
+                    selectedEmployees={selectedEmployees}
+                    onApproveSelected={() => {
+                        selectedEmployees.forEach(userName => handleApprove(userName));
+                        setSelectedEmployees([]);
+                    }}
+                    onRejectSelected={() => {
+                        selectedEmployees.forEach(userName => handleReject(userName));
+                        setSelectedEmployees([]);
+                    }}
+                    onClearSelection={() => setSelectedEmployees([])}
+                />
             )}
-            {successMessage && <div className="success-message">{successMessage}</div>}
 
-            <div className="employee-stats">
-                <div className="stat-card">
-                    <h3>Total Employees</h3>
-                    <span className="stat-number">{employees.length}</span>
-                </div>
-                <div className="stat-card">
-                    <h3>Approved</h3>
-                    <span className="stat-number approved">{employees.filter(emp => emp.approved).length}</span>
-                </div>
-                <div className="stat-card">
-                    <h3>Pending Approval</h3>
-                    <span className="stat-number pending">{employees.filter(emp => !emp.approved).length}</span>
-                </div>
+            <div className="employee-content">
+                {isLoading ? (
+                    <div className="loading-state">
+                        <div className="loading-spinner"></div>
+                        <p>Loading employees...</p>
+                    </div>
+                ) : filteredEmployees.length === 0 ? (
+                    <div className="empty-state">
+                        <div className="empty-icon">👥</div>
+                        <h3>No employees found</h3>
+                        <p>
+                            {searchTerm || Object.values(filters).some(f => f !== 'all')
+                                ? 'Try adjusting your search or filters'
+                                : 'No employees have been added yet'
+                            }
+                        </p>
+                    </div>
+                ) : (
+                    <div className={`employee-list ${viewMode}`}>
+                        {viewMode === 'table' && (
+                            <div className="table-header">
+                                <div className="table-cell checkbox-cell">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedEmployees.length === filteredEmployees.length}
+                                        onChange={(e) => handleSelectAll(e.target.checked)}
+                                    />
+                                </div>
+                                <div className="table-cell">Name</div>
+                                <div className="table-cell">Username</div>
+                                <div className="table-cell">Status</div>
+                                <div className="table-cell">Certifications</div>
+                                <div className="table-cell">Actions</div>
+                            </div>
+                        )}
+
+                        {filteredEmployees.map(employee => (
+                            <EmployeeCard
+                                key={employee.userName}
+                                employee={employee}
+                                viewMode={viewMode}
+                                isSelected={selectedEmployees.includes(employee.userName)}
+                                onSelect={(isSelected) => handleEmployeeSelect(employee.userName, isSelected)}
+                                onClick={() => handleEmployeeClick(employee)}
+                                onApprove={() => handleApprove(employee.userName)}
+                                onReject={() => handleReject(employee.userName)}
+                            />
+                        ))}
+                    </div>
+                )}
             </div>
 
-            <div className="employee-sections">
-                <div className="employee-section">
-                    <h2 className="section-title">Approved Employees</h2>
-                    {employees.filter(emp => emp.approved).length > 0 ? (
-                        <div className="employee-grid">
-                            {employees.filter(employee => employee.approved).map(employee => (
-                                <div key={employee.userName} className="employee-card approved">
-                                    <div className="employee-info">
-                                        <h4 className="employee-name">{employee.name}</h4>
-                                        <p className="employee-username">@{employee.userName}</p>
-                                        <span className="employee-status approved">✓ Approved</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="empty-state">
-                            <p>No approved employees.</p>
-                        </div>
-                    )}
-                </div>
+            {isModalOpen && selectedEmployee && (
+                <EmployeeDetailsModal
+                    employee={selectedEmployee}
+                    isOpen={isModalOpen}
+                    onClose={() => {
+                        setIsModalOpen(false);
+                        setSelectedEmployee(null);
+                    }}
+                    onApprove={() => {
+                        handleApprove(selectedEmployee.userName);
+                        setIsModalOpen(false);
+                        setSelectedEmployee(null);
+                    }}
+                    onReject={() => {
+                        handleReject(selectedEmployee.userName);
+                        setIsModalOpen(false);
+                        setSelectedEmployee(null);
+                    }}
+                />
+            )}
 
-                <div className="employee-section">
-                    <h2 className="section-title">Waiting for Approval</h2>
-                    {employees.filter(emp => !emp.approved).length > 0 ? (
-                        <div className="employee-grid">
-                            {employees.filter(employee => !employee.approved).map(employee => (
-                                <div key={employee.userName} className="employee-card pending">
-                                    <div className="employee-info">
-                                        <h4 className="employee-name">{employee.name}</h4>
-                                        <p className="employee-username">@{employee.userName}</p>
-                                        <span className="employee-status pending">⏳ Pending</span>
-                                    </div>
-                                    <div className="employee-actions">
-                                        <button
-                                            className="approve-button"
-                                            onClick={() => handleApprove(employee.userName)}
-                                            title="Approve Employee"
-                                        >
-                                            ✓ Approve
-                                        </button>
-                                        <button
-                                            className="reject-button"
-                                            onClick={() => handleReject(employee.userName)}
-                                            title="Reject Employee"
-                                        >
-                                            ✗ Reject
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="empty-state">
-                            <p>No employees awaiting approval.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+            {isAddEmployeeModalOpen && (
+                <AddEmployeeModal
+                    isOpen={isAddEmployeeModalOpen}
+                    onClose={() => setIsAddEmployeeModalOpen(false)}
+                    onSubmit={handleCreateEmployee}
+                />
+            )}
         </div>
     );
 };
