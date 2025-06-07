@@ -2,7 +2,7 @@
 from .login import handle_login
 from .employee_signin import handle_employee_signin
 from .manager_signin import handle_manager_signin
-from .employee_shifts_request import handle_employee_shifts_request, handle_is_in_request_window
+from .employee_shifts_request import handle_employee_shifts_request, handle_is_in_request_window, handle_get_request_window_times
 from .get_employee_requests import handle_get_employee_requests
 from .manager_insert_shifts import handle_manager_insert_shifts
 from .employee_list import handle_employee_list, handle_employee_approval, handle_employee_rejection
