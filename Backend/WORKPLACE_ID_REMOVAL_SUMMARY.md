@@ -213,6 +213,33 @@ profile = controller.update_company_profile_settings(data)
 2. The workplace_id columns will be ignored
 3. Settings will be treated as company-wide
 
+## Additional Files Updated
+
+### 📋 **WorkplaceSettings Model & Controllers**
+- **Updated** `Backend/db/models.py` - Removed workplace_id from WorkplaceSettings model
+- **Updated** `Backend/db/controllers/workplace_settings_controller.py` - Removed workplace_id parameters
+- **Updated** `Backend/db/repositories/workplace_settings_repository.py` - Simplified queries
+- **Updated** `Backend/handlers/enhanced_schedule_handlers.py` - Updated workplace settings usage
+
+### 🔧 **Setup & Migration Scripts**
+- **Updated** `Backend/setup_extended_settings.py` - Removed workplace_id parameters
+- **Updated** `Backend/db/migrations/add_extended_settings_tables.py` - Updated migration calls
+
+### 🌐 **Handler Updates**
+- **Updated** `Backend/handlers/enhanced_settings_handlers.py` - Removed all workplace_id usage
+- **Updated** export/import functionality to use company name instead of workplace_id
+
+## Files That Still Have Workplace Concepts
+
+### ⚠️ **Legacy Workplace Files (Not Critical for Extended Settings)**
+These files still contain workplace concepts but don't affect the Extended Settings system:
+- `Backend/db/controllers/workPlaces_controller.py` - Legacy workplace management
+- `Backend/handlers/manager_schedule.py` - Some functions still use workplace_id
+- `Backend/handlers/employee_signin.py` - Employee registration process
+- `Backend/db/services/workPlaces_service.py` - Legacy workplace services
+
+**Note**: These files can be updated later as they don't impact the Extended Settings functionality.
+
 ## Conclusion
 
 This change makes the Extended Settings system much more appropriate for Hands on Labor's single-company model. The system is now:
@@ -223,3 +250,7 @@ This change makes the Extended Settings system much more appropriate for Hands o
 - **Maintainable** - Less complex code to manage
 
 The API remains exactly the same from the frontend perspective, but the backend is now properly designed for a single company operation.
+
+## ✅ **Status: Complete**
+
+All Extended Settings components have been successfully updated to remove workplace_id dependencies. The system now properly reflects Hands on Labor as a single company operation.

@@ -14,7 +14,7 @@ def handle_get_all_settings(user_session: UserSession) -> dict:
     
     try:
         controller = WorkplaceSettingsController(db)
-        settings_dict = controller.get_settings_dict(user_session.get_id)
+        settings_dict = controller.get_settings_dict()
         return {"request_id": request_id, "success": True, "data": settings_dict}
     except Exception as e:
         print(f"Error getting settings: {e}")
@@ -39,7 +39,7 @@ def handle_update_scheduling_settings(data: dict, user_session: UserSession) -> 
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
         
         # Update settings
-        updated_settings = controller.update_scheduling_settings(user_session.get_id, data)
+        updated_settings = controller.update_scheduling_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating scheduling settings: {e}")
@@ -56,7 +56,7 @@ def handle_update_notification_settings(data: dict, user_session: UserSession) -
     
     try:
         controller = WorkplaceSettingsController(db)
-        updated_settings = controller.update_notification_settings(user_session.get_id, data)
+        updated_settings = controller.update_notification_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating notification settings: {e}")
@@ -86,7 +86,7 @@ def handle_update_request_window_settings(data: dict, user_session: UserSession)
         if 'requests_window_end' in data and isinstance(data['requests_window_end'], str):
             data['requests_window_end'] = datetime.fromisoformat(data['requests_window_end'].replace('Z', '+00:00'))
         
-        updated_settings = controller.update_request_window_settings(user_session.get_id, data)
+        updated_settings = controller.update_request_window_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating request window settings: {e}")
@@ -110,7 +110,7 @@ def handle_update_worker_management_settings(data: dict, user_session: UserSessi
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
         
-        updated_settings = controller.update_worker_management_settings(user_session.get_id, data)
+        updated_settings = controller.update_worker_management_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating worker management settings: {e}")
@@ -134,7 +134,7 @@ def handle_update_timesheet_settings(data: dict, user_session: UserSession) -> d
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
         
-        updated_settings = controller.update_timesheet_settings(user_session.get_id, data)
+        updated_settings = controller.update_timesheet_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating timesheet settings: {e}")
@@ -158,7 +158,7 @@ def handle_update_display_settings(data: dict, user_session: UserSession) -> dic
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
         
-        updated_settings = controller.update_display_settings(user_session.get_id, data)
+        updated_settings = controller.update_display_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating display settings: {e}")
@@ -175,7 +175,7 @@ def handle_reset_settings_to_defaults(user_session: UserSession) -> dict:
     
     try:
         controller = WorkplaceSettingsController(db)
-        reset_settings = controller.reset_to_defaults(user_session.get_id)
+        reset_settings = controller.reset_to_defaults()
         return {"request_id": request_id, "success": True, "data": reset_settings.to_dict()}
     except Exception as e:
         print(f"Error resetting settings: {e}")
@@ -209,12 +209,12 @@ def handle_export_settings(user_session: UserSession) -> dict:
     
     try:
         controller = WorkplaceSettingsController(db)
-        settings_dict = controller.get_settings_dict(user_session.get_id)
-        
+        settings_dict = controller.get_settings_dict()
+
         # Add export metadata
         export_data = {
             "exported_at": datetime.now().isoformat(),
-            "workplace_id": user_session.get_id,
+            "company_name": "Hands on Labor",
             "version": "1.0",
             "settings": settings_dict
         }

@@ -136,3 +136,18 @@ class ShiftsRepository(BaseRepository):
         """
         return self.db.query(Shift).filter(Shift.workPlaceID == workplace_id, Shift.shiftDate == shift_date,
                                            Shift.shiftPart == shift_part).first()
+
+    def get_shift_by_date_and_part(self, shift_date, shift_part):
+        """
+        Retrieves the shift by date and part for Hands on Labor (single company).
+        Since there's only one company, we don't need workplace filtering.
+
+        Parameters:
+            shift_date (date): Date of the shift.
+            shift_part (str): Part of the shift.
+
+        Returns:
+            Shift: The shift by date and part.
+        """
+        return self.db.query(Shift).filter(Shift.shiftDate == shift_date,
+                                           Shift.shiftPart == shift_part).first()

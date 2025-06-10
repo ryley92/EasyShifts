@@ -83,39 +83,32 @@ def setup_extended_settings(template_id: str = 'hands_on_labor_default'):
         session.close()
 
 
-def verify_setup(workplace_id: int = None):
+def verify_setup():
     """
-    Verify that extended settings are properly configured.
-    
-    Args:
-        workplace_id (int): The workplace ID to verify
+    Verify that extended settings are properly configured for Hands on Labor.
     """
     print("🔍 Verifying Extended Settings Setup...")
-    
+
     try:
         db, session = initialize_database_and_session()
-        
-        if workplace_id is None:
-            workplace = session.query(User).filter_by(role='manager').first()
-            workplace_id = workplace.id if workplace else 1
-        
+
         controller = ExtendedSettingsController(session)
         service = ExtendedSettingsService(session)
-        
+
         # Get all settings
-        all_settings = controller.get_all_extended_settings(workplace_id)
-        
+        all_settings = controller.get_all_extended_settings()
+
         print(f"✅ Found {len(all_settings)} settings categories")
-        
+
         # Check each category
         for category, settings in all_settings.items():
             if settings:
                 print(f"   ✅ {category}: Configured")
             else:
                 print(f"   ❌ {category}: Not configured")
-        
+
         # Get summary
-        summary = service.get_settings_summary(workplace_id)
+        summary = service.get_settings_summary()
         
         print(f"\n📊 Configuration Status:")
         for category, status in summary['configuration_status'].items():
@@ -145,26 +138,19 @@ def verify_setup(workplace_id: int = None):
         session.close()
 
 
-def reset_settings(workplace_id: int = None):
+def reset_settings():
     """
-    Reset all extended settings to defaults.
-    
-    Args:
-        workplace_id (int): The workplace ID to reset
+    Reset all extended settings to defaults for Hands on Labor.
     """
     print("🔄 Resetting Extended Settings to Defaults...")
-    
+
     try:
         db, session = initialize_database_and_session()
-        
-        if workplace_id is None:
-            workplace = session.query(User).filter_by(role='manager').first()
-            workplace_id = workplace.id if workplace else 1
-        
+
         controller = ExtendedSettingsController(session)
-        
+
         # Reset to defaults
-        reset_settings = controller.reset_all_to_defaults(workplace_id)
+        reset_settings = controller.reset_all_to_defaults()
         
         print(f"✅ Reset {len(reset_settings)} settings categories to defaults")
         
@@ -190,25 +176,20 @@ def list_templates():
         print(f"   Recommended for: {template['recommended_for']}")
 
 
-def export_settings(workplace_id: int = None, output_file: str = None):
+def export_settings(output_file: str = None):
     """
-    Export settings to a backup file.
-    
+    Export settings to a backup file for Hands on Labor.
+
     Args:
-        workplace_id (int): The workplace ID to export
         output_file (str): Output file path
     """
     print("📤 Exporting Extended Settings...")
-    
+
     try:
         db, session = initialize_database_and_session()
-        
-        if workplace_id is None:
-            workplace = session.query(User).filter_by(role='manager').first()
-            workplace_id = workplace.id if workplace else 1
-        
+
         service = ExtendedSettingsService(session)
-        export_data = service.export_settings_for_backup(workplace_id)
+        export_data = service.export_settings_for_backup()
         
         if output_file is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -244,16 +225,16 @@ def main():
     print("=" * 50)
     
     if args.action == 'setup':
-        success = setup_extended_settings(args.workplace_id, args.template)
+        success = setup_extended_settings(args.template)
     elif args.action == 'verify':
-        success = verify_setup(args.workplace_id)
+        success = verify_setup()
     elif args.action == 'reset':
-        success = reset_settings(args.workplace_id)
+        success = reset_settings()
     elif args.action == 'templates':
         list_templates()
         success = True
     elif args.action == 'export':
-        success = export_settings(args.workplace_id, args.output)
+        success = export_settings(args.output)
     else:
         print(f"❌ Unknown action: {args.action}")
         success = False

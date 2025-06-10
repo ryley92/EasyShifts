@@ -15,61 +15,52 @@ class WorkplaceSettingsController(BaseController):
         self.service = WorkplaceSettingsService(self.repository)
         super().__init__(self.repository, self.service)
 
-    def get_settings_by_workplace_id(self, workplace_id: int):
+    def get_settings(self):
         """
-        Get settings for a specific workplace.
+        Get settings for Hands on Labor.
         Creates default settings if none exist.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+
         Returns:
             WorkplaceSettings: The settings object
         """
-        settings = self.repository.get_by_workplace_id(workplace_id)
+        settings = self.repository.get_first()
         if not settings:
             # Create default settings
-            settings = self.create_default_settings(workplace_id)
+            settings = self.create_default_settings()
         return settings
 
-    def create_default_settings(self, workplace_id: int):
+    def create_default_settings(self):
         """
-        Create default settings for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Create default settings for Hands on Labor.
+
         Returns:
             WorkplaceSettings: The created settings object
         """
         default_data = {
-            'workplace_id': workplace_id,
-            # All other fields will use their model defaults
+            # All fields will use their model defaults
         }
         return self.repository.create_entity(default_data)
 
-    def update_settings(self, workplace_id: int, settings_data: Dict[str, Any]):
+    def update_settings(self, settings_data: Dict[str, Any]):
         """
-        Update settings for a workplace.
-        
+        Update settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             settings_data (dict): The settings data to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
-        settings = self.get_settings_by_workplace_id(workplace_id)
+        settings = self.get_settings()
         return self.repository.update_entity(settings.id, settings_data)
 
-    def update_scheduling_settings(self, workplace_id: int, scheduling_data: Dict[str, Any]):
+    def update_scheduling_settings(self, scheduling_data: Dict[str, Any]):
         """
-        Update only scheduling-related settings.
-        
+        Update only scheduling-related settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             scheduling_data (dict): The scheduling settings to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
@@ -78,18 +69,17 @@ class WorkplaceSettingsController(BaseController):
             'business_start_time', 'business_end_time', 'default_shift_duration_hours',
             'break_duration_minutes', 'closed_days', 'operating_days'
         ]
-        
-        filtered_data = {k: v for k, v in scheduling_data.items() if k in valid_fields}
-        return self.update_settings(workplace_id, filtered_data)
 
-    def update_notification_settings(self, workplace_id: int, notification_data: Dict[str, Any]):
+        filtered_data = {k: v for k, v in scheduling_data.items() if k in valid_fields}
+        return self.update_settings(filtered_data)
+
+    def update_notification_settings(self, notification_data: Dict[str, Any]):
         """
-        Update only notification-related settings.
-        
+        Update only notification-related settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             notification_data (dict): The notification settings to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
@@ -99,18 +89,17 @@ class WorkplaceSettingsController(BaseController):
             'notify_on_schedule_changes', 'sms_notifications_enabled',
             'sms_urgent_only', 'push_notifications_enabled', 'notification_sound_enabled'
         ]
-        
-        filtered_data = {k: v for k, v in notification_data.items() if k in valid_fields}
-        return self.update_settings(workplace_id, filtered_data)
 
-    def update_request_window_settings(self, workplace_id: int, window_data: Dict[str, Any]):
+        filtered_data = {k: v for k, v in notification_data.items() if k in valid_fields}
+        return self.update_settings(filtered_data)
+
+    def update_request_window_settings(self, window_data: Dict[str, Any]):
         """
-        Update only request window-related settings.
-        
+        Update only request window-related settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             window_data (dict): The request window settings to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
@@ -118,18 +107,17 @@ class WorkplaceSettingsController(BaseController):
             'auto_open_request_windows', 'request_window_days_ahead',
             'request_window_duration_hours', 'requests_window_start', 'requests_window_end'
         ]
-        
-        filtered_data = {k: v for k, v in window_data.items() if k in valid_fields}
-        return self.update_settings(workplace_id, filtered_data)
 
-    def update_worker_management_settings(self, workplace_id: int, worker_data: Dict[str, Any]):
+        filtered_data = {k: v for k, v in window_data.items() if k in valid_fields}
+        return self.update_settings(filtered_data)
+
+    def update_worker_management_settings(self, worker_data: Dict[str, Any]):
         """
-        Update only worker management-related settings.
-        
+        Update only worker management-related settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             worker_data (dict): The worker management settings to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
@@ -138,18 +126,17 @@ class WorkplaceSettingsController(BaseController):
             'auto_assign_by_skills', 'require_certification_verification',
             'allow_overtime_assignments', 'max_consecutive_days', 'max_hours_per_week'
         ]
-        
-        filtered_data = {k: v for k, v in worker_data.items() if k in valid_fields}
-        return self.update_settings(workplace_id, filtered_data)
 
-    def update_timesheet_settings(self, workplace_id: int, timesheet_data: Dict[str, Any]):
+        filtered_data = {k: v for k, v in worker_data.items() if k in valid_fields}
+        return self.update_settings(filtered_data)
+
+    def update_timesheet_settings(self, timesheet_data: Dict[str, Any]):
         """
-        Update only timesheet-related settings.
-        
+        Update only timesheet-related settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             timesheet_data (dict): The timesheet settings to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
@@ -158,18 +145,17 @@ class WorkplaceSettingsController(BaseController):
             'overtime_threshold_daily', 'overtime_threshold_weekly', 'overtime_rate_multiplier',
             'require_manager_approval', 'auto_approve_regular_hours', 'auto_approve_overtime'
         ]
-        
-        filtered_data = {k: v for k, v in timesheet_data.items() if k in valid_fields}
-        return self.update_settings(workplace_id, filtered_data)
 
-    def update_display_settings(self, workplace_id: int, display_data: Dict[str, Any]):
+        filtered_data = {k: v for k, v in timesheet_data.items() if k in valid_fields}
+        return self.update_settings(filtered_data)
+
+    def update_display_settings(self, display_data: Dict[str, Any]):
         """
-        Update only display-related settings.
-        
+        Update only display-related settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             display_data (dict): The display settings to update
-            
+
         Returns:
             WorkplaceSettings: The updated settings object
         """
@@ -178,33 +164,27 @@ class WorkplaceSettingsController(BaseController):
             'color_code_by_role', 'use_24_hour_format', 'timezone', 'language',
             'currency', 'date_format'
         ]
-        
-        filtered_data = {k: v for k, v in display_data.items() if k in valid_fields}
-        return self.update_settings(workplace_id, filtered_data)
 
-    def get_settings_dict(self, workplace_id: int) -> Dict[str, Any]:
+        filtered_data = {k: v for k, v in display_data.items() if k in valid_fields}
+        return self.update_settings(filtered_data)
+
+    def get_settings_dict(self) -> Dict[str, Any]:
         """
-        Get settings as a dictionary for API responses.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get settings as a dictionary for API responses for Hands on Labor.
+
         Returns:
             dict: The settings as a dictionary
         """
-        settings = self.get_settings_by_workplace_id(workplace_id)
+        settings = self.get_settings()
         return settings.to_dict()
 
-    def reset_to_defaults(self, workplace_id: int):
+    def reset_to_defaults(self):
         """
-        Reset all settings to defaults for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Reset all settings to defaults for Hands on Labor.
+
         Returns:
             WorkplaceSettings: The reset settings object
         """
-        settings = self.get_settings_by_workplace_id(workplace_id)
+        settings = self.get_settings()
         self.repository.delete_entity(settings.id)
-        return self.create_default_settings(workplace_id)
+        return self.create_default_settings()

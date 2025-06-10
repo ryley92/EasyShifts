@@ -198,6 +198,13 @@ class ShiftsController(BaseController):
     def get_shift_by_day_and_part(self, workplace_id, shift_date, shift_part):
         return self.repository.get_shift_by_day_and_part(workplace_id, shift_date, shift_part)
 
+    def get_shift_by_date_and_part(self, shift_date, shift_part):
+        """
+        Get a shift by date and part for Hands on Labor (single company).
+        Since there's only one company, we don't need workplace_id filtering.
+        """
+        return self.repository.get_shift_by_date_and_part(shift_date, shift_part)
+
 def convert_shift_for_client(shift: Shift, db, is_manager=True) -> dict:
     """
     Converts a shift to a dictionary format for client-side consumption.
@@ -216,7 +223,9 @@ def convert_shift_for_client(shift: Shift, db, is_manager=True) -> dict:
         'id': shift.id,
         'job_id': shift.job_id,
         "required_employee_counts": shift.required_employee_counts if shift.required_employee_counts else {},
-        "client_po_number": shift.client_po_number if shift.client_po_number else ""
+        "client_po_number": shift.client_po_number if shift.client_po_number else "",
+        "shift_description": shift.shift_description if shift.shift_description else "",
+        "special_instructions": shift.special_instructions if shift.special_instructions else ""
     }
 
     # Add new datetime fields if available

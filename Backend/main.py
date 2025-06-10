@@ -35,7 +35,14 @@ def initialize_database_and_session():
         print(f"Connecting to database: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
         engine = create_engine(
             f'mariadb+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}',
-            echo=False  # Set to True for SQL debugging
+            echo=False,  # Set to True for SQL debugging
+            pool_pre_ping=True,  # Verify connections before use
+            pool_recycle=3600,   # Recycle connections every hour
+            connect_args={
+                'connect_timeout': 30,  # 30 second connection timeout
+                'read_timeout': 30,     # 30 second read timeout
+                'write_timeout': 30     # 30 second write timeout
+            }
         )
 
         # Test the connection
@@ -60,6 +67,8 @@ def initialize_database_and_session():
 
     except Exception as e:
         print(f"❌ Database connection failed: {e}")
+        print(f"❌ Error type: {type(e).__name__}")
+        print(f"❌ Error details: {str(e)}")
         raise
 
 
@@ -78,4 +87,10 @@ def get_database_session():
 
 def create_tables(engine):
     # Create all tables if they don't exist
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        print("✅ Database tables created/verified successfully")
+    except Exception as e:
+        print(f"⚠️  Warning during table creation: {e}")
+        # Continue anyway - tables might already exist
+        pass

@@ -13,61 +13,51 @@ class WorkplaceSettingsRepository(BaseRepository):
     def __init__(self, db: Session):
         super().__init__(db, WorkplaceSettings)
 
-    def get_by_workplace_id(self, workplace_id: int) -> Optional[WorkplaceSettings]:
+    def get_first(self) -> Optional[WorkplaceSettings]:
         """
-        Get settings for a specific workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get settings for Hands on Labor (single company).
+
         Returns:
             WorkplaceSettings or None
         """
         try:
-            return self.db.query(WorkplaceSettings).filter(
-                WorkplaceSettings.workplace_id == workplace_id
-            ).first()
+            return self.db.query(WorkplaceSettings).first()
         except NoResultFound:
             return None
 
-    def create_or_update(self, workplace_id: int, settings_data: dict) -> WorkplaceSettings:
+    def create_or_update(self, settings_data: dict) -> WorkplaceSettings:
         """
-        Create new settings or update existing ones for a workplace.
-        
+        Create new settings or update existing ones for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace/manager ID
             settings_data (dict): The settings data
-            
+
         Returns:
             WorkplaceSettings: The created or updated settings
         """
-        existing = self.get_by_workplace_id(workplace_id)
-        
+        existing = self.get_first()
+
         if existing:
             # Update existing settings
             for key, value in settings_data.items():
                 if hasattr(existing, key):
                     setattr(existing, key, value)
-            
+
             self.db.commit()
             self.db.refresh(existing)
             return existing
         else:
             # Create new settings
-            settings_data['workplace_id'] = workplace_id
             return self.create_entity(settings_data)
 
-    def get_notification_preferences(self, workplace_id: int) -> dict:
+    def get_notification_preferences(self) -> dict:
         """
-        Get notification preferences for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get notification preferences for Hands on Labor.
+
         Returns:
             dict: Notification preferences
         """
-        settings = self.get_by_workplace_id(workplace_id)
+        settings = self.get_first()
         if settings:
             return settings.get_notification_preferences()
         return {
@@ -82,17 +72,14 @@ class WorkplaceSettingsRepository(BaseRepository):
             }
         }
 
-    def get_scheduling_rules(self, workplace_id: int) -> dict:
+    def get_scheduling_rules(self) -> dict:
         """
-        Get scheduling rules for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get scheduling rules for Hands on Labor.
+
         Returns:
             dict: Scheduling rules
         """
-        settings = self.get_by_workplace_id(workplace_id)
+        settings = self.get_first()
         if settings:
             return settings.get_scheduling_rules()
         return {
@@ -104,17 +91,14 @@ class WorkplaceSettingsRepository(BaseRepository):
             'operating_days': ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
         }
 
-    def get_request_window_settings(self, workplace_id: int) -> dict:
+    def get_request_window_settings(self) -> dict:
         """
-        Get request window settings for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get request window settings for Hands on Labor.
+
         Returns:
             dict: Request window settings
         """
-        settings = self.get_by_workplace_id(workplace_id)
+        settings = self.get_first()
         if settings:
             return {
                 'auto_open': settings.auto_open_request_windows,
@@ -131,17 +115,14 @@ class WorkplaceSettingsRepository(BaseRepository):
             'manual_end': None,
         }
 
-    def get_display_preferences(self, workplace_id: int) -> dict:
+    def get_display_preferences(self) -> dict:
         """
-        Get display preferences for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get display preferences for Hands on Labor.
+
         Returns:
             dict: Display preferences
         """
-        settings = self.get_by_workplace_id(workplace_id)
+        settings = self.get_first()
         if settings:
             return {
                 'default_calendar_view': settings.default_calendar_view,
@@ -160,23 +141,20 @@ class WorkplaceSettingsRepository(BaseRepository):
             'show_certification_badges': True,
             'color_code_by_role': True,
             'use_24_hour_format': False,
-            'timezone': 'America/New_York',
+            'timezone': 'America/Los_Angeles',  # Updated for San Diego
             'language': 'en',
             'currency': 'USD',
             'date_format': 'MM/DD/YYYY',
         }
 
-    def get_timesheet_settings(self, workplace_id: int) -> dict:
+    def get_timesheet_settings(self) -> dict:
         """
-        Get timesheet settings for a workplace.
-        
-        Args:
-            workplace_id (int): The workplace/manager ID
-            
+        Get timesheet settings for Hands on Labor.
+
         Returns:
             dict: Timesheet settings
         """
-        settings = self.get_by_workplace_id(workplace_id)
+        settings = self.get_first()
         if settings:
             return {
                 'require_photo_clock_in': settings.require_photo_clock_in,
@@ -191,7 +169,7 @@ class WorkplaceSettingsRepository(BaseRepository):
             }
         return {
             'require_photo_clock_in': False,
-            'require_location_verification': False,
+            'require_location_verification': True,  # Updated for Hands on Labor
             'auto_clock_out_hours': 12,
             'overtime_daily_threshold': 8,
             'overtime_weekly_threshold': 40,

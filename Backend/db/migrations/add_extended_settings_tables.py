@@ -193,4 +193,4 @@ if __name__ == "__main__":
     elif args.action == 'rollback':
         rollback_migration(args.database_url)
     elif args.action == 'create-defaults':
-        create_default_settings(args.database_url, args.workplace_id)
+        create_default_settings(args.database_url)

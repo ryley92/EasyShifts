@@ -461,7 +461,6 @@ class WorkplaceSettings(Base):
     __tablename__ = 'workplace_settings'
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    workplace_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True)  # Manager's ID
 
     # === SCHEDULING PREFERENCES ===
     # Basic scheduling
@@ -579,14 +578,10 @@ class WorkplaceSettings(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
-    # Relationships
-    workplace = relationship("User", foreign_keys=[workplace_id])
-
     def to_dict(self):
         """Convert settings to dictionary for API responses."""
         return {
             'id': self.id,
-            'workplace_id': self.workplace_id,
 
             # Scheduling
             'scheduling': {

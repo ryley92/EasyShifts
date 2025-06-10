@@ -1,5 +1,7 @@
 from datetime import timedelta, datetime
 from db.controllers.shiftWorkers_controller import ShiftWorkersController
+from db.controllers.jobs_controller import JobsController
+from db.controllers.client_companies_controller import ClientCompaniesController
 from db.models import ShiftBoard
 from user_session import UserSession
 from db.controllers.shiftBoard_controller import ShiftBoardController
@@ -8,6 +10,59 @@ from db.controllers.userRequests_controller import UserRequestsController
 from db.controllers.users_controller import UsersController
 from db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
 from config.constants import db, next_sunday
+
+
+def get_or_create_default_job(user_session):
+    """
+    Gets or creates a default job for legacy shift creation.
+    For Hands on Labor, we need a default job to link shifts to.
+    """
+    try:
+        jobs_controller = JobsController(db)
+        client_companies_controller = ClientCompaniesController(db)
+
+        # Try to get existing default job
+        all_jobs = jobs_controller.get_all_active_jobs()
+        if all_jobs:
+            # Return the first active job as default
+            return all_jobs[0]['id']
+
+        # If no jobs exist, create a default one
+        # First, get or create a default client company
+        all_companies = client_companies_controller.get_all_entities()
+        if not all_companies:
+            # Create a default client company for Hands on Labor
+            default_company_data = {
+                "name": "Default Client",
+                "contact_email": "default@handsonlabor.com",
+                "contact_phone": "555-0000",
+                "address": "San Diego, CA",
+                "is_active": True
+            }
+            default_company = client_companies_controller.create_entity(default_company_data)
+            client_company_id = default_company.id
+        else:
+            client_company_id = all_companies[0].id
+
+        # Create default job
+        default_job_data = {
+            "name": "General Labor - Default",
+            "client_company_id": client_company_id,
+            "venue_name": "Various Locations",
+            "venue_address": "San Diego, CA",
+            "venue_contact_info": "Contact Hands on Labor for details",
+            "description": "Default job for general labor assignments",
+            "created_by": user_session.get_id,
+            "is_active": True
+        }
+
+        created_job = jobs_controller.create_job(default_job_data)
+        return created_job['id']
+
+    except Exception as e:
+        print(f"Error creating default job: {e}")
+        # If we can't create a default job, we can't create shifts
+        raise Exception("Cannot create shifts without a valid job_id. Please create a job first.")
 
 
 def handle_create_new_board(user_session: UserSession):
@@ -138,8 +193,8 @@ def unschedule_worker_from_shift(shift_id, worker_id) -> bool:
     return True
 
 
-def handle_schedules(workplace_id, data: dict) -> bool:
-    print("workplace_id: ", workplace_id)
+def handle_schedules(user_session, data: dict) -> bool:
+    print("user_session: ", user_session.get_id if user_session else "None")
     print("data: ", data)
     # Been called from the client every time a worker is scheduled or unscheduled from a shift
 
@@ -152,21 +207,65 @@ def handle_schedules(workplace_id, data: dict) -> bool:
     print("shift_day: ", shift_day)
     print("shift_part: ", shift_part)
 
-    # Get the worker's ID
-    workplace_controller = WorkPlacesController(db)
-    worker = workplace_controller.get_worker_by_name(workplace_id, worker_name)
+    # Get the worker's ID - For Hands on Labor, search all active employees
+    users_controller = UsersController(db)
+    all_users = users_controller.get_all_entities()
+    worker = None
+    for user in all_users:
+        if user.name == worker_name and not user.isManager and user.isActive and user.isApproval:
+            worker = user
+            break
+
+    if not worker:
+        print(f"Worker '{worker_name}' not found")
+        return False
 
     # Create shift_date based on next_sunday and shift_day (sunday, monday, etc.)
     shift_date = next_sunday + timedelta(days=convert_day_name_to_number(shift_day))
 
-    # Get the shift's ID
+    # Get the shift's ID - For Hands on Labor, look for shifts by date and part only
     shift_controller = ShiftsController(db)
-    shift = shift_controller.get_shift_by_day_and_part(workplace_id, shift_date, shift_part)
+    # Since we don't have workplace concept, we need to find shifts by date and part
+    # This will require updating the shifts controller method or using a different approach
+    shift = shift_controller.get_shift_by_date_and_part(shift_date, shift_part)
 
     if shift is None:
-        # If the shift does not exist, create it
-        shift = shift_controller.create_entity(
-            {"workPlaceID": workplace_id, "shiftDate": shift_date, "shiftPart": shift_part})
+        # If the shift does not exist, create it with proper job_id
+        try:
+            # Get or create default job using the provided user_session
+            default_job_id = get_or_create_default_job(user_session)
+
+            # Define shift times based on shift_part
+            shift_times = {
+                "morning": (8, 0, 12, 0),    # 8:00 AM - 12:00 PM
+                "noon": (12, 0, 17, 0),      # 12:00 PM - 5:00 PM
+                "evening": (17, 0, 22, 0)    # 5:00 PM - 10:00 PM
+            }
+
+            start_hour, start_min, end_hour, end_min = shift_times.get(shift_part.lower(), (8, 0, 17, 0))
+
+            # Create datetime objects for shift start and end
+            shift_start = datetime.combine(shift_date.date(), datetime.min.time().replace(hour=start_hour, minute=start_min))
+            shift_end = datetime.combine(shift_date.date(), datetime.min.time().replace(hour=end_hour, minute=end_min))
+
+            # Create shift with new schema
+            shift_data = {
+                "job_id": default_job_id,
+                "shift_start_datetime": shift_start,
+                "shift_end_datetime": shift_end,
+                "required_employee_counts": {"stagehand": 1, "crew_chief": 0, "forklift_operator": 0, "truck_driver": 0},
+                "shift_description": f"{shift_part} shift",
+                # Legacy fields for backward compatibility
+                "shiftDate": shift_date.date(),
+                "shiftPart": shift_part
+            }
+
+            shift = shift_controller.create_entity(shift_data)
+            print(f"Created new shift: {shift_part} on {shift_date.date()}")
+
+        except Exception as e:
+            print(f"Error creating shift: {e}")
+            return False
 
     print("To schedule worker to shift:", shift.id, worker.id, data["type"])
 

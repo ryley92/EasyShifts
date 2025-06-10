@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../utils';
 import ClientUsersList from './ClientUsersList';
+import ClientDetailsModal from './ClientDetailsModal';
 import './ClientCompanyCard.css';
 
 const ClientCompanyCard = ({ client, onRefresh }) => {
@@ -8,6 +9,33 @@ const ClientCompanyCard = ({ client, onRefresh }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [clientDetails, setClientDetails] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (event) => {
+      try {
+        const response = JSON.parse(event.data);
+
+        if (response.request_id === 211) { // GET_CLIENT_COMPANY_DETAILS response
+          setIsLoading(false);
+          if (response.success) {
+            setClientDetails(response.data);
+            setIsDetailsModalOpen(true);
+          } else {
+            console.error('Failed to fetch client details:', response.error);
+          }
+        }
+      } catch (error) {
+        console.error('Error parsing WebSocket message:', error);
+      }
+    };
+
+    socket.addEventListener('message', handleMessage);
+    return () => socket.removeEventListener('message', handleMessage);
+  }, [socket]);
 
   const handleToggleExpand = () => {
     setIsExpanded(!isExpanded);
@@ -28,6 +56,11 @@ const ClientCompanyCard = ({ client, onRefresh }) => {
     }
   };
 
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setClientDetails(null);
+  };
+
   const getStatusColor = (client) => {
     const activeUsers = client.statistics.active_users;
     const totalUsers = client.statistics.total_users;
@@ -44,7 +77,8 @@ const ClientCompanyCard = ({ client, onRefresh }) => {
   };
 
   return (
-    <div className={`client-company-card ${isExpanded ? 'expanded' : ''}`}>
+    <>
+      <div className={`client-company-card ${isExpanded ? 'expanded' : ''}`}>
       <div className="card-header" onClick={handleToggleExpand}>
         <div className="company-info">
           <h3 className="company-name">{client.name}</h3>
@@ -131,7 +165,14 @@ const ClientCompanyCard = ({ client, onRefresh }) => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+
+      <ClientDetailsModal
+        clientDetails={clientDetails}
+        isOpen={isDetailsModalOpen}
+        onClose={handleCloseDetailsModal}
+      />
+    </>
   );
 };
 

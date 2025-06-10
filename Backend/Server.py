@@ -1,4 +1,13 @@
 from __future__ import annotations
+import sys
+import os
+print(f"🚀 Starting EasyShifts Backend Server...")
+print(f"🐍 Python version: {sys.version}")
+print(f"📁 Working directory: {os.getcwd()}")
+print(f"🌍 Environment variables:")
+print(f"   HOST: {os.getenv('HOST', 'not set')}")
+print(f"   PORT: {os.getenv('PORT', 'not set')}")
+
 from user_session import UserSession
 from main import initialize_database_and_session
 import websockets
@@ -13,7 +22,13 @@ from handlers.google_auth import google_auth_handler
 from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
 # Initialize the database and session
-db, _ = initialize_database_and_session()
+try:
+    db, _ = initialize_database_and_session()
+    print("✅ Database initialized successfully")
+except Exception as e:
+    print(f"⚠️  Database initialization failed: {e}")
+    print("⚠️  Server will start but database operations may fail")
+    db = None
 
 # Global variable declaration
 user_session: UserSession | None = None
@@ -238,7 +253,7 @@ def handle_request(request_id, data):
         print("Received Change Schedule request")
         if not user_session:
             return {"request_id": request_id, "success": False, "error": "User session not found."}
-        manager_schedule.handle_schedules(user_session.get_id, data)
+        manager_schedule.handle_schedules(user_session, data)
         return {"request_id": request_id, "success": True, "message": "Schedule change processed."}
 
 

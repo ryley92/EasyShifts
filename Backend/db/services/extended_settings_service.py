@@ -241,47 +241,39 @@ class ExtendedSettingsService:
             self.db_session.rollback()
             raise Exception(f"Error updating settings: {str(e)}")
 
-    def export_settings_for_backup(self, workplace_id: int) -> Dict[str, Any]:
+    def export_settings_for_backup(self) -> Dict[str, Any]:
         """
-        Export all settings in a format suitable for backup/restore.
-        
-        Args:
-            workplace_id (int): The workplace ID
-            
+        Export all settings in a format suitable for backup/restore for Hands on Labor.
+
         Returns:
             Dict containing exportable settings data
         """
         try:
-            all_settings = self.controller.get_all_extended_settings(workplace_id)
-            
-            # Get workplace info
-            workplace = self.db_session.query(User).filter_by(id=workplace_id).first()
-            
+            all_settings = self.controller.get_all_extended_settings()
+
             export_data = {
                 'export_metadata': {
                     'exported_at': datetime.now().isoformat(),
-                    'workplace_id': workplace_id,
-                    'workplace_name': workplace.first_name + ' ' + workplace.last_name if workplace else 'Unknown',
+                    'company_name': 'Hands on Labor',
                     'export_version': '1.0',
                     'application': 'EasyShifts Extended Settings'
                 },
                 'settings': all_settings,
                 'schema_version': '1.0'
             }
-            
+
             return export_data
-            
+
         except Exception as e:
             raise Exception(f"Error exporting settings: {str(e)}")
 
-    def import_settings_from_backup(self, workplace_id: int, import_data: Dict[str, Any]) -> Dict[str, Any]:
+    def import_settings_from_backup(self, import_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Import settings from backup data.
-        
+        Import settings from backup data for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace ID
             import_data (Dict): The backup data to import
-            
+
         Returns:
             Dict containing import results
         """
@@ -289,12 +281,12 @@ class ExtendedSettingsService:
             # Validate import data structure
             if 'settings' not in import_data:
                 raise ValueError("Invalid import data: missing 'settings' key")
-            
+
             settings_data = import_data['settings']
-            
+
             # Validate and update settings
-            updated_settings = self.update_settings_bulk(workplace_id, settings_data)
-            
+            updated_settings = self.update_settings_bulk(settings_data)
+
             return {
                 'success': True,
                 'imported_categories': list(updated_settings.keys()),
@@ -302,25 +294,24 @@ class ExtendedSettingsService:
                 'source_export_date': import_data.get('export_metadata', {}).get('exported_at'),
                 'updated_settings': updated_settings
             }
-            
+
         except Exception as e:
             raise Exception(f"Error importing settings: {str(e)}")
 
-    def get_settings_diff(self, workplace_id: int, comparison_data: Dict[str, Any]) -> Dict[str, Any]:
+    def get_settings_diff(self, comparison_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Compare current settings with provided data and return differences.
-        
+        Compare current settings with provided data and return differences for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace ID
             comparison_data (Dict): Settings data to compare against
-            
+
         Returns:
             Dict containing differences
         """
         try:
-            current_settings = self.controller.get_all_extended_settings(workplace_id)
+            current_settings = self.controller.get_all_extended_settings()
             differences = {}
-            
+
             for category in current_settings.keys():
                 if category in comparison_data:
                     category_diff = self._compare_category_settings(
@@ -329,9 +320,9 @@ class ExtendedSettingsService:
                     )
                     if category_diff:
                         differences[category] = category_diff
-            
+
             return differences
-            
+
         except Exception as e:
             raise Exception(f"Error comparing settings: {str(e)}")
 

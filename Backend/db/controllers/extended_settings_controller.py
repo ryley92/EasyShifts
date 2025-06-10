@@ -192,81 +192,78 @@ class ExtendedSettingsController(BaseController):
             self.db_session.rollback()
             raise Exception(f"Database error updating client management settings: {str(e)}")
 
-    def update_job_configuration_settings(self, workplace_id: int, data: Dict[str, Any]) -> JobConfigurationSettings:
+    def update_job_configuration_settings(self, data: Dict[str, Any]) -> JobConfigurationSettings:
         """
-        Update job configuration settings.
-        
+        Update job configuration settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The settings data to update
-            
+
         Returns:
             Updated JobConfigurationSettings object
         """
         try:
-            setting = self.db_session.query(JobConfigurationSettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(JobConfigurationSettings).first()
             if not setting:
-                setting = JobConfigurationSettings(workplace_id=workplace_id)
+                setting = JobConfigurationSettings()
                 self.db_session.add(setting)
-            
+
             # Update fields
             for key, value in data.items():
                 if hasattr(setting, key):
                     setattr(setting, key, value)
-            
+
             self.db_session.commit()
             return setting
-            
+
         except SQLAlchemyError as e:
             self.db_session.rollback()
             raise Exception(f"Database error updating job configuration settings: {str(e)}")
 
-    def update_timesheet_advanced_settings(self, workplace_id: int, data: Dict[str, Any]) -> TimesheetAdvancedSettings:
+    def update_timesheet_advanced_settings(self, data: Dict[str, Any]) -> TimesheetAdvancedSettings:
         """
-        Update advanced timesheet settings.
-        
+        Update advanced timesheet settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The settings data to update
-            
+
         Returns:
             Updated TimesheetAdvancedSettings object
         """
         try:
-            setting = self.db_session.query(TimesheetAdvancedSettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(TimesheetAdvancedSettings).first()
             if not setting:
-                setting = TimesheetAdvancedSettings(workplace_id=workplace_id)
+                setting = TimesheetAdvancedSettings()
                 self.db_session.add(setting)
-            
+
             # Update fields
             for key, value in data.items():
                 if hasattr(setting, key):
                     setattr(setting, key, value)
-            
+
             self.db_session.commit()
             return setting
-            
+
         except SQLAlchemyError as e:
             self.db_session.rollback()
             raise Exception(f"Database error updating advanced timesheet settings: {str(e)}")
 
-    def update_google_integration_settings(self, workplace_id: int, data: Dict[str, Any]) -> GoogleIntegrationSettings:
+    def update_google_integration_settings(self, data: Dict[str, Any]) -> GoogleIntegrationSettings:
         """
-        Update Google integration settings.
-        
+        Update Google integration settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The settings data to update
-            
+
         Returns:
             Updated GoogleIntegrationSettings object
         """
         try:
-            setting = self.db_session.query(GoogleIntegrationSettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(GoogleIntegrationSettings).first()
             if not setting:
-                setting = GoogleIntegrationSettings(workplace_id=workplace_id)
+                setting = GoogleIntegrationSettings()
                 self.db_session.add(setting)
-            
+
             # Update fields
             for key, value in data.items():
                 if hasattr(setting, key):
@@ -279,31 +276,30 @@ class ExtendedSettingsController(BaseController):
                             continue
                     else:
                         setattr(setting, key, value)
-            
+
             self.db_session.commit()
             return setting
-            
+
         except SQLAlchemyError as e:
             self.db_session.rollback()
             raise Exception(f"Database error updating Google integration settings: {str(e)}")
 
-    def update_reporting_settings(self, workplace_id: int, data: Dict[str, Any]) -> ReportingSettings:
+    def update_reporting_settings(self, data: Dict[str, Any]) -> ReportingSettings:
         """
-        Update reporting settings.
-        
+        Update reporting settings for Hands on Labor.
+
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The settings data to update
-            
+
         Returns:
             Updated ReportingSettings object
         """
         try:
-            setting = self.db_session.query(ReportingSettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(ReportingSettings).first()
             if not setting:
-                setting = ReportingSettings(workplace_id=workplace_id)
+                setting = ReportingSettings()
                 self.db_session.add(setting)
-            
+
             # Update fields
             for key, value in data.items():
                 if hasattr(setting, key):
@@ -316,29 +312,28 @@ class ExtendedSettingsController(BaseController):
                             continue
                     else:
                         setattr(setting, key, value)
-            
+
             self.db_session.commit()
             return setting
-            
+
         except SQLAlchemyError as e:
             self.db_session.rollback()
             raise Exception(f"Database error updating reporting settings: {str(e)}")
 
-    def update_mobile_accessibility_settings(self, workplace_id: int, data: Dict[str, Any]) -> MobileAccessibilitySettings:
+    def update_mobile_accessibility_settings(self, data: Dict[str, Any]) -> MobileAccessibilitySettings:
         """
-        Update mobile and accessibility settings.
+        Update mobile and accessibility settings for Hands on Labor.
 
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The settings data to update
 
         Returns:
             Updated MobileAccessibilitySettings object
         """
         try:
-            setting = self.db_session.query(MobileAccessibilitySettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(MobileAccessibilitySettings).first()
             if not setting:
-                setting = MobileAccessibilitySettings(workplace_id=workplace_id)
+                setting = MobileAccessibilitySettings()
                 self.db_session.add(setting)
 
             # Update fields
@@ -361,21 +356,20 @@ class ExtendedSettingsController(BaseController):
             self.db_session.rollback()
             raise Exception(f"Database error updating mobile accessibility settings: {str(e)}")
 
-    def update_system_admin_settings(self, workplace_id: int, data: Dict[str, Any]) -> SystemAdminSettings:
+    def update_system_admin_settings(self, data: Dict[str, Any]) -> SystemAdminSettings:
         """
-        Update system administration settings.
+        Update system administration settings for Hands on Labor.
 
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The settings data to update
 
         Returns:
             Updated SystemAdminSettings object
         """
         try:
-            setting = self.db_session.query(SystemAdminSettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(SystemAdminSettings).first()
             if not setting:
-                setting = SystemAdminSettings(workplace_id=workplace_id)
+                setting = SystemAdminSettings()
                 self.db_session.add(setting)
 
             # Update fields
@@ -583,21 +577,20 @@ class ExtendedSettingsController(BaseController):
 
         return errors
 
-    def update_security_settings(self, workplace_id: int, data: Dict[str, Any]) -> SystemAdminSettings:
+    def update_security_settings(self, data: Dict[str, Any]) -> SystemAdminSettings:
         """
-        Update security-related settings within system admin settings.
+        Update security-related settings within system admin settings for Hands on Labor.
 
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): The security settings data to update
 
         Returns:
             Updated SystemAdminSettings object
         """
         try:
-            setting = self.db_session.query(SystemAdminSettings).filter_by(workplace_id=workplace_id).first()
+            setting = self.db_session.query(SystemAdminSettings).first()
             if not setting:
-                setting = SystemAdminSettings(workplace_id=workplace_id)
+                setting = SystemAdminSettings()
                 self.db_session.add(setting)
 
             # Update security-related fields only
@@ -620,12 +613,9 @@ class ExtendedSettingsController(BaseController):
             raise Exception(f"Database error updating security settings: {str(e)}")
 
     # Utility Methods
-    def reset_all_to_defaults(self, workplace_id: int) -> Dict[str, Any]:
+    def reset_all_to_defaults(self) -> Dict[str, Any]:
         """
-        Reset all extended settings to defaults.
-
-        Args:
-            workplace_id (int): The workplace ID
+        Reset all extended settings to defaults for Hands on Labor.
 
         Returns:
             Dict containing all reset settings
@@ -640,12 +630,12 @@ class ExtendedSettingsController(BaseController):
 
             # Delete existing settings
             for model_class in settings_models:
-                self.db_session.query(model_class).filter_by(workplace_id=workplace_id).delete()
+                self.db_session.query(model_class).delete()
 
             # Create new default settings
             reset_settings = {}
             for model_class in settings_models:
-                new_setting = model_class(workplace_id=workplace_id)
+                new_setting = model_class()
                 self.db_session.add(new_setting)
                 self.db_session.flush()  # Get the ID
                 reset_settings[model_class.__tablename__] = new_setting.to_dict()
@@ -657,12 +647,11 @@ class ExtendedSettingsController(BaseController):
             self.db_session.rollback()
             raise Exception(f"Database error resetting settings: {str(e)}")
 
-    def test_google_connection(self, workplace_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    def test_google_connection(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Test Google API connection.
+        Test Google API connection for Hands on Labor.
 
         Args:
-            workplace_id (int): The workplace ID
             data (Dict): Connection data to test
 
         Returns:
@@ -687,12 +676,9 @@ class ExtendedSettingsController(BaseController):
                 "test_timestamp": datetime.now().isoformat()
             }
 
-    def trigger_manual_google_sync(self, workplace_id: int) -> Dict[str, Any]:
+    def trigger_manual_google_sync(self) -> Dict[str, Any]:
         """
-        Trigger manual Google sync.
-
-        Args:
-            workplace_id (int): The workplace ID
+        Trigger manual Google sync for Hands on Labor.
 
         Returns:
             Dict containing sync results
@@ -714,12 +700,9 @@ class ExtendedSettingsController(BaseController):
                 "sync_timestamp": datetime.now().isoformat()
             }
 
-    def run_system_health_check(self, workplace_id: int) -> Dict[str, Any]:
+    def run_system_health_check(self) -> Dict[str, Any]:
         """
-        Run system health check.
-
-        Args:
-            workplace_id (int): The workplace ID
+        Run system health check for Hands on Labor.
 
         Returns:
             Dict containing health check results
@@ -745,12 +728,9 @@ class ExtendedSettingsController(BaseController):
                 "check_timestamp": datetime.now().isoformat()
             }
 
-    def trigger_manual_backup(self, workplace_id: int) -> Dict[str, Any]:
+    def trigger_manual_backup(self) -> Dict[str, Any]:
         """
-        Trigger manual backup.
-
-        Args:
-            workplace_id (int): The workplace ID
+        Trigger manual backup for Hands on Labor.
 
         Returns:
             Dict containing backup results
@@ -763,7 +743,7 @@ class ExtendedSettingsController(BaseController):
                 "backup_size": "2.3 GB",
                 "backup_location": "cloud_storage",
                 "backup_timestamp": datetime.now().isoformat(),
-                "backup_id": f"backup_{workplace_id}_{int(datetime.now().timestamp())}"
+                "backup_id": f"backup_handsonlabor_{int(datetime.now().timestamp())}"
             }
         except Exception as e:
             return {

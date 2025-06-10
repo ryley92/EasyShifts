@@ -38,16 +38,22 @@ class BaseRepository:
         Returns:
             EntityType: The created entity.
         """
-        # Creating an entity based on a dict data
-        db_entity = self.entity_type(**entity_data)
+        try:
+            # Creating an entity based on a dict data
+            db_entity = self.entity_type(**entity_data)
 
-        # Add that entity to the db, commit it and refresh it
-        self.db.add(db_entity)
-        self.db.commit()
-        self.db.refresh(db_entity)
+            # Add that entity to the db, commit it and refresh it
+            self.db.add(db_entity)
+            self.db.commit()
+            self.db.refresh(db_entity)
 
-        # Return the created entity
-        return db_entity
+            # Return the created entity
+            return db_entity
+        except Exception as e:
+            # Rollback the session on any error
+            self.db.rollback()
+            print(f"Error creating entity: {e}")
+            raise
 
     def get_entity(self, entity_id: str) -> EntityType:
         """
@@ -89,17 +95,23 @@ class BaseRepository:
         Returns:
             EntityType: The updated entity if found, else None.
         """
-        # Get a reference to entity in the db
-        db_entity = self.get_entity(entity_id)
+        try:
+            # Get a reference to entity in the db
+            db_entity = self.get_entity(entity_id)
 
-        # If it exists, update it
-        if db_entity:
-            for key, value in updated_data.items():
-                setattr(db_entity, key, value)
-            self.db.commit()
-            self.db.refresh(db_entity)
+            # If it exists, update it
+            if db_entity:
+                for key, value in updated_data.items():
+                    setattr(db_entity, key, value)
+                self.db.commit()
+                self.db.refresh(db_entity)
 
-        return db_entity
+            return db_entity
+        except Exception as e:
+            # Rollback the session on any error
+            self.db.rollback()
+            print(f"Error updating entity: {e}")
+            raise
 
     def delete_entity(self, entity_id: str) -> EntityType | None:
         """
@@ -111,15 +123,21 @@ class BaseRepository:
         Returns:
             EntityType: The deleted entity if found, else None.
         """
-        # Get a reference to entity in the db
-        db_entity = self.get_entity(entity_id)
+        try:
+            # Get a reference to entity in the db
+            db_entity = self.get_entity(entity_id)
 
-        # If it exists, update it
-        if db_entity:
-            self.db.delete(db_entity)
-            self.db.commit()
+            # If it exists, delete it
+            if db_entity:
+                self.db.delete(db_entity)
+                self.db.commit()
 
-        return db_entity
+            return db_entity
+        except Exception as e:
+            # Rollback the session on any error
+            self.db.rollback()
+            print(f"Error deleting entity: {e}")
+            raise
 
 
 

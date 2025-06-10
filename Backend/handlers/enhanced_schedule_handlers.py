@@ -43,10 +43,9 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
         
         # Get user and determine access level
         user = users_controller.get_entity(user_session.get_id)
-        workplace_id = user.id if user.isManager else None
-        
-        # Get shifts in date range
-        shifts = shifts_controller.get_shifts_by_date_range(start_date, end_date, workplace_id)
+
+        # Get shifts in date range (no workplace_id needed for single company)
+        shifts = shifts_controller.get_shifts_by_date_range(start_date, end_date, None)
         
         # Enhance shifts with worker assignments and requirements
         enhanced_shifts = []
@@ -170,9 +169,9 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
             
             response_data['clients'] = clients_data
         
-        # Include workplace settings
+        # Include workplace settings for Hands on Labor
         try:
-            workplace_settings = workplace_settings_controller.get_settings_by_workplace_id(workplace_id or user_session.get_id)
+            workplace_settings = workplace_settings_controller.get_settings()
             if workplace_settings:
                 response_data['workplace_settings'] = workplace_settings.to_dict()
         except:
