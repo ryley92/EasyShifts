@@ -32,7 +32,7 @@ const getShiftParts = (shiftDetails, nextSunday) => {
 };
 
 const CalendarPage = () => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [shiftDetails, setShiftDetails] = useState([]);
   const [nextSunday, setNextSunday] = useState(new Date());
 

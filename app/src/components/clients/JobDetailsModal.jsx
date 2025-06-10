@@ -3,7 +3,7 @@ import { useSocket } from '../../utils';
 import './JobDetailsModal.css';
 
 const JobDetailsModal = ({ job, isOpen, onClose }) => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [shifts, setShifts] = useState([]);
   const [selectedShift, setSelectedShift] = useState(null);
   const [isLoading, setIsLoading] = useState(false);

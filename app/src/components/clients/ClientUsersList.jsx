@@ -3,7 +3,7 @@ import { useSocket } from '../../utils';
 import './ClientUsersList.css';
 
 const ClientUsersList = ({ users, companyId, onRefresh }) => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [processingUsers, setProcessingUsers] = useState(new Set());
 
   const handleUserAction = (userId, action) => {

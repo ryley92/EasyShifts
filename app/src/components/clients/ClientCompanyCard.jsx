@@ -5,7 +5,7 @@ import ClientDetailsModal from './ClientDetailsModal';
 import './ClientCompanyCard.css';
 
 const ClientCompanyCard = ({ client, onRefresh }) => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showUsers, setShowUsers] = useState(false);
   const [isLoading, setIsLoading] = useState(false);

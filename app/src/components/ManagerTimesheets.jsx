@@ -3,7 +3,7 @@ import { useSocket } from '../utils';
 import '../css/ManagerTimesheets.css';
 
 const ManagerTimesheets = () => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [timesheets, setTimesheets] = useState([]);
   const [filteredTimesheets, setFilteredTimesheets] = useState([]);
   const [loading, setLoading] = useState(true);

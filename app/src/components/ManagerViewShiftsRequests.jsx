@@ -4,7 +4,7 @@ import { useSocket } from '../utils';
 // import './ManagerViewShiftsRequests.css'; 
 
 const ManagerViewShiftsRequests = () => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [requestsData, setRequestsData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

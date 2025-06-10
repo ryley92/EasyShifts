@@ -7,7 +7,7 @@ const CrewShiftTimeEntry = () => {
   const { shiftId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const socket = useSocket();
+  const { socket } = useSocket();
 
   const [shiftDetails, setShiftDetails] = useState(location.state?.shiftDetails || null);
   const [crewMembers, setCrewMembers] = useState([]);

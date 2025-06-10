@@ -5,7 +5,7 @@ import '../css/CrewChiefDashboard.css';
 
 const CrewChiefDashboard = () => {
   const navigate = useNavigate();
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [supervisedShifts, setSupervisedShifts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

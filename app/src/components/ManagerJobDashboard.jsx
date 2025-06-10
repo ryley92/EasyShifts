@@ -57,6 +57,12 @@ const ManagerJobDashboard = () => {
 
   const isConnected = connectionStatus === 'connected';
 
+  // Helper function to get company name by ID
+  const getCompanyNameById = (companyId) => {
+    const company = clientCompanies.find(c => c.id === companyId);
+    return company ? company.name : `Unknown Company (ID: ${companyId})`;
+  };
+
   useEffect(() => {
     // Initial data fetch
     fetchClientCompanies();
@@ -227,7 +233,7 @@ const ManagerJobDashboard = () => {
                 <option value="">Select a Client Company</option>
                 {clientCompanies.map((company) => (
                   <option key={company.id} value={company.id}>
-                    {company.name} (ID: {company.id})
+                    {company.name}
                   </option>
                 ))}
               </select>
@@ -319,7 +325,7 @@ const ManagerJobDashboard = () => {
                       <strong>Job ID:</strong> {job.id}
                     </div>
                     <div>
-                      <strong>Client Company ID:</strong> {job.client_company_id}
+                      <strong>Client:</strong> {getCompanyNameById(job.client_company_id)}
                     </div>
                   </div>
                 </div>
@@ -328,6 +334,7 @@ const ManagerJobDashboard = () => {
                     state: {
                       jobName: job.name,
                       clientCompanyId: job.client_company_id,
+                      clientCompanyName: getCompanyNameById(job.client_company_id),
                       venueName: job.venue_name,
                       venueAddress: job.venue_address
                     }

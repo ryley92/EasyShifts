@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useSocket } from '../utils';
 
 const SignInShifts = () => {
-    const socket = useSocket();
+    const { socket } = useSocket();
     const [shiftsString, setShiftsString] = useState('');
     const [requestSubmitted, setRequestSubmitted] = useState(false);
     const [isInRequestWindow, setIsInRequestWindow] = useState(false);

@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import './UserManagement.css';
 
 const UserManagement = () => {
-    const socket = useSocket();
+    const { socket } = useSocket();
     const { user } = useAuth();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);

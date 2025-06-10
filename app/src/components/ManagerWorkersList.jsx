@@ -3,7 +3,7 @@ import { useSocket } from '../utils';
 // import './ManagerWorkersList.css'; // Optional: for styling
 
 const ManagerWorkersList = () => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [workers, setWorkers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');

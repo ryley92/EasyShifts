@@ -5,7 +5,7 @@ import { useSocket } from '../utils';
 const ShiftTimecard = () => {
   const { shiftId } = useParams();
   const location = useLocation();
-  const socket = useSocket();
+  const { socket } = useSocket();
   
   const [timecardData, setTimecardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,10 +24,12 @@ const ShiftTimecard = () => {
   }, [socket, shiftId]);
 
   useEffect(() => {
-    if (socket) {
-      socket.onmessage = (event) => {
+    if (!socket) return;
+
+    const handleMessage = (event) => {
+      try {
         const response = JSON.parse(event.data);
-        
+
         if (response.request_id === 240) { // Get Shift Timecard
           if (response.success) {
             setTimecardData(response.data);
@@ -52,8 +54,17 @@ const ShiftTimecard = () => {
             setTimeout(() => setError(''), 5000);
           }
         }
-      };
-    }
+      } catch (e) {
+        console.error('Error parsing WebSocket message in ShiftTimecard:', e);
+        setError('Error processing server response.');
+        setLoading(false);
+      }
+    };
+
+    socket.addEventListener('message', handleMessage);
+    return () => {
+      socket.removeEventListener('message', handleMessage);
+    };
   }, [socket]);
 
   const fetchTimecardData = () => {

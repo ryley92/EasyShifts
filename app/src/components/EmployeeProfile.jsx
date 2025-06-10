@@ -7,8 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import '../css/EmployeeProfile.css'; // Import the CSS file
 
 function EmployeeProfile() {
-  const socket = socket_object.useSocket();
-  const { connectionStatus } = useSocket();
+  const { socket, connectionStatus } = useSocket();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
   const [certifications, setCertifications] = useState(null);

@@ -9,7 +9,7 @@ import './EnhancedTimesheetManager.css';
 const EnhancedTimesheetManager = () => {
   const { shiftId } = useParams();
   const navigate = useNavigate();
-  const socket = useSocket();
+  const { socket } = useSocket();
   
   const [shiftDetails, setShiftDetails] = useState(null);
   const [timesheetData, setTimesheetData] = useState([]);

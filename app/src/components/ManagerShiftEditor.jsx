@@ -22,6 +22,7 @@ const ManagerShiftEditor = () => {
 
   const jobName = location.state?.jobName;
   const clientCompanyId = location.state?.clientCompanyId;
+  const clientCompanyName = location.state?.clientCompanyName;
 
   const [shifts, setShifts] = useState([]);
   const [availableWorkers, setAvailableWorkers] = useState([]); // New state for workers
@@ -256,7 +257,7 @@ const ManagerShiftEditor = () => {
 
       <div className="page-header">
         <h2 className="page-title">Manage Shifts for Job: {jobName || `ID ${jobId}`}</h2>
-        {clientCompanyId && <p className="client-info">Client Company ID: {clientCompanyId}</p>}
+        {clientCompanyName && <p className="client-info">Client: {clientCompanyName}</p>}
       </div>
 
       {error && <div className="alert alert-error">Error: {error}</div>}

@@ -7,7 +7,7 @@ import '../css/AuthenticatedHome.css';
 const AuthenticatedHome = () => {
     const { user, isManager, logout } = useAuth();
     const navigate = useNavigate();
-    const socket = useSocket();
+    const { socket } = useSocket();
     const [userProfile, setUserProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     // Future enhancement: Add quick stats functionality

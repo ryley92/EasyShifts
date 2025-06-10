@@ -295,7 +295,6 @@ const ManagerClientCompaniesPage = () => {
               ) : (
                 <div className="company-info">
                   <h4 className="company-name">{company.name}</h4>
-                  <p className="company-id">Client ID: {company.id}</p>
                   <div className="company-actions">
                     <button
                       onClick={() => {
