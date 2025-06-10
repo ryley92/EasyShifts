@@ -1,608 +1,157 @@
 import React, { useState, useEffect } from 'react';
 import ToggleSwitch from '../ToggleSwitch';
+import Select from 'react-select';
 
 const MobileAccessibilitySettings = ({ settings, onUpdate, onMarkUnsaved, isLoading }) => {
-  const [formData, setFormData] = useState({
-    // Mobile App Settings
-    mobile_app_enabled: true,
-    force_mobile_app_updates: false,
-    allow_mobile_web_access: true,
-    mobile_session_timeout_minutes: 240,
-    
-    // Offline Capabilities
+  const initialFormData = {
+    // Mobile App Features
     enable_offline_mode: true,
-    offline_data_sync_hours: 24,
-    cache_shift_schedules: true,
-    cache_employee_directory: false,
-    cache_timesheet_data: true,
-    
-    // Push Notifications
-    mobile_push_notifications: true,
-    push_shift_reminders: true,
-    push_schedule_changes: true,
-    push_timesheet_deadlines: true,
-    push_emergency_alerts: true,
-    quiet_hours_start: '22:00',
-    quiet_hours_end: '06:00',
-    
-    // Location Services
-    gps_tracking_enabled: true,
-    location_accuracy_meters: 50,
-    background_location_tracking: false,
-    geofencing_enabled: true,
-    auto_clock_in_geofence: false,
-    
-    // Accessibility Features
-    high_contrast_mode: false,
-    large_text_support: true,
-    voice_over_support: true,
-    screen_reader_optimized: true,
-    keyboard_navigation: true,
-    
-    // Visual Accessibility
-    font_size_multiplier: 1.0,
-    color_blind_friendly_colors: false,
+    offline_data_sync_interval_minutes: 60,
+    enable_push_notifications_mobile: true,
+    allow_mobile_clock_in_out: true,
+    require_gps_for_mobile_clock_in: true,
+    // Accessibility
+    enable_high_contrast_mode: false,
+    font_size_adjustment_percent: 100,
+    enable_screen_reader_support: true,
+    keyboard_navigation_enhanced: true,
     reduce_motion_effects: false,
-    increase_touch_targets: false,
-    
-    // Audio Accessibility
-    audio_feedback_enabled: false,
-    notification_sounds: true,
-    haptic_feedback: true,
-    voice_commands_enabled: false,
-    
-    // Language & Localization
-    default_language: 'en',
-    auto_detect_language: true,
-    right_to_left_support: false,
-    currency_localization: true,
-    date_format_localization: true,
-    
-    // Device Compatibility
-    minimum_ios_version: '13.0',
-    minimum_android_version: '8.0',
-    tablet_optimized_layout: true,
-    landscape_mode_support: true,
-    
-    // Security Features
-    biometric_authentication: true,
-    pin_code_backup: true,
-    auto_lock_minutes: 5,
-    screenshot_prevention: false,
-    app_backgrounding_security: true,
-    
+    // App Customization
+    mobile_theme: 'system', // system, light, dark
+    allow_custom_notifications_sounds_mobile: true,
     // Data Usage
-    compress_images: true,
-    limit_background_data: false,
-    wifi_only_sync: false,
-    data_usage_warnings: true,
-    
-    // Performance
-    image_quality: 'medium',
-    animation_speed: 'normal',
-    preload_next_screens: true,
-    cache_size_mb: 100,
-  });
+    limit_background_data_usage_mobile: false,
+    image_quality_mobile: 'medium', // low, medium, high
+  };
 
-  const [supportedLanguages] = useState([
-    { code: 'en', name: 'English', enabled: true },
-    { code: 'es', name: 'Spanish', enabled: true },
-    { code: 'fr', name: 'French', enabled: false },
-    { code: 'de', name: 'German', enabled: false },
-    { code: 'it', name: 'Italian', enabled: false },
-    { code: 'pt', name: 'Portuguese', enabled: false },
-    { code: 'zh', name: 'Chinese', enabled: false },
-    { code: 'ja', name: 'Japanese', enabled: false },
-  ]);
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
-    if (settings?.mobile_accessibility) {
-      setFormData(prev => ({
-        ...prev,
-        ...settings.mobile_accessibility
-      }));
+    if (settings && settings.mobile_accessibility_settings) {
+      setFormData(prev => ({ ...initialFormData, ...settings.mobile_accessibility_settings }));
+    } else if (settings && Object.keys(settings).length > 0 && !settings.mobile_accessibility_settings) {
+      setFormData(initialFormData);
     }
   }, [settings]);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    let val = type === 'checkbox' ? checked : value;
+    if (type === 'number') {
+      val = parseInt(value, 10);
+      if (isNaN(val)) val = 0;
+    }
+    setFormData(prev => ({ ...prev, [name]: val }));
     onMarkUnsaved();
   };
 
-  const handleToggle = (field) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
+  const handleToggle = (name) => {
+    setFormData(prev => ({ ...prev, [name]: !prev[name] }));
+    onMarkUnsaved();
+  };
+  
+  const handleSelectChange = (name, selectedOption) => {
+    setFormData(prev => ({ ...prev, [name]: selectedOption.value }));
     onMarkUnsaved();
   };
 
-  const handleSave = () => {
+  const handleSubmit = (e) => {
+    e.preventDefault();
     onUpdate('mobile-accessibility', formData);
   };
 
+  if (!settings) {
+    return <div>Loading mobile & accessibility settings...</div>;
+  }
+  const currentData = (settings && settings.mobile_accessibility_settings) 
+    ? { ...initialFormData, ...settings.mobile_accessibility_settings } 
+    : formData;
+
+  const mobileThemeOptions = [
+    { value: 'system', label: 'System Default' },
+    { value: 'light', label: 'Light Mode' },
+    { value: 'dark', label: 'Dark Mode' },
+  ];
+
+  const imageQualityOptions = [
+    { value: 'low', label: 'Low' },
+    { value: 'medium', label: 'Medium' },
+    { value: 'high', label: 'High' },
+  ];
+
   return (
-    <div className="settings-section">
-      <div className="settings-header">
-        <h2>Mobile & Accessibility Settings</h2>
-        <p>Configure mobile app features, offline capabilities, accessibility options, and device compatibility.</p>
-      </div>
+    <form onSubmit={handleSubmit} className="settings-form-category">
+      <h3 className="category-title">Mobile App & Accessibility</h3>
 
-      {/* Mobile App Settings */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">📱</span>
-          <h3 className="settings-card-title">Mobile App Settings</h3>
-        </div>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Mobile App Features</h4>
         <div className="form-grid">
+          <ToggleSwitch label="Enable Offline Mode" checked={currentData.enable_offline_mode} onChange={() => handleToggle('enable_offline_mode')} description="Allow app usage with limited functionality when offline."/>
           <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Enable Mobile App</div>
-                <div className="toggle-description">Allow access through mobile applications</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.mobile_app_enabled}
-                onChange={() => handleToggle('mobile_app_enabled')}
-              />
-            </div>
+            <label htmlFor="offline_data_sync_interval_minutes">Offline Data Sync Interval (minutes)</label>
+            <input type="number" id="offline_data_sync_interval_minutes" name="offline_data_sync_interval_minutes" value={currentData.offline_data_sync_interval_minutes} onChange={handleChange} min="5" className="form-input" disabled={!currentData.enable_offline_mode}/>
           </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Force App Updates</div>
-                <div className="toggle-description">Require users to update to the latest app version</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.force_mobile_app_updates}
-                onChange={() => handleToggle('force_mobile_app_updates')}
-                disabled={!formData.mobile_app_enabled}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Allow Mobile Web Access</div>
-                <div className="toggle-description">Allow access through mobile web browsers</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.allow_mobile_web_access}
-                onChange={() => handleToggle('allow_mobile_web_access')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Mobile Session Timeout (Minutes)</label>
-            <input
-              type="number"
-              min="30"
-              max="1440"
-              className="form-input"
-              value={formData.mobile_session_timeout_minutes}
-              onChange={(e) => handleInputChange('mobile_session_timeout_minutes', parseInt(e.target.value))}
-              disabled={!formData.mobile_app_enabled}
-            />
-          </div>
+          <ToggleSwitch label="Enable Push Notifications on Mobile" checked={currentData.enable_push_notifications_mobile} onChange={() => handleToggle('enable_push_notifications_mobile')} />
+          <ToggleSwitch label="Allow Mobile Clock In/Out" checked={currentData.allow_mobile_clock_in_out} onChange={() => handleToggle('allow_mobile_clock_in_out')} />
+          <ToggleSwitch label="Require GPS for Mobile Clock In/Out" checked={currentData.require_gps_for_mobile_clock_in} onChange={() => handleToggle('require_gps_for_mobile_clock_in')} disabled={!currentData.allow_mobile_clock_in_out}/>
         </div>
-      </div>
+      </section>
 
-      {/* Offline Capabilities */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">📶</span>
-          <h3 className="settings-card-title">Offline Capabilities</h3>
-        </div>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Accessibility Options</h4>
         <div className="form-grid">
+          <ToggleSwitch label="Enable High Contrast Mode" checked={currentData.enable_high_contrast_mode} onChange={() => handleToggle('enable_high_contrast_mode')} />
           <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Enable Offline Mode</div>
-                <div className="toggle-description">Allow app functionality without internet connection</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.enable_offline_mode}
-                onChange={() => handleToggle('enable_offline_mode')}
-              />
-            </div>
+            <label htmlFor="font_size_adjustment_percent">Font Size Adjustment (%)</label>
+            <input type="number" id="font_size_adjustment_percent" name="font_size_adjustment_percent" value={currentData.font_size_adjustment_percent} onChange={handleChange} min="50" max="200" step="10" className="form-input" />
           </div>
-          <div className="form-group">
-            <label className="form-label">Offline Data Sync (Hours)</label>
-            <input
-              type="number"
-              min="1"
-              max="168"
-              className="form-input"
-              value={formData.offline_data_sync_hours}
-              onChange={(e) => handleInputChange('offline_data_sync_hours', parseInt(e.target.value))}
-              disabled={!formData.enable_offline_mode}
-            />
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Cache Shift Schedules</div>
-                <div className="toggle-description">Store shift schedules for offline viewing</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.cache_shift_schedules}
-                onChange={() => handleToggle('cache_shift_schedules')}
-                disabled={!formData.enable_offline_mode}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Cache Timesheet Data</div>
-                <div className="toggle-description">Store timesheet data for offline entry</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.cache_timesheet_data}
-                onChange={() => handleToggle('cache_timesheet_data')}
-                disabled={!formData.enable_offline_mode}
-              />
-            </div>
-          </div>
+          <ToggleSwitch label="Enable Screen Reader Support Enhancements" checked={currentData.enable_screen_reader_support} onChange={() => handleToggle('enable_screen_reader_support')} />
+          <ToggleSwitch label="Enhance Keyboard Navigation" checked={currentData.keyboard_navigation_enhanced} onChange={() => handleToggle('keyboard_navigation_enhanced')} />
+          <ToggleSwitch label="Reduce Motion Effects" checked={currentData.reduce_motion_effects} onChange={() => handleToggle('reduce_motion_effects')} description="Minimize animations and transitions."/>
         </div>
-      </div>
+      </section>
 
-      {/* Push Notifications */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">🔔</span>
-          <h3 className="settings-card-title">Push Notifications</h3>
-        </div>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Mobile App Customization</h4>
         <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Enable Push Notifications</div>
-                <div className="toggle-description">Send push notifications to mobile devices</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.mobile_push_notifications}
-                onChange={() => handleToggle('mobile_push_notifications')}
-              />
+            <div className="form-group">
+                <label htmlFor="mobile_theme">Mobile App Theme</label>
+                <Select
+                    inputId="mobile_theme"
+                    options={mobileThemeOptions}
+                    value={mobileThemeOptions.find(opt => opt.value === currentData.mobile_theme)}
+                    onChange={selectedOption => handleSelectChange('mobile_theme', selectedOption)}
+                    classNamePrefix="select"
+                />
             </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Shift Reminders</div>
-                <div className="toggle-description">Send reminders before shifts start</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.push_shift_reminders}
-                onChange={() => handleToggle('push_shift_reminders')}
-                disabled={!formData.mobile_push_notifications}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Schedule Changes</div>
-                <div className="toggle-description">Notify about schedule modifications</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.push_schedule_changes}
-                onChange={() => handleToggle('push_schedule_changes')}
-                disabled={!formData.mobile_push_notifications}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Emergency Alerts</div>
-                <div className="toggle-description">Send emergency notifications</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.push_emergency_alerts}
-                onChange={() => handleToggle('push_emergency_alerts')}
-                disabled={!formData.mobile_push_notifications}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Quiet Hours Start</label>
-            <input
-              type="time"
-              className="form-input"
-              value={formData.quiet_hours_start}
-              onChange={(e) => handleInputChange('quiet_hours_start', e.target.value)}
-              disabled={!formData.mobile_push_notifications}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Quiet Hours End</label>
-            <input
-              type="time"
-              className="form-input"
-              value={formData.quiet_hours_end}
-              onChange={(e) => handleInputChange('quiet_hours_end', e.target.value)}
-              disabled={!formData.mobile_push_notifications}
-            />
-          </div>
+            <ToggleSwitch label="Allow Custom Notification Sounds (Mobile)" checked={currentData.allow_custom_notifications_sounds_mobile} onChange={() => handleToggle('allow_custom_notifications_sounds_mobile')} />
         </div>
-      </div>
+      </section>
 
-      {/* Location Services */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">📍</span>
-          <h3 className="settings-card-title">Location Services</h3>
-        </div>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Mobile Data Usage</h4>
         <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">GPS Tracking</div>
-                <div className="toggle-description">Enable GPS location tracking</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.gps_tracking_enabled}
-                onChange={() => handleToggle('gps_tracking_enabled')}
-              />
+            <ToggleSwitch label="Limit Background Data Usage (Mobile)" checked={currentData.limit_background_data_usage_mobile} onChange={() => handleToggle('limit_background_data_usage_mobile')} />
+            <div className="form-group">
+                <label htmlFor="image_quality_mobile">Image Quality (Mobile App)</label>
+                <Select
+                    inputId="image_quality_mobile"
+                    options={imageQualityOptions}
+                    value={imageQualityOptions.find(opt => opt.value === currentData.image_quality_mobile)}
+                    onChange={selectedOption => handleSelectChange('image_quality_mobile', selectedOption)}
+                    classNamePrefix="select"
+                />
+                <small>Affects images like profile pictures or job site photos.</small>
             </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Location Accuracy (Meters)</label>
-            <input
-              type="number"
-              min="10"
-              max="500"
-              className="form-input"
-              value={formData.location_accuracy_meters}
-              onChange={(e) => handleInputChange('location_accuracy_meters', parseInt(e.target.value))}
-              disabled={!formData.gps_tracking_enabled}
-            />
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Background Location Tracking</div>
-                <div className="toggle-description">Track location when app is in background</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.background_location_tracking}
-                onChange={() => handleToggle('background_location_tracking')}
-                disabled={!formData.gps_tracking_enabled}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Geofencing</div>
-                <div className="toggle-description">Enable location-based triggers</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.geofencing_enabled}
-                onChange={() => handleToggle('geofencing_enabled')}
-                disabled={!formData.gps_tracking_enabled}
-              />
-            </div>
-          </div>
         </div>
-      </div>
-
-      {/* Accessibility Features */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">♿</span>
-          <h3 className="settings-card-title">Accessibility Features</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">High Contrast Mode</div>
-                <div className="toggle-description">Enable high contrast colors for better visibility</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.high_contrast_mode}
-                onChange={() => handleToggle('high_contrast_mode')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Large Text Support</div>
-                <div className="toggle-description">Support for larger text sizes</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.large_text_support}
-                onChange={() => handleToggle('large_text_support')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Screen Reader Optimized</div>
-                <div className="toggle-description">Optimize interface for screen readers</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.screen_reader_optimized}
-                onChange={() => handleToggle('screen_reader_optimized')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Keyboard Navigation</div>
-                <div className="toggle-description">Enable full keyboard navigation support</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.keyboard_navigation}
-                onChange={() => handleToggle('keyboard_navigation')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Font Size Multiplier</label>
-            <select
-              className="form-select"
-              value={formData.font_size_multiplier}
-              onChange={(e) => handleInputChange('font_size_multiplier', parseFloat(e.target.value))}
-            >
-              <option value="0.8">Small (0.8x)</option>
-              <option value="1.0">Normal (1.0x)</option>
-              <option value="1.2">Large (1.2x)</option>
-              <option value="1.5">Extra Large (1.5x)</option>
-              <option value="2.0">Huge (2.0x)</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Color Blind Friendly</div>
-                <div className="toggle-description">Use color blind friendly color schemes</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.color_blind_friendly_colors}
-                onChange={() => handleToggle('color_blind_friendly_colors')}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Audio & Haptic Feedback */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">🔊</span>
-          <h3 className="settings-card-title">Audio & Haptic Feedback</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Audio Feedback</div>
-                <div className="toggle-description">Provide audio feedback for actions</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.audio_feedback_enabled}
-                onChange={() => handleToggle('audio_feedback_enabled')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Notification Sounds</div>
-                <div className="toggle-description">Play sounds for notifications</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.notification_sounds}
-                onChange={() => handleToggle('notification_sounds')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Haptic Feedback</div>
-                <div className="toggle-description">Provide vibration feedback for actions</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.haptic_feedback}
-                onChange={() => handleToggle('haptic_feedback')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Voice Commands</div>
-                <div className="toggle-description">Enable voice command functionality</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.voice_commands_enabled}
-                onChange={() => handleToggle('voice_commands_enabled')}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Security Features */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">🔐</span>
-          <h3 className="settings-card-title">Mobile Security</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Biometric Authentication</div>
-                <div className="toggle-description">Allow fingerprint/face ID authentication</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.biometric_authentication}
-                onChange={() => handleToggle('biometric_authentication')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">PIN Code Backup</div>
-                <div className="toggle-description">Require PIN as backup authentication</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.pin_code_backup}
-                onChange={() => handleToggle('pin_code_backup')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Auto-Lock After (Minutes)</label>
-            <select
-              className="form-select"
-              value={formData.auto_lock_minutes}
-              onChange={(e) => handleInputChange('auto_lock_minutes', parseInt(e.target.value))}
-            >
-              <option value="1">1 minute</option>
-              <option value="2">2 minutes</option>
-              <option value="5">5 minutes</option>
-              <option value="10">10 minutes</option>
-              <option value="15">15 minutes</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Screenshot Prevention</div>
-                <div className="toggle-description">Prevent screenshots of sensitive data</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.screenshot_prevention}
-                onChange={() => handleToggle('screenshot_prevention')}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
 
       <div className="settings-actions">
-        <button 
-          onClick={handleSave} 
-          className="btn btn-primary"
-          disabled={isLoading}
-        >
+        <button type="submit" className="btn btn-primary" disabled={isLoading}>
           {isLoading ? 'Saving...' : 'Save Mobile & Accessibility Settings'}
         </button>
       </div>
-    </div>
+    </form>
   );
 };
 

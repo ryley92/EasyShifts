@@ -2,554 +2,133 @@ import React, { useState, useEffect } from 'react';
 import ToggleSwitch from '../ToggleSwitch';
 
 const TimesheetAdvancedSettings = ({ settings, onUpdate, onMarkUnsaved, isLoading }) => {
-  const [formData, setFormData] = useState({
-    // Clock In/Out Rules
+  const initialFormData = {
+    // Time tracking
     require_photo_clock_in: false,
-    require_location_verification: true,
-    location_verification_radius_feet: 100,
-    allow_early_clock_in_minutes: 15,
-    allow_late_clock_out_minutes: 15,
+    require_location_verification: false,
     auto_clock_out_hours: 12,
-    
-    // Multiple Clock In/Out Support
-    max_clock_pairs_per_shift: 3,
-    require_break_documentation: true,
-    auto_deduct_unpaid_breaks: true,
-    unpaid_break_threshold_minutes: 30,
-    
-    // Overtime Policies
+    location_verification_radius_feet: 100, // Added from model
+    allow_early_clock_in_minutes: 15,    // Added from model
+    allow_late_clock_out_minutes: 15,     // Added from model
+    max_clock_pairs_per_shift: 3,         // Added from model
+    require_break_documentation: true,    // Added from model
+    auto_deduct_unpaid_breaks: true,      // Added from model
+    // Overtime rules
     overtime_threshold_daily: 8,
     overtime_threshold_weekly: 40,
     overtime_rate_multiplier: 1.5,
-    double_time_threshold_daily: 12,
-    double_time_rate_multiplier: 2.0,
-    weekend_overtime_enabled: false,
-    holiday_overtime_enabled: true,
-    
-    // Approval Workflows
-    require_manager_approval: true,
-    require_client_approval: false,
+    // Approval workflow
+    require_manager_approval: true, // This is for timesheets
     auto_approve_regular_hours: false,
     auto_approve_overtime: false,
-    approval_timeout_hours: 48,
-    escalate_unapproved_timesheets: true,
-    
-    // Time Tracking Accuracy
-    round_time_to_nearest_minutes: 15,
-    allow_manual_time_adjustments: true,
-    require_adjustment_justification: true,
-    track_gps_location: true,
-    require_supervisor_witness: false,
-    
-    // Crew Chief Permissions
-    crew_chiefs_can_edit_team_times: true,
-    crew_chiefs_can_mark_absent: true,
-    crew_chiefs_can_add_notes: true,
-    crew_chiefs_can_approve_breaks: true,
-    crew_chiefs_can_end_shift_for_all: true,
-    
-    // Client Access
-    clients_can_view_timesheets: true,
-    clients_can_edit_timesheets: false,
-    clients_can_dispute_hours: true,
-    clients_can_add_timesheet_notes: true,
-    show_worker_names_to_clients: true,
-    
-    // Payroll Integration
-    export_format: 'csv',
-    include_break_details: true,
-    include_location_data: false,
-    include_photo_timestamps: false,
-    auto_calculate_taxes: false,
-    
-    // Compliance & Auditing
-    retain_timesheet_data_years: 7,
-    require_digital_signatures: false,
-    track_all_timesheet_changes: true,
-    require_change_justification: true,
-    audit_log_retention_years: 10,
-    
-    // Notifications
-    notify_late_clock_in: true,
-    notify_missed_clock_out: true,
-    notify_overtime_threshold: true,
-    notify_approval_required: true,
-    send_daily_timesheet_summary: false,
-    
-    // Mobile & Offline
-    allow_offline_time_entry: true,
-    sync_when_online: true,
-    offline_data_retention_days: 7,
-    require_network_for_clock_in: false,
-  });
+  };
 
-  const [payrollExportFields, setPayrollExportFields] = useState([
-    { field: 'employee_id', label: 'Employee ID', included: true, required: true },
-    { field: 'employee_name', label: 'Employee Name', included: true, required: true },
-    { field: 'shift_date', label: 'Shift Date', included: true, required: true },
-    { field: 'clock_in_time', label: 'Clock In Time', included: true, required: true },
-    { field: 'clock_out_time', label: 'Clock Out Time', included: true, required: true },
-    { field: 'regular_hours', label: 'Regular Hours', included: true, required: true },
-    { field: 'overtime_hours', label: 'Overtime Hours', included: true, required: false },
-    { field: 'double_time_hours', label: 'Double Time Hours', included: false, required: false },
-    { field: 'break_duration', label: 'Break Duration', included: false, required: false },
-    { field: 'job_location', label: 'Job Location', included: true, required: false },
-    { field: 'client_name', label: 'Client Name', included: true, required: false },
-    { field: 'role_assigned', label: 'Role Assigned', included: true, required: false },
-    { field: 'hourly_rate', label: 'Hourly Rate', included: false, required: false },
-    { field: 'total_pay', label: 'Total Pay', included: false, required: false },
-  ]);
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
-    if (settings?.timesheet_advanced) {
-      setFormData(prev => ({
-        ...prev,
-        ...settings.timesheet_advanced
-      }));
-      if (settings.timesheet_advanced.payroll_export_fields) {
-        setPayrollExportFields(settings.timesheet_advanced.payroll_export_fields);
-      }
+    if (settings && settings.workplace_settings) { // Data comes from workplace_settings
+      setFormData(prev => ({ ...initialFormData, ...settings.workplace_settings }));
+    } else if (settings && Object.keys(settings).length > 0 && !settings.workplace_settings) {
+      setFormData(initialFormData);
     }
   }, [settings]);
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    let val = type === 'checkbox' ? checked : value;
+    if (type === 'number') {
+      val = parseFloat(value); // Use parseFloat for rates/multipliers
+      if (isNaN(val)) val = name.includes('rate') || name.includes('multiplier') ? 0.0 : 0;
+    }
+    setFormData(prev => ({ ...prev, [name]: val }));
     onMarkUnsaved();
   };
 
-  const handleToggle = (field) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
+  const handleToggle = (name) => {
+    setFormData(prev => ({ ...prev, [name]: !prev[name] }));
     onMarkUnsaved();
   };
 
-  const handleExportFieldToggle = (field) => {
-    setPayrollExportFields(prev => 
-      prev.map(item => 
-        item.field === field ? { ...item, included: !item.included } : item
-      )
-    );
-    onMarkUnsaved();
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Updates a part of WorkplaceSettings, so use the same category key
+    onUpdate('workplace_settings', formData); 
   };
 
-  const handleSave = () => {
-    const dataToSave = {
-      ...formData,
-      payroll_export_fields: payrollExportFields
-    };
-    onUpdate('timesheet-advanced', dataToSave);
-  };
+  if (!settings) {
+    return <div>Loading advanced timesheet settings...</div>;
+  }
+  const currentData = (settings && settings.workplace_settings) 
+    ? { ...initialFormData, ...settings.workplace_settings } 
+    : formData;
 
   return (
-    <div className="settings-section">
-      <div className="settings-header">
-        <h2>Advanced Timesheet Settings</h2>
-        <p>Configure advanced time tracking, overtime policies, approval workflows, and payroll integration.</p>
-      </div>
+    <form onSubmit={handleSubmit} className="settings-form-category">
+      <h3 className="category-title">Advanced Timesheet & Payroll Settings</h3>
 
-      {/* Clock In/Out Rules */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">⏱️</span>
-          <h3 className="settings-card-title">Clock In/Out Rules</h3>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Time Tracking Rules</h4>
+        <div className="form-grid">
+          <ToggleSwitch label="Require Photo at Clock-In" checked={currentData.require_photo_clock_in} onChange={() => handleToggle('require_photo_clock_in')} />
+          <ToggleSwitch label="Require Location Verification for Clock-In/Out" checked={currentData.require_location_verification} onChange={() => handleToggle('require_location_verification')} />
+          <div className="form-group">
+            <label htmlFor="location_verification_radius_feet">Location Verification Radius (feet)</label>
+            <input type="number" id="location_verification_radius_feet" name="location_verification_radius_feet" value={currentData.location_verification_radius_feet} onChange={handleChange} min="0" className="form-input" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="allow_early_clock_in_minutes">Allow Early Clock-In (minutes before shift)</label>
+            <input type="number" id="allow_early_clock_in_minutes" name="allow_early_clock_in_minutes" value={currentData.allow_early_clock_in_minutes} onChange={handleChange} min="0" className="form-input" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="allow_late_clock_out_minutes">Allow Late Clock-Out (minutes after shift)</label>
+            <input type="number" id="allow_late_clock_out_minutes" name="allow_late_clock_out_minutes" value={currentData.allow_late_clock_out_minutes} onChange={handleChange} min="0" className="form-input" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="auto_clock_out_hours">Auto Clock-Out After (hours on shift)</label>
+            <input type="number" id="auto_clock_out_hours" name="auto_clock_out_hours" value={currentData.auto_clock_out_hours} onChange={handleChange} min="1" className="form-input" />
+          </div>
+           <div className="form-group">
+            <label htmlFor="max_clock_pairs_per_shift">Max Clock In/Out Pairs Per Shift (for breaks)</label>
+            <input type="number" id="max_clock_pairs_per_shift" name="max_clock_pairs_per_shift" value={currentData.max_clock_pairs_per_shift} onChange={handleChange} min="1" max="5" className="form-input" />
+          </div>
+          <ToggleSwitch label="Require Break Documentation" checked={currentData.require_break_documentation} onChange={() => handleToggle('require_break_documentation')} />
+          <ToggleSwitch label="Auto-deduct Unpaid Breaks" checked={currentData.auto_deduct_unpaid_breaks} onChange={() => handleToggle('auto_deduct_unpaid_breaks')} />
         </div>
+      </section>
+
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Overtime Rules</h4>
         <div className="form-grid">
           <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Require Photo Clock In</div>
-                <div className="toggle-description">Workers must take a photo when clocking in</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.require_photo_clock_in}
-                onChange={() => handleToggle('require_photo_clock_in')}
-              />
-            </div>
+            <label htmlFor="overtime_threshold_daily">Daily Overtime Threshold (hours)</label>
+            <input type="number" id="overtime_threshold_daily" name="overtime_threshold_daily" value={currentData.overtime_threshold_daily} onChange={handleChange} step="0.1" min="0" className="form-input" />
           </div>
           <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Require Location Verification</div>
-                <div className="toggle-description">Verify worker location when clocking in/out</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.require_location_verification}
-                onChange={() => handleToggle('require_location_verification')}
-              />
-            </div>
+            <label htmlFor="overtime_threshold_weekly">Weekly Overtime Threshold (hours)</label>
+            <input type="number" id="overtime_threshold_weekly" name="overtime_threshold_weekly" value={currentData.overtime_threshold_weekly} onChange={handleChange} step="0.1" min="0" className="form-input" />
           </div>
           <div className="form-group">
-            <label className="form-label">Location Verification Radius (Feet)</label>
-            <input
-              type="number"
-              min="10"
-              max="1000"
-              className="form-input"
-              value={formData.location_verification_radius_feet}
-              onChange={(e) => handleInputChange('location_verification_radius_feet', parseInt(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Allow Early Clock In (Minutes)</label>
-            <input
-              type="number"
-              min="0"
-              max="60"
-              className="form-input"
-              value={formData.allow_early_clock_in_minutes}
-              onChange={(e) => handleInputChange('allow_early_clock_in_minutes', parseInt(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Auto Clock Out After (Hours)</label>
-            <input
-              type="number"
-              min="8"
-              max="24"
-              className="form-input"
-              value={formData.auto_clock_out_hours}
-              onChange={(e) => handleInputChange('auto_clock_out_hours', parseInt(e.target.value))}
-            />
+            <label htmlFor="overtime_rate_multiplier">Overtime Rate Multiplier</label>
+            <input type="number" id="overtime_rate_multiplier" name="overtime_rate_multiplier" value={currentData.overtime_rate_multiplier} onChange={handleChange} step="0.01" min="1" className="form-input" />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Multiple Clock In/Out Support */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">🔄</span>
-          <h3 className="settings-card-title">Multiple Clock In/Out Support</h3>
-        </div>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Timesheet Approval Workflow</h4>
         <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">Max Clock Pairs Per Shift</label>
-            <input
-              type="number"
-              min="1"
-              max="5"
-              className="form-input"
-              value={formData.max_clock_pairs_per_shift}
-              onChange={(e) => handleInputChange('max_clock_pairs_per_shift', parseInt(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Require Break Documentation</div>
-                <div className="toggle-description">Workers must document reason for breaks</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.require_break_documentation}
-                onChange={() => handleToggle('require_break_documentation')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Auto-Deduct Unpaid Breaks</div>
-                <div className="toggle-description">Automatically deduct unpaid break time</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.auto_deduct_unpaid_breaks}
-                onChange={() => handleToggle('auto_deduct_unpaid_breaks')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Unpaid Break Threshold (Minutes)</label>
-            <input
-              type="number"
-              min="15"
-              max="120"
-              className="form-input"
-              value={formData.unpaid_break_threshold_minutes}
-              onChange={(e) => handleInputChange('unpaid_break_threshold_minutes', parseInt(e.target.value))}
-            />
-          </div>
+          <ToggleSwitch label="Require Manager Approval for Timesheets" checked={currentData.require_manager_approval} onChange={() => handleToggle('require_manager_approval')} />
+          <ToggleSwitch label="Auto-approve Regular Hours" checked={currentData.auto_approve_regular_hours} onChange={() => handleToggle('auto_approve_regular_hours')} />
+          <ToggleSwitch label="Auto-approve Overtime Hours" checked={currentData.auto_approve_overtime} onChange={() => handleToggle('auto_approve_overtime')} />
         </div>
-      </div>
-
-      {/* Overtime Policies */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">💰</span>
-          <h3 className="settings-card-title">Overtime Policies</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">Daily Overtime Threshold (Hours)</label>
-            <input
-              type="number"
-              min="6"
-              max="12"
-              className="form-input"
-              value={formData.overtime_threshold_daily}
-              onChange={(e) => handleInputChange('overtime_threshold_daily', parseInt(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Weekly Overtime Threshold (Hours)</label>
-            <input
-              type="number"
-              min="35"
-              max="50"
-              className="form-input"
-              value={formData.overtime_threshold_weekly}
-              onChange={(e) => handleInputChange('overtime_threshold_weekly', parseInt(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Overtime Rate Multiplier</label>
-            <input
-              type="number"
-              step="0.1"
-              min="1.0"
-              max="3.0"
-              className="form-input"
-              value={formData.overtime_rate_multiplier}
-              onChange={(e) => handleInputChange('overtime_rate_multiplier', parseFloat(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Double Time Threshold (Hours)</label>
-            <input
-              type="number"
-              min="10"
-              max="16"
-              className="form-input"
-              value={formData.double_time_threshold_daily}
-              onChange={(e) => handleInputChange('double_time_threshold_daily', parseInt(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Double Time Rate Multiplier</label>
-            <input
-              type="number"
-              step="0.1"
-              min="1.5"
-              max="3.0"
-              className="form-input"
-              value={formData.double_time_rate_multiplier}
-              onChange={(e) => handleInputChange('double_time_rate_multiplier', parseFloat(e.target.value))}
-            />
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Weekend Overtime</div>
-                <div className="toggle-description">Apply overtime rates for weekend work</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.weekend_overtime_enabled}
-                onChange={() => handleToggle('weekend_overtime_enabled')}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Approval Workflows */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">✅</span>
-          <h3 className="settings-card-title">Approval Workflows</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Require Manager Approval</div>
-                <div className="toggle-description">Timesheets must be approved by managers</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.require_manager_approval}
-                onChange={() => handleToggle('require_manager_approval')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Require Client Approval</div>
-                <div className="toggle-description">Clients must approve timesheets for their jobs</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.require_client_approval}
-                onChange={() => handleToggle('require_client_approval')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Auto-Approve Regular Hours</div>
-                <div className="toggle-description">Automatically approve regular hours without overtime</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.auto_approve_regular_hours}
-                onChange={() => handleToggle('auto_approve_regular_hours')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Auto-Approve Overtime</div>
-                <div className="toggle-description">Automatically approve overtime hours</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.auto_approve_overtime}
-                onChange={() => handleToggle('auto_approve_overtime')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Approval Timeout (Hours)</label>
-            <input
-              type="number"
-              min="12"
-              max="168"
-              className="form-input"
-              value={formData.approval_timeout_hours}
-              onChange={(e) => handleInputChange('approval_timeout_hours', parseInt(e.target.value))}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Crew Chief Permissions */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">👑</span>
-          <h3 className="settings-card-title">Crew Chief Permissions</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Can Edit Team Times</div>
-                <div className="toggle-description">Crew chiefs can edit their team's clock in/out times</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.crew_chiefs_can_edit_team_times}
-                onChange={() => handleToggle('crew_chiefs_can_edit_team_times')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Can Mark Absent</div>
-                <div className="toggle-description">Crew chiefs can mark team members as absent</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.crew_chiefs_can_mark_absent}
-                onChange={() => handleToggle('crew_chiefs_can_mark_absent')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Can Add Notes</div>
-                <div className="toggle-description">Crew chiefs can add notes to timesheets</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.crew_chiefs_can_add_notes}
-                onChange={() => handleToggle('crew_chiefs_can_add_notes')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Can End Shift for All</div>
-                <div className="toggle-description">Crew chiefs can end the shift for all team members</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.crew_chiefs_can_end_shift_for_all}
-                onChange={() => handleToggle('crew_chiefs_can_end_shift_for_all')}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Time Tracking Accuracy */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">🎯</span>
-          <h3 className="settings-card-title">Time Tracking Accuracy</h3>
-        </div>
-        <div className="form-grid">
-          <div className="form-group">
-            <label className="form-label">Round Time to Nearest (Minutes)</label>
-            <select
-              className="form-select"
-              value={formData.round_time_to_nearest_minutes}
-              onChange={(e) => handleInputChange('round_time_to_nearest_minutes', parseInt(e.target.value))}
-            >
-              <option value="1">1 minute</option>
-              <option value="5">5 minutes</option>
-              <option value="15">15 minutes</option>
-              <option value="30">30 minutes</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Allow Manual Time Adjustments</div>
-                <div className="toggle-description">Managers can manually adjust clock times</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.allow_manual_time_adjustments}
-                onChange={() => handleToggle('allow_manual_time_adjustments')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Require Adjustment Justification</div>
-                <div className="toggle-description">Require reason for manual time adjustments</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.require_adjustment_justification}
-                onChange={() => handleToggle('require_adjustment_justification')}
-              />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="toggle-setting">
-              <div className="toggle-info">
-                <div className="toggle-title">Track GPS Location</div>
-                <div className="toggle-description">Record GPS coordinates with clock in/out</div>
-              </div>
-              <ToggleSwitch
-                checked={formData.track_gps_location}
-                onChange={() => handleToggle('track_gps_location')}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      </section>
 
       <div className="settings-actions">
-        <button 
-          onClick={handleSave} 
-          className="btn btn-primary"
-          disabled={isLoading}
-        >
-          {isLoading ? 'Saving...' : 'Save Advanced Timesheet Settings'}
+        <button type="submit" className="btn btn-primary" disabled={isLoading}>
+          {isLoading ? 'Saving...' : 'Save Timesheet Settings'}
         </button>
       </div>
-    </div>
+    </form>
   );
 };
 

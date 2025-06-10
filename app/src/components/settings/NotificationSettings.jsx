@@ -1,268 +1,87 @@
 import React, { useState, useEffect } from 'react';
+import ToggleSwitch from '../ToggleSwitch';
 
 const NotificationSettings = ({ settings, onUpdate, onMarkUnsaved, isLoading }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
+    // Email notifications
     email_notifications_enabled: true,
     notify_on_shift_requests: true,
     notify_on_worker_assignments: true,
     notify_on_timesheet_submissions: true,
     notify_on_schedule_changes: true,
+    // SMS notifications
     sms_notifications_enabled: false,
     sms_urgent_only: true,
+    // In-app notifications
     push_notifications_enabled: true,
     notification_sound_enabled: true,
-  });
+  };
 
-  const notificationTypes = [
-    {
-      key: 'notify_on_shift_requests',
-      title: 'Shift Requests',
-      description: 'When workers request shifts or make changes to requests',
-      icon: '📋'
-    },
-    {
-      key: 'notify_on_worker_assignments',
-      title: 'Worker Assignments',
-      description: 'When workers are assigned or unassigned from shifts',
-      icon: '👥'
-    },
-    {
-      key: 'notify_on_timesheet_submissions',
-      title: 'Timesheet Submissions',
-      description: 'When workers submit timesheets for approval',
-      icon: '⏰'
-    },
-    {
-      key: 'notify_on_schedule_changes',
-      title: 'Schedule Changes',
-      description: 'When shifts are created, modified, or cancelled',
-      icon: '📅'
-    }
-  ];
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
-    if (settings?.notifications) {
-      setFormData({
-        email_notifications_enabled: settings.notifications.email_enabled ?? true,
-        notify_on_shift_requests: settings.notifications.notify_shift_requests ?? true,
-        notify_on_worker_assignments: settings.notifications.notify_worker_assignments ?? true,
-        notify_on_timesheet_submissions: settings.notifications.notify_timesheet_submissions ?? true,
-        notify_on_schedule_changes: settings.notifications.notify_schedule_changes ?? true,
-        sms_notifications_enabled: settings.notifications.sms_enabled ?? false,
-        sms_urgent_only: settings.notifications.sms_urgent_only ?? true,
-        push_notifications_enabled: settings.notifications.push_enabled ?? true,
-        notification_sound_enabled: settings.notifications.notification_sound ?? true,
-      });
+    if (settings && settings.workplace_settings) { // Data comes from workplace_settings
+      setFormData(prev => ({ ...initialFormData, ...settings.workplace_settings }));
+    } else if (settings && Object.keys(settings).length > 0 && !settings.workplace_settings) {
+      setFormData(initialFormData);
     }
   }, [settings]);
 
-  const handleToggle = (field) => {
-    setFormData(prev => ({ ...prev, [field]: !prev[field] }));
+  const handleToggle = (name) => {
+    setFormData(prev => ({ ...prev, [name]: !prev[name] }));
     onMarkUnsaved();
   };
 
-  const handleSave = () => {
-    onUpdate('notifications', formData);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onUpdate('workplace_settings', formData); // Updates WorkplaceSettings
   };
 
-  const ToggleSwitch = ({ checked, onChange, disabled = false }) => (
-    <label className="toggle-switch">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        disabled={disabled}
-      />
-      <span className="toggle-slider"></span>
-    </label>
-  );
+  if (!settings) {
+    return <div>Loading notification settings...</div>;
+  }
+  // Use currentData to ensure form is responsive even if settings.workplace_settings is initially undefined
+  const currentData = (settings && settings.workplace_settings) 
+    ? { ...initialFormData, ...settings.workplace_settings } 
+    : formData;
 
   return (
-    <div className="settings-section">
-      <div className="section-header">
-        <h2 className="section-title">Notification Settings</h2>
-        <p className="section-description">
-          Configure how and when you receive notifications about workplace activities.
-        </p>
-      </div>
+    <form onSubmit={handleSubmit} className="settings-form-category">
+      <h3 className="category-title">Notification Preferences</h3>
 
-      {/* Main notification channels */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">📧</span>
-          <h3 className="settings-card-title">Email Notifications</h3>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">Email Notifications</h4>
+        <div className="form-grid">
+          <ToggleSwitch label="Enable Email Notifications" checked={currentData.email_notifications_enabled} onChange={() => handleToggle('email_notifications_enabled')} description="Global switch for all email notifications."/>
+          <ToggleSwitch label="Notify on New Shift Requests" checked={currentData.notify_on_shift_requests} onChange={() => handleToggle('notify_on_shift_requests')} description="When employees submit their availability or requests."/>
+          <ToggleSwitch label="Notify on Worker Assignments" checked={currentData.notify_on_worker_assignments} onChange={() => handleToggle('notify_on_worker_assignments')} description="When workers are assigned to or unassigned from shifts."/>
+          <ToggleSwitch label="Notify on Timesheet Submissions" checked={currentData.notify_on_timesheet_submissions} onChange={() => handleToggle('notify_on_timesheet_submissions')} description="When crew chiefs or workers submit timesheets."/>
+          <ToggleSwitch label="Notify on Schedule Changes" checked={currentData.notify_on_schedule_changes} onChange={() => handleToggle('notify_on_schedule_changes')} description="When a published schedule is modified."/>
         </div>
-        <p className="settings-card-description">
-          Receive notifications via email. Email notifications provide detailed information and are recommended for important updates.
-        </p>
-        <div className="notification-type">
-          <div className="notification-info">
-            <div className="notification-title">Enable Email Notifications</div>
-            <div className="notification-description">
-              Turn on/off all email notifications
-            </div>
-          </div>
-          <ToggleSwitch
-            checked={formData.email_notifications_enabled}
-            onChange={() => handleToggle('email_notifications_enabled')}
-          />
-        </div>
-      </div>
+      </section>
 
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">📱</span>
-          <h3 className="settings-card-title">SMS Notifications</h3>
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">SMS Notifications</h4>
+        <div className="form-grid">
+          <ToggleSwitch label="Enable SMS Notifications" checked={currentData.sms_notifications_enabled} onChange={() => handleToggle('sms_notifications_enabled')} description="Global switch for SMS alerts (carrier rates may apply)."/>
+          <ToggleSwitch label="Send SMS for Urgent Matters Only" checked={currentData.sms_urgent_only} onChange={() => handleToggle('sms_urgent_only')} description="e.g., last-minute shift changes or cancellations."/>
         </div>
-        <p className="settings-card-description">
-          Receive text message notifications for urgent updates. SMS notifications are brief and immediate.
-        </p>
-        <div className="notification-type">
-          <div className="notification-info">
-            <div className="notification-title">Enable SMS Notifications</div>
-            <div className="notification-description">
-              Turn on/off SMS text message notifications
-            </div>
-          </div>
-          <ToggleSwitch
-            checked={formData.sms_notifications_enabled}
-            onChange={() => handleToggle('sms_notifications_enabled')}
-          />
+      </section>
+      
+      <section className="settings-subsection">
+        <h4 className="subcategory-title">In-App / Push Notifications</h4>
+        <div className="form-grid">
+          <ToggleSwitch label="Enable Push Notifications (Mobile App)" checked={currentData.push_notifications_enabled} onChange={() => handleToggle('push_notifications_enabled')} description="For users of the mobile application."/>
+          <ToggleSwitch label="Enable Notification Sounds (In-App)" checked={currentData.notification_sound_enabled} onChange={() => handleToggle('notification_sound_enabled')} description="Play a sound for new notifications in the web/mobile app."/>
         </div>
-        {formData.sms_notifications_enabled && (
-          <div className="notification-type" style={{ marginTop: '10px' }}>
-            <div className="notification-info">
-              <div className="notification-title">Urgent Only</div>
-              <div className="notification-description">
-                Only send SMS for urgent notifications (recommended)
-              </div>
-            </div>
-            <ToggleSwitch
-              checked={formData.sms_urgent_only}
-              onChange={() => handleToggle('sms_urgent_only')}
-            />
-          </div>
-        )}
-      </div>
+      </section>
 
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">🔔</span>
-          <h3 className="settings-card-title">Push Notifications</h3>
-        </div>
-        <p className="settings-card-description">
-          Receive instant notifications in your browser or mobile app when you're online.
-        </p>
-        <div className="notification-type">
-          <div className="notification-info">
-            <div className="notification-title">Enable Push Notifications</div>
-            <div className="notification-description">
-              Turn on/off browser and app push notifications
-            </div>
-          </div>
-          <ToggleSwitch
-            checked={formData.push_notifications_enabled}
-            onChange={() => handleToggle('push_notifications_enabled')}
-          />
-        </div>
-        {formData.push_notifications_enabled && (
-          <div className="notification-type" style={{ marginTop: '10px' }}>
-            <div className="notification-info">
-              <div className="notification-title">Notification Sound</div>
-              <div className="notification-description">
-                Play a sound when receiving push notifications
-              </div>
-            </div>
-            <ToggleSwitch
-              checked={formData.notification_sound_enabled}
-              onChange={() => handleToggle('notification_sound_enabled')}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* Notification types */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">⚙️</span>
-          <h3 className="settings-card-title">Notification Types</h3>
-        </div>
-        <p className="settings-card-description">
-          Choose which types of activities you want to be notified about. These settings apply to all enabled notification channels.
-        </p>
-        <div className="notification-types">
-          {notificationTypes.map(type => (
-            <div key={type.key} className="notification-type">
-              <div className="notification-info">
-                <div className="notification-title">
-                  <span style={{ marginRight: '8px' }}>{type.icon}</span>
-                  {type.title}
-                </div>
-                <div className="notification-description">
-                  {type.description}
-                </div>
-              </div>
-              <ToggleSwitch
-                checked={formData[type.key]}
-                onChange={() => handleToggle(type.key)}
-                disabled={!formData.email_notifications_enabled && 
-                          !formData.sms_notifications_enabled && 
-                          !formData.push_notifications_enabled}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Notification preview */}
-      <div className="settings-card">
-        <div className="settings-card-header">
-          <span className="settings-card-icon">👁️</span>
-          <h3 className="settings-card-title">Notification Preview</h3>
-        </div>
-        <p className="settings-card-description">
-          Based on your current settings, you will receive notifications via:
-        </p>
-        <div style={{ marginTop: '15px' }}>
-          {formData.email_notifications_enabled && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ color: '#27ae60', fontSize: '1.2em' }}>✓</span>
-              <span>Email notifications</span>
-            </div>
-          )}
-          {formData.sms_notifications_enabled && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ color: '#27ae60', fontSize: '1.2em' }}>✓</span>
-              <span>SMS notifications {formData.sms_urgent_only ? '(urgent only)' : '(all types)'}</span>
-            </div>
-          )}
-          {formData.push_notifications_enabled && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ color: '#27ae60', fontSize: '1.2em' }}>✓</span>
-              <span>Push notifications {formData.notification_sound_enabled ? '(with sound)' : '(silent)'}</span>
-            </div>
-          )}
-          {!formData.email_notifications_enabled && 
-           !formData.sms_notifications_enabled && 
-           !formData.push_notifications_enabled && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#e74c3c' }}>
-              <span style={{ fontSize: '1.2em' }}>⚠️</span>
-              <span>No notification channels enabled - you won't receive any notifications</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="settings-actions-bottom">
-        <button
-          onClick={handleSave}
-          disabled={isLoading}
-          className="save-button"
-        >
+      <div className="settings-actions">
+        <button type="submit" className="btn btn-primary" disabled={isLoading}>
           {isLoading ? 'Saving...' : 'Save Notification Settings'}
         </button>
       </div>
-    </div>
+    </form>
   );
 };
 

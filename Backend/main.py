@@ -1,96 +1,89 @@
-from sqlalchemy import create_engine
+import os
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
-from db.models import Base
-from config.private_password import PASSWORD  # Create this file locally, set private_password.py.py = ... and DON'T upload to GitHub!
+from db.models import Base # Assuming Base is correctly defined in db.models
+from config.private_password import PASSWORD
 
-# Global variables for singleton pattern
-_db_session = None
+_engine = None
 _session_factory = None
+_initialization_error = None
 
-def initialize_database_and_session():
-    """
-    Singleton pattern for database initialization.
-    Returns the same database session and factory on subsequent calls.
+def initialize_database_and_session_factory():
+    global _engine, _session_factory, _initialization_error
 
-    Explanation:
-    - **create_engine():** Establishes a connection to the MySQL database file "easyshiftsdb".
-    - **sessionmaker():** Constructs a session factory that creates new sessions tied to the engine.
-        - `autocommit=False`: Prevents automatic commits for each operation, allowing for control over transactions.
-        - `autoflush=False`: Delays flushing changes to the database until explicitly committed, potentially improving performance.
-    """
-    global _db_session, _session_factory
+    if _engine and _session_factory:
+        print("✅ Database engine and session factory already initialized.")
+        return
 
-    # Return existing session if already initialized
-    if _db_session is not None and _session_factory is not None:
-        return _db_session, _session_factory
+    DB_HOST = os.getenv("DB_HOST", "miano.h.filess.io")
+    DB_PORT = os.getenv("DB_PORT", "3305")
+    DB_USER = os.getenv("DB_USER", "easyshiftsdb_danceshall")
+    DB_NAME = os.getenv("DB_NAME", "easyshiftsdb_danceshall")
+    DB_PASSWORD = PASSWORD 
 
-    # Create a SQLAlchemy engine and session
-    # TODO: Replace placeholders with your remote MySQL server details
-    DB_HOST = "miano.h.filess.io"  # e.g., "mydb.example.com" or an IP address
-    DB_PORT = "3305"  # Default MySQL port, change if different
-    DB_USER = "easyshiftsdb_danceshall"
-    DB_NAME = "easyshiftsdb_danceshall" # e.g., "easyshiftsdb"
+    connection_url = f'mariadb+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    print(f"Attempting to initialize database engine: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
 
     try:
-        print(f"Connecting to database: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
         engine = create_engine(
-            f'mariadb+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}',
-            echo=False,  # Set to True for SQL debugging
-            pool_pre_ping=True,  # Verify connections before use
-            pool_recycle=3600,   # Recycle connections every hour
+            connection_url,
+            echo=False, 
+            pool_pre_ping=True,
+            pool_recycle=3600,
             connect_args={
-                'connect_timeout': 30,  # 30 second connection timeout
-                'read_timeout': 30,     # 30 second read timeout
-                'write_timeout': 30     # 30 second write timeout
+                'connect_timeout': 10,
+                'read_timeout': 30,
+                'write_timeout': 30
             }
         )
 
-        # Test the connection
         with engine.connect() as connection:
-            from sqlalchemy import text
             connection.execute(text("SELECT 1"))
-            print("✅ Database connection successful")
-
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-        create_tables(engine)
-
-        # Creating a session object
-        db = SessionLocal()
-        print("✅ Database session created")
-
-        # Store in global variables for singleton pattern
-        _db_session = db
-        _session_factory = SessionLocal
-
-        return db, SessionLocal
-
-    except Exception as e:
-        print(f"❌ Database connection failed: {e}")
-        print(f"❌ Error type: {type(e).__name__}")
-        print(f"❌ Error details: {str(e)}")
-        raise
-
-
-def get_database_session():
-    """
-    Get the existing database session without reinitializing.
-    If no session exists, initialize one.
-
-    Returns:
-        The database session
-    """
-    global _db_session
-    if _db_session is None:
-        _db_session, _ = initialize_database_and_session()
-    return _db_session
-
-def create_tables(engine):
-    # Create all tables if they don't exist
-    try:
+        print("✅ Database engine connection successful.")
+        
         Base.metadata.create_all(bind=engine, checkfirst=True)
-        print("✅ Database tables created/verified successfully")
+        print("✅ Database tables created/verified successfully.")
+
+        _engine = engine
+        _session_factory = sessionmaker(autocommit=False, autoflush=False, bind=_engine)
+        _initialization_error = None
+        print("✅ Database engine and session factory initialized successfully.")
+
     except Exception as e:
-        print(f"⚠️  Warning during table creation: {e}")
-        # Continue anyway - tables might already exist
-        pass
+        _initialization_error = e
+        print(f"❌ Database engine or session factory initialization failed: {e}")
+        print(f"❌ Error type: {type(e).__name__}")
+
+def get_engine():
+    if not _engine and not _initialization_error:
+        initialize_database_and_session_factory()
+    if _initialization_error:
+        raise RuntimeError(f"Database not initialized due to previous error: {_initialization_error}")
+    if not _engine:
+        raise RuntimeError("Database engine could not be initialized and no specific error was caught.")
+    return _engine
+
+def create_session():
+    """
+    Creates and returns a new SQLAlchemy session from the factory.
+    Attempts to initialize the factory if it hasn't been already.
+    """
+    global _session_factory, _initialization_error
+    
+    if not _session_factory and not _initialization_error:
+        print("Session factory not initialized. Attempting to initialize now...")
+        initialize_database_and_session_factory()
+
+    if _initialization_error:
+        raise RuntimeError(f"Cannot create session: Database initialization failed: {_initialization_error}")
+    if not _session_factory:
+        raise RuntimeError("Cannot create session: Session factory could not be initialized.")
+        
+    return _session_factory()
+
+if _engine is None and _session_factory is None:
+    try:
+        print("Initial attempt to initialize database and session factory from main.py module load...")
+        initialize_database_and_session_factory()
+    except Exception as e:
+        print(f"⚠️ Initial attempt to initialize database failed during module load: {e}. Will retry on first session request.")
