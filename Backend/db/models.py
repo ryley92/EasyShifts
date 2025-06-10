@@ -1,6 +1,7 @@
 import datetime
+from datetime import time
 from sqlalchemy import Column, String, Boolean, Date, Enum, PrimaryKeyConstraint, ForeignKey, DateTime, JSON, func, \
-    Integer, Float
+    Integer, Float, Text, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from uuid import uuid4
@@ -84,21 +85,45 @@ class ClientCompany(Base):
 
 class Job(Base):
     """
-    Represents a job or project.
+    Represents a specific project at a specific venue for Hands on Labor staffing agency.
+    Each job is tied to one location - if location changes, create a new job.
 
     Attributes:
         id (int): Unique identifier for the job.
-        name (str): Name of the job.
+        name (str): Name of the job/project.
         client_company_id (int): Foreign key to the client company.
-        workplace_id (int): Foreign key to the User (manager) responsible for this job within the agency. Can be null if created by a client.
+        description (str): Optional description of the job.
+
+        # Location information (job-level, inherited by all shifts)
+        venue_name (str): Name of the venue where ALL shifts for this job take place.
+        venue_address (str): Address of the venue.
+        venue_contact_info (str): Contact information for the venue.
+
+        # Job metadata
+        created_by (int): ID of the manager who created this job (for tracking).
+        created_at (DateTime): When the job was created.
+        is_active (bool): Whether the job is currently active.
+        estimated_start_date (Date): Expected start date of the job.
+        estimated_end_date (Date): Expected end date of the job.
     """
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True, index=True, nullable=False)
     name = Column(String(NAMES_LEN * 2), nullable=False)
     client_company_id = Column(Integer, ForeignKey('client_companies.id'), nullable=False)
-    workplace_id = Column(Integer, ForeignKey('users.id'), nullable=True) # Agency Manager's ID, can be NULL
-    # Add other job details here, e.g., description, start_date, end_date
+    description = Column(String(500), nullable=True)
+
+    # Location information - ALL shifts inherit this location
+    venue_name = Column(String(200), nullable=False)
+    venue_address = Column(String(500), nullable=False)
+    venue_contact_info = Column(String(300), nullable=True)
+
+    # Job metadata
+    created_by = Column(Integer, ForeignKey('users.id'), nullable=True)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    estimated_start_date = Column(Date, nullable=True)
+    estimated_end_date = Column(Date, nullable=True)
 
 
 class WorkPlace(Base):
@@ -141,27 +166,32 @@ class ShiftPart(enum.Enum):
 
 class Shift(Base):
     """
-    Represents shifts in the system.
+    Represents shifts in the system for Hands on Labor.
+    Each shift belongs to a job and inherits the job's location.
 
     Attributes:
         id (int): Unique identifier for the shift.
-        job_id (int): Identifier for the associated job.
+        job_id (int): Identifier for the associated job (location inherited from job).
         shift_start_datetime (DateTime): Start date and time of the shift.
         shift_end_datetime (DateTime): End date and time of the shift (optional).
         required_employee_counts (JSON): Stores the number of each employee type required for the shift.
                                          Example: {"stagehand": 5, "crew_chief": 1}
         client_po_number (str): Client's Purchase Order number related to this shift.
+        shift_description (str): Description of what this specific shift involves (e.g., "Setup Day", "Event Day", "Teardown").
+        special_instructions (str): Any special instructions specific to this shift.
 
         # Legacy fields for backward compatibility
         shiftDate (Date): DEPRECATED - Use shift_start_datetime instead.
         shiftPart (str): DEPRECATED - Use shift_start_datetime instead.
+
+        # Note: Location fields removed - inherited from job
     """
     __tablename__ = "shifts"
 
     id = Column(Integer, primary_key=True, index=True, nullable=False)  # shiftID
     job_id = Column(Integer, ForeignKey('jobs.id'), nullable=False)
 
-    # New datetime fields
+    # Datetime fields
     shift_start_datetime = Column(DateTime, nullable=True)  # Will become required after migration
     shift_end_datetime = Column(DateTime, nullable=True)
 
@@ -169,8 +199,13 @@ class Shift(Base):
     shiftDate = Column(Date, nullable=True)  # Made nullable for migration
     shiftPart = Column(Enum(ShiftPart), nullable=True)  # Made nullable for migration
 
+    # Shift-specific information
     required_employee_counts = Column(JSON, nullable=True)
     client_po_number = Column(String(50), nullable=True)
+    shift_description = Column(String(200), nullable=True)  # e.g., "Setup Day", "Event Day", "Teardown"
+    special_instructions = Column(String(1000), nullable=True)  # Shift-specific instructions
+
+    # Note: venue_name and venue_address removed - inherited from job
 
 
 class ShiftWorker(Base):
@@ -678,4 +713,470 @@ class WorkplaceSettings(Base):
             'max_hours_per_week': self.max_hours_per_week,
             'closed_days': self.closed_days,
             'operating_days': self.operating_days,
+        }
+
+
+class CompanyProfile(Base):
+    """
+    Company profile and branding settings for Hands on Labor.
+    """
+    __tablename__ = 'company_profile'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Company Information
+    company_name = Column(String(255), default='Hands on Labor', nullable=False)
+    company_tagline = Column(String(500), default='Professional Labor Staffing Solutions', nullable=True)
+    company_description = Column(Text, nullable=True)
+    company_website = Column(String(255), nullable=True)
+    company_email = Column(String(255), nullable=True)
+    company_phone = Column(String(50), nullable=True)
+    company_address = Column(Text, nullable=True)
+
+    # Branding
+    company_logo_url = Column(String(500), nullable=True)
+    company_primary_color = Column(String(7), default='#2563eb', nullable=False)
+    company_secondary_color = Column(String(7), default='#1e40af', nullable=False)
+    show_company_branding = Column(Boolean, default=True, nullable=False)
+
+    # Business Details
+    business_license = Column(String(100), nullable=True)
+    tax_id = Column(String(50), nullable=True)
+    workers_comp_policy = Column(String(100), nullable=True)
+    liability_insurance_policy = Column(String(100), nullable=True)
+
+    # Emergency Contact
+    emergency_contact_name = Column(String(255), nullable=True)
+    emergency_contact_phone = Column(String(50), nullable=True)
+    emergency_contact_email = Column(String(255), nullable=True)
+
+    # Operating Hours & Rates
+    operating_hours_start = Column(Time, default=time(6, 0), nullable=False)
+    operating_hours_end = Column(Time, default=time(22, 0), nullable=False)
+    time_zone = Column(String(50), default='America/Los_Angeles', nullable=False)
+    default_hourly_rate = Column(Float, default=25.00, nullable=False)
+    overtime_rate_multiplier = Column(Float, default=1.5, nullable=False)
+
+    # Settings
+    allow_public_job_postings = Column(Boolean, default=False, nullable=False)
+    require_background_checks = Column(Boolean, default=True, nullable=False)
+    drug_testing_required = Column(Boolean, default=False, nullable=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'company_name': self.company_name,
+            'company_tagline': self.company_tagline,
+            'company_description': self.company_description,
+            'company_website': self.company_website,
+            'company_email': self.company_email,
+            'company_phone': self.company_phone,
+            'company_address': self.company_address,
+            'company_logo_url': self.company_logo_url,
+            'company_primary_color': self.company_primary_color,
+            'company_secondary_color': self.company_secondary_color,
+            'show_company_branding': self.show_company_branding,
+            'business_license': self.business_license,
+            'tax_id': self.tax_id,
+            'workers_comp_policy': self.workers_comp_policy,
+            'liability_insurance_policy': self.liability_insurance_policy,
+            'emergency_contact_name': self.emergency_contact_name,
+            'emergency_contact_phone': self.emergency_contact_phone,
+            'emergency_contact_email': self.emergency_contact_email,
+            'operating_hours_start': self.operating_hours_start.isoformat() if self.operating_hours_start else None,
+            'operating_hours_end': self.operating_hours_end.isoformat() if self.operating_hours_end else None,
+            'time_zone': self.time_zone,
+            'default_hourly_rate': self.default_hourly_rate,
+            'overtime_rate_multiplier': self.overtime_rate_multiplier,
+            'allow_public_job_postings': self.allow_public_job_postings,
+            'require_background_checks': self.require_background_checks,
+            'drug_testing_required': self.drug_testing_required,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class UserManagementSettings(Base):
+    """
+    User management and role-based permissions settings.
+    """
+    __tablename__ = 'user_management_settings'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Employee Management
+    auto_approve_employees = Column(Boolean, default=False, nullable=False)
+    require_manager_approval = Column(Boolean, default=True, nullable=False)
+    allow_employee_self_registration = Column(Boolean, default=True, nullable=False)
+    require_email_verification = Column(Boolean, default=True, nullable=False)
+    employee_probation_period_days = Column(Integer, default=90, nullable=False)
+
+    # Manager Permissions
+    managers_can_create_employees = Column(Boolean, default=True, nullable=False)
+    managers_can_edit_all_timesheets = Column(Boolean, default=True, nullable=False)
+    managers_can_approve_overtime = Column(Boolean, default=True, nullable=False)
+    managers_can_modify_rates = Column(Boolean, default=False, nullable=False)
+    managers_can_access_reports = Column(Boolean, default=True, nullable=False)
+
+    # Client Permissions
+    clients_can_view_timesheets = Column(Boolean, default=True, nullable=False)
+    clients_can_edit_timesheets = Column(Boolean, default=False, nullable=False)
+    clients_can_request_workers = Column(Boolean, default=True, nullable=False)
+    clients_can_modify_jobs = Column(Boolean, default=True, nullable=False)
+    clients_can_cancel_shifts = Column(Boolean, default=False, nullable=False)
+
+    # Role-Based Access & Premiums
+    crew_chiefs_can_edit_team_times = Column(Boolean, default=True, nullable=False)
+    crew_chiefs_can_mark_absent = Column(Boolean, default=True, nullable=False)
+    crew_chiefs_can_add_notes = Column(Boolean, default=True, nullable=False)
+    forklift_operators_premium_rate = Column(Float, default=2.00, nullable=False)
+    truck_drivers_premium_rate = Column(Float, default=3.00, nullable=False)
+    crew_chief_premium_rate = Column(Float, default=5.00, nullable=False)
+
+    # Account Security
+    password_min_length = Column(Integer, default=8, nullable=False)
+    require_password_complexity = Column(Boolean, default=True, nullable=False)
+    password_expiry_days = Column(Integer, default=90, nullable=False)
+    max_login_attempts = Column(Integer, default=5, nullable=False)
+    account_lockout_duration_minutes = Column(Integer, default=30, nullable=False)
+    require_two_factor_auth = Column(Boolean, default=False, nullable=False)
+
+    # Session Management
+    session_timeout_minutes = Column(Integer, default=480, nullable=False)  # 8 hours
+    remember_me_duration_days = Column(Integer, default=30, nullable=False)
+    force_logout_inactive_users = Column(Boolean, default=True, nullable=False)
+    concurrent_sessions_allowed = Column(Integer, default=3, nullable=False)
+
+    # User Directory
+    show_employee_contact_info = Column(Boolean, default=True, nullable=False)
+    show_employee_certifications = Column(Boolean, default=True, nullable=False)
+    allow_employee_profile_editing = Column(Boolean, default=True, nullable=False)
+    require_profile_photos = Column(Boolean, default=False, nullable=False)
+
+    # Approval Workflows
+    require_shift_assignment_approval = Column(Boolean, default=False, nullable=False)
+    require_schedule_change_approval = Column(Boolean, default=True, nullable=False)
+    require_overtime_pre_approval = Column(Boolean, default=True, nullable=False)
+    auto_notify_approvers = Column(Boolean, default=True, nullable=False)
+    approval_timeout_hours = Column(Integer, default=24, nullable=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'auto_approve_employees': self.auto_approve_employees,
+            'require_manager_approval': self.require_manager_approval,
+            'allow_employee_self_registration': self.allow_employee_self_registration,
+            'require_email_verification': self.require_email_verification,
+            'employee_probation_period_days': self.employee_probation_period_days,
+            'managers_can_create_employees': self.managers_can_create_employees,
+            'managers_can_edit_all_timesheets': self.managers_can_edit_all_timesheets,
+            'managers_can_approve_overtime': self.managers_can_approve_overtime,
+            'managers_can_modify_rates': self.managers_can_modify_rates,
+            'managers_can_access_reports': self.managers_can_access_reports,
+            'clients_can_view_timesheets': self.clients_can_view_timesheets,
+            'clients_can_edit_timesheets': self.clients_can_edit_timesheets,
+            'clients_can_request_workers': self.clients_can_request_workers,
+            'clients_can_modify_jobs': self.clients_can_modify_jobs,
+            'clients_can_cancel_shifts': self.clients_can_cancel_shifts,
+            'crew_chiefs_can_edit_team_times': self.crew_chiefs_can_edit_team_times,
+            'crew_chiefs_can_mark_absent': self.crew_chiefs_can_mark_absent,
+            'crew_chiefs_can_add_notes': self.crew_chiefs_can_add_notes,
+            'forklift_operators_premium_rate': self.forklift_operators_premium_rate,
+            'truck_drivers_premium_rate': self.truck_drivers_premium_rate,
+            'crew_chief_premium_rate': self.crew_chief_premium_rate,
+            'password_min_length': self.password_min_length,
+            'require_password_complexity': self.require_password_complexity,
+            'password_expiry_days': self.password_expiry_days,
+            'max_login_attempts': self.max_login_attempts,
+            'account_lockout_duration_minutes': self.account_lockout_duration_minutes,
+            'require_two_factor_auth': self.require_two_factor_auth,
+            'session_timeout_minutes': self.session_timeout_minutes,
+            'remember_me_duration_days': self.remember_me_duration_days,
+            'force_logout_inactive_users': self.force_logout_inactive_users,
+            'concurrent_sessions_allowed': self.concurrent_sessions_allowed,
+            'show_employee_contact_info': self.show_employee_contact_info,
+            'show_employee_certifications': self.show_employee_certifications,
+            'allow_employee_profile_editing': self.allow_employee_profile_editing,
+            'require_profile_photos': self.require_profile_photos,
+            'require_shift_assignment_approval': self.require_shift_assignment_approval,
+            'require_schedule_change_approval': self.require_schedule_change_approval,
+            'require_overtime_pre_approval': self.require_overtime_pre_approval,
+            'auto_notify_approvers': self.auto_notify_approvers,
+            'approval_timeout_hours': self.approval_timeout_hours,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class CertificationsSettings(Base):
+    """
+    Employee certification requirements and role definitions.
+    """
+    __tablename__ = 'certifications_settings'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Certification Requirements
+    require_crew_chief_certification = Column(Boolean, default=True, nullable=False)
+    require_forklift_certification = Column(Boolean, default=True, nullable=False)
+    require_truck_driver_license = Column(Boolean, default=True, nullable=False)
+    require_safety_training = Column(Boolean, default=True, nullable=False)
+    require_background_check = Column(Boolean, default=True, nullable=False)
+
+    # Certification Validity
+    crew_chief_cert_validity_months = Column(Integer, default=24, nullable=False)
+    forklift_cert_validity_months = Column(Integer, default=36, nullable=False)
+    safety_training_validity_months = Column(Integer, default=12, nullable=False)
+    background_check_validity_months = Column(Integer, default=12, nullable=False)
+
+    # Training Requirements
+    mandatory_safety_orientation = Column(Boolean, default=True, nullable=False)
+    safety_orientation_duration_hours = Column(Integer, default=4, nullable=False)
+    require_annual_safety_refresher = Column(Boolean, default=True, nullable=False)
+    require_equipment_specific_training = Column(Boolean, default=True, nullable=False)
+
+    # Role Experience Requirements
+    stagehand_min_experience_months = Column(Integer, default=0, nullable=False)
+    crew_chief_min_experience_months = Column(Integer, default=12, nullable=False)
+    forklift_operator_min_experience_months = Column(Integer, default=6, nullable=False)
+    truck_driver_min_experience_months = Column(Integer, default=3, nullable=False)
+
+    # Certification Tracking
+    auto_notify_expiring_certs = Column(Boolean, default=True, nullable=False)
+    cert_expiry_warning_days = Column(Integer, default=30, nullable=False)
+    suspend_expired_cert_workers = Column(Boolean, default=True, nullable=False)
+    require_cert_photo_upload = Column(Boolean, default=True, nullable=False)
+
+    # Training Providers
+    approved_training_providers = Column(JSON, default=list, nullable=False)
+
+    # Verification Settings
+    require_manager_cert_verification = Column(Boolean, default=True, nullable=False)
+    allow_self_reported_experience = Column(Boolean, default=False, nullable=False)
+    require_reference_verification = Column(Boolean, default=True, nullable=False)
+    background_check_provider = Column(String(255), default='Sterling Talent Solutions', nullable=True)
+
+    # Skill Assessments
+    require_practical_skill_test = Column(Boolean, default=True, nullable=False)
+    skill_test_validity_months = Column(Integer, default=12, nullable=False)
+    allow_skill_test_retakes = Column(Boolean, default=True, nullable=False)
+    max_skill_test_attempts = Column(Integer, default=3, nullable=False)
+
+    # Documentation
+    require_cert_documentation = Column(Boolean, default=True, nullable=False)
+    accept_digital_certificates = Column(Boolean, default=True, nullable=False)
+    require_original_documents = Column(Boolean, default=False, nullable=False)
+    document_retention_years = Column(Integer, default=7, nullable=False)
+
+    # Custom Certifications
+    custom_certifications = Column(JSON, default=list, nullable=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'require_crew_chief_certification': self.require_crew_chief_certification,
+            'require_forklift_certification': self.require_forklift_certification,
+            'require_truck_driver_license': self.require_truck_driver_license,
+            'require_safety_training': self.require_safety_training,
+            'require_background_check': self.require_background_check,
+            'crew_chief_cert_validity_months': self.crew_chief_cert_validity_months,
+            'forklift_cert_validity_months': self.forklift_cert_validity_months,
+            'safety_training_validity_months': self.safety_training_validity_months,
+            'background_check_validity_months': self.background_check_validity_months,
+            'mandatory_safety_orientation': self.mandatory_safety_orientation,
+            'safety_orientation_duration_hours': self.safety_orientation_duration_hours,
+            'require_annual_safety_refresher': self.require_annual_safety_refresher,
+            'require_equipment_specific_training': self.require_equipment_specific_training,
+            'stagehand_min_experience_months': self.stagehand_min_experience_months,
+            'crew_chief_min_experience_months': self.crew_chief_min_experience_months,
+            'forklift_operator_min_experience_months': self.forklift_operator_min_experience_months,
+            'truck_driver_min_experience_months': self.truck_driver_min_experience_months,
+            'auto_notify_expiring_certs': self.auto_notify_expiring_certs,
+            'cert_expiry_warning_days': self.cert_expiry_warning_days,
+            'suspend_expired_cert_workers': self.suspend_expired_cert_workers,
+            'require_cert_photo_upload': self.require_cert_photo_upload,
+            'approved_training_providers': self.approved_training_providers,
+            'require_manager_cert_verification': self.require_manager_cert_verification,
+            'allow_self_reported_experience': self.allow_self_reported_experience,
+            'require_reference_verification': self.require_reference_verification,
+            'background_check_provider': self.background_check_provider,
+            'require_practical_skill_test': self.require_practical_skill_test,
+            'skill_test_validity_months': self.skill_test_validity_months,
+            'allow_skill_test_retakes': self.allow_skill_test_retakes,
+            'max_skill_test_attempts': self.max_skill_test_attempts,
+            'require_cert_documentation': self.require_cert_documentation,
+            'accept_digital_certificates': self.accept_digital_certificates,
+            'require_original_documents': self.require_original_documents,
+            'document_retention_years': self.document_retention_years,
+            'custom_certifications': self.custom_certifications,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
+class ClientManagementSettings(Base):
+    """
+    Client management, onboarding, and service settings.
+    """
+    __tablename__ = 'client_management_settings'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+
+    # Client Onboarding
+    auto_approve_client_registrations = Column(Boolean, default=False, nullable=False)
+    require_client_verification = Column(Boolean, default=True, nullable=False)
+    require_business_license_verification = Column(Boolean, default=True, nullable=False)
+    require_insurance_verification = Column(Boolean, default=True, nullable=False)
+    client_onboarding_checklist_enabled = Column(Boolean, default=True, nullable=False)
+
+    # Communication Preferences
+    default_communication_method = Column(String(20), default='email', nullable=False)
+    allow_sms_notifications = Column(Boolean, default=True, nullable=False)
+    require_job_confirmation = Column(Boolean, default=True, nullable=False)
+    send_shift_reminders = Column(Boolean, default=True, nullable=False)
+    shift_reminder_hours_before = Column(Integer, default=24, nullable=False)
+
+    # Billing & Invoicing
+    auto_generate_invoices = Column(Boolean, default=True, nullable=False)
+    invoice_generation_frequency = Column(String(20), default='weekly', nullable=False)
+    default_payment_terms_days = Column(Integer, default=30, nullable=False)
+    late_payment_fee_percentage = Column(Float, default=2.5, nullable=False)
+    require_po_numbers = Column(Boolean, default=True, nullable=False)
+    allow_credit_applications = Column(Boolean, default=True, nullable=False)
+
+    # Job Management
+    clients_can_create_jobs = Column(Boolean, default=True, nullable=False)
+    clients_can_modify_active_jobs = Column(Boolean, default=False, nullable=False)
+    clients_can_cancel_jobs = Column(Boolean, default=True, nullable=False)
+    job_cancellation_notice_hours = Column(Integer, default=24, nullable=False)
+    allow_rush_job_requests = Column(Boolean, default=True, nullable=False)
+    rush_job_premium_percentage = Column(Float, default=25, nullable=False)
+
+    # Worker Requests
+    clients_can_request_specific_workers = Column(Boolean, default=True, nullable=False)
+    clients_can_exclude_workers = Column(Boolean, default=False, nullable=False)
+    allow_worker_rating_system = Column(Boolean, default=True, nullable=False)
+    require_worker_feedback = Column(Boolean, default=False, nullable=False)
+
+    # Timesheet & Approval
+    clients_receive_daily_timesheets = Column(Boolean, default=True, nullable=False)
+    require_client_timesheet_approval = Column(Boolean, default=False, nullable=False)
+    timesheet_approval_deadline_hours = Column(Integer, default=48, nullable=False)
+    auto_approve_if_no_response = Column(Boolean, default=True, nullable=False)
+
+    # Pricing & Rates
+    show_rates_to_clients = Column(Boolean, default=False, nullable=False)
+    allow_client_rate_negotiation = Column(Boolean, default=False, nullable=False)
+    use_tiered_pricing = Column(Boolean, default=True, nullable=False)
+    volume_discount_threshold_hours = Column(Integer, default=100, nullable=False)
+    volume_discount_percentage = Column(Float, default=5, nullable=False)
+
+    # Service Areas
+    default_service_radius_miles = Column(Integer, default=50, nullable=False)
+    charge_travel_time = Column(Boolean, default=True, nullable=False)
+    travel_time_rate_percentage = Column(Float, default=100, nullable=False)
+    minimum_job_duration_hours = Column(Integer, default=4, nullable=False)
+
+    # Quality Control
+    require_job_completion_photos = Column(Boolean, default=True, nullable=False)
+    send_client_satisfaction_surveys = Column(Boolean, default=True, nullable=False)
+    survey_frequency = Column(String(20), default='after_each_job', nullable=False)
+    track_client_complaints = Column(Boolean, default=True, nullable=False)
+
+    # Contract Management
+    require_signed_contracts = Column(Boolean, default=True, nullable=False)
+    use_digital_signatures = Column(Boolean, default=True, nullable=False)
+    contract_auto_renewal = Column(Boolean, default=False, nullable=False)
+    contract_renewal_notice_days = Column(Integer, default=30, nullable=False)
+
+    # Emergency Procedures
+    emergency_contact_required = Column(Boolean, default=True, nullable=False)
+    after_hours_support_available = Column(Boolean, default=True, nullable=False)
+    emergency_response_time_minutes = Column(Integer, default=30, nullable=False)
+
+    # Data & Privacy
+    share_worker_names_with_clients = Column(Boolean, default=True, nullable=False)
+    share_worker_photos_with_clients = Column(Boolean, default=False, nullable=False)
+    allow_client_worker_direct_contact = Column(Boolean, default=False, nullable=False)
+    client_data_retention_years = Column(Integer, default=7, nullable=False)
+
+    # Custom Fields
+    custom_fields = Column(JSON, default=list, nullable=False)
+
+    # Metadata
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'auto_approve_client_registrations': self.auto_approve_client_registrations,
+            'require_client_verification': self.require_client_verification,
+            'require_business_license_verification': self.require_business_license_verification,
+            'require_insurance_verification': self.require_insurance_verification,
+            'client_onboarding_checklist_enabled': self.client_onboarding_checklist_enabled,
+            'default_communication_method': self.default_communication_method,
+            'allow_sms_notifications': self.allow_sms_notifications,
+            'require_job_confirmation': self.require_job_confirmation,
+            'send_shift_reminders': self.send_shift_reminders,
+            'shift_reminder_hours_before': self.shift_reminder_hours_before,
+            'auto_generate_invoices': self.auto_generate_invoices,
+            'invoice_generation_frequency': self.invoice_generation_frequency,
+            'default_payment_terms_days': self.default_payment_terms_days,
+            'late_payment_fee_percentage': self.late_payment_fee_percentage,
+            'require_po_numbers': self.require_po_numbers,
+            'allow_credit_applications': self.allow_credit_applications,
+            'clients_can_create_jobs': self.clients_can_create_jobs,
+            'clients_can_modify_active_jobs': self.clients_can_modify_active_jobs,
+            'clients_can_cancel_jobs': self.clients_can_cancel_jobs,
+            'job_cancellation_notice_hours': self.job_cancellation_notice_hours,
+            'allow_rush_job_requests': self.allow_rush_job_requests,
+            'rush_job_premium_percentage': self.rush_job_premium_percentage,
+            'clients_can_request_specific_workers': self.clients_can_request_specific_workers,
+            'clients_can_exclude_workers': self.clients_can_exclude_workers,
+            'allow_worker_rating_system': self.allow_worker_rating_system,
+            'require_worker_feedback': self.require_worker_feedback,
+            'clients_receive_daily_timesheets': self.clients_receive_daily_timesheets,
+            'require_client_timesheet_approval': self.require_client_timesheet_approval,
+            'timesheet_approval_deadline_hours': self.timesheet_approval_deadline_hours,
+            'auto_approve_if_no_response': self.auto_approve_if_no_response,
+            'show_rates_to_clients': self.show_rates_to_clients,
+            'allow_client_rate_negotiation': self.allow_client_rate_negotiation,
+            'use_tiered_pricing': self.use_tiered_pricing,
+            'volume_discount_threshold_hours': self.volume_discount_threshold_hours,
+            'volume_discount_percentage': self.volume_discount_percentage,
+            'default_service_radius_miles': self.default_service_radius_miles,
+            'charge_travel_time': self.charge_travel_time,
+            'travel_time_rate_percentage': self.travel_time_rate_percentage,
+            'minimum_job_duration_hours': self.minimum_job_duration_hours,
+            'require_job_completion_photos': self.require_job_completion_photos,
+            'send_client_satisfaction_surveys': self.send_client_satisfaction_surveys,
+            'survey_frequency': self.survey_frequency,
+            'track_client_complaints': self.track_client_complaints,
+            'require_signed_contracts': self.require_signed_contracts,
+            'use_digital_signatures': self.use_digital_signatures,
+            'contract_auto_renewal': self.contract_auto_renewal,
+            'contract_renewal_notice_days': self.contract_renewal_notice_days,
+            'emergency_contact_required': self.emergency_contact_required,
+            'after_hours_support_available': self.after_hours_support_available,
+            'emergency_response_time_minutes': self.emergency_response_time_minutes,
+            'share_worker_names_with_clients': self.share_worker_names_with_clients,
+            'share_worker_photos_with_clients': self.share_worker_photos_with_clients,
+            'allow_client_worker_direct_contact': self.allow_client_worker_direct_contact,
+            'client_data_retention_years': self.client_data_retention_years,
+            'custom_fields': self.custom_fields,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

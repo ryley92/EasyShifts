@@ -37,6 +37,18 @@ class ShiftsController(BaseController):
         # Ensure convert_shifts_for_client also includes client_po_number and required_employee_counts
         return convert_shifts_for_client(shifts, self.repository.db, is_manager)
 
+    def get_shift_by_id(self, shift_id: int):
+        """
+        Retrieves a shift by its ID.
+
+        Args:
+            shift_id (int): The shift ID
+
+        Returns:
+            Shift: The shift entity if found, None otherwise
+        """
+        return self.get_entity(shift_id)
+
     def get_shift_date_by_shift_id(self, shift_id: str) -> Date:
         """
         Retrieves the shift's date by its ID.
@@ -133,6 +145,52 @@ class ShiftsController(BaseController):
 
     def get_shift_id_by_day_and_part_and_workplace(self, day: str, part: str, workplace: int):
         return self.service.get_shift_id_by_day_and_part_and_workplace(day, part, workplace)
+
+    def get_shifts_by_date_range(self, start_date, end_date, workplace_id=None):
+        """
+        Get shifts within a date range, optionally filtered by workplace.
+
+        Args:
+            start_date: Start date for the range
+            end_date: End date for the range
+            workplace_id: Optional workplace ID filter
+
+        Returns:
+            List of shifts within the date range
+        """
+        try:
+            from sqlalchemy import and_, or_
+            from ..models import Shift, Job, User
+
+            query = self.repository.db.query(Shift)
+
+            # Filter by date range - check both new datetime fields and legacy date fields
+            date_filter = or_(
+                and_(
+                    Shift.shift_start_datetime >= start_date,
+                    Shift.shift_start_datetime <= end_date
+                ),
+                and_(
+                    Shift.shiftDate >= start_date,
+                    Shift.shiftDate <= end_date
+                )
+            )
+            query = query.filter(date_filter)
+
+            # Filter by workplace if specified
+            if workplace_id:
+                # Join with Job and User to filter by workplace
+                query = query.join(Job, Shift.job_id == Job.id, isouter=True)
+                query = query.join(User, Job.created_by == User.id, isouter=True)
+                query = query.filter(or_(
+                    User.id == workplace_id  # For manager's own workplace
+                ))
+
+            return query.order_by(Shift.shift_start_datetime.asc(), Shift.shiftDate.asc()).all()
+
+        except Exception as e:
+            print(f"Error getting shifts by date range: {e}")
+            return []
 
     def get_all_shifts_between_dates_for_given_worker(self, id, start_date, end_date):
         return self.repository.get_all_shifts_between_dates_for_given_worker(id, start_date, end_date)

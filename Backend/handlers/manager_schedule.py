@@ -197,12 +197,12 @@ def convert_day_name_to_number(day_name: str) -> int:
 
 
 def watch_workers_requests(user_session: UserSession):
-    # Get a list of all workers in the workplace
-    workplace_controller = WorkPlacesController(db)
-    workers = workplace_controller.get_all_workers_by_workplace_id(user_session.get_id)
+    # For Hands on Labor: Get all active employees (no workplace restrictions)
+    users_controller = UsersController(db)
+    all_users = users_controller.get_all_entities()
 
-    # Get only workers where worker.isApproval is True
-    workers = [worker for worker in workers if worker.isApproval]
+    # Get only workers where worker.isApproval is True and not managers
+    workers = [user for user in all_users if not user.isManager and user.isActive and user.isApproval]
 
     # Extract the IDs and names of the workers
     workers_info = [(worker.id, worker.name) for worker in workers]
@@ -287,12 +287,12 @@ def handle_save_preferences(workplace_id, data: dict) -> bool:
 
 
 def get_all_workers_names_by_workplace_id(user_session):
-    # Get all workers in the workplace
-    workplace_controller = WorkPlacesController(db)
-    workers = workplace_controller.get_all_workers_by_workplace_id(user_session.get_id)
+    # For Hands on Labor: Get all active employees (no workplace restrictions)
+    users_controller = UsersController(db)
+    all_users = users_controller.get_all_entities()
 
-    # Get only workers where worker.isApproval is True
-    workers = [worker for worker in workers if worker.isApproval]
+    # Get only workers where worker.isApproval is True and not managers
+    workers = [user for user in all_users if not user.isManager and user.isActive and user.isApproval]
 
     # Extract the names of the workers
     workers_names = [worker.name for worker in workers]
@@ -317,9 +317,10 @@ def handle_get_assigned_shifts(user_session, data):
     # Create an array where each element is a dictionary with the worker's name and the shifts he is assigned to
     assigned_shifts = []
 
-    # Get all workers in the workplace
-    workplace_controller = WorkPlacesController(db)
-    workers = workplace_controller.get_all_workers_by_workplace_id(user_session.get_id)
+    # For Hands on Labor: Get all active employees (no workplace restrictions)
+    users_controller = UsersController(db)
+    all_users = users_controller.get_all_entities()
+    workers = [user for user in all_users if not user.isManager and user.isActive and user.isApproval]
 
     # Iterate over the workers
     for worker in workers:
@@ -340,27 +341,25 @@ def handle_get_assigned_shifts(user_session, data):
 
 def get_all_approved_workers_details_by_workplace_id(user_session: UserSession):
     """
-    Retrieves details (id, name, employee_type) of all active and approved workers 
-    in the workplace associated with the user_session (manager).
+    Retrieves details (id, name, employee_type) of all active and approved workers
+    for Hands on Labor (no workplace restrictions).
     """
     if not user_session or not user_session.can_access_manager_page():
         print("Unauthorized access attempt in get_all_approved_workers_details_by_workplace_id")
         return []
 
-    workplace_controller = WorkPlacesController(db)
-    manager_id = user_session.get_id
-    
-    all_workers_in_workplace = workplace_controller.get_all_workers_by_workplace_id(manager_id) 
-    
+    users_controller = UsersController(db)
+    all_users = users_controller.get_all_entities()
+
+    # For Hands on Labor: Get all active employees (no workplace restrictions)
     approved_workers_details = []
-    if all_workers_in_workplace:
-        for worker in all_workers_in_workplace:
-            if worker.isActive and worker.isApproval:
-                approved_workers_details.append({
-                    "id": worker.id,
-                    "name": worker.name,
-                    "employee_type": worker.employee_type.value if worker.employee_type else None
-                })
+    for user in all_users:
+        if not user.isManager and user.isActive and user.isApproval:
+            approved_workers_details.append({
+                "id": user.id,
+                "name": user.name,
+                "employee_type": user.employee_type.value if user.employee_type else None
+            })
     return approved_workers_details
 
 def handle_get_all_approved_worker_details(user_session: UserSession):

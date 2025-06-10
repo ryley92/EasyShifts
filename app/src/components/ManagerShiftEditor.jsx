@@ -341,8 +341,33 @@ const ManagerShiftEditor = () => {
                 </div>
                 <div className="shift-actions">
                   <Link
+                    to={`/shift/${shift.id}/timecard`}
+                    className="timecard-link"
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      marginRight: '10px'
+                    }}
+                  >
+                    🕐 Shift Timecard
+                  </Link>
+                  <Link
                     to={`/timesheet/${shift.id}`}
                     className="timesheet-link"
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#007bff',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontWeight: 'bold'
+                    }}
                   >
                     📋 Manage Timesheet
                   </Link>

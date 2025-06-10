@@ -90,19 +90,27 @@ const GoogleSignupCompletion = ({ googleData, onComplete, onCancel }) => {
                 data: requestData
             };
 
+            console.log('Sending Google signup request:', request);
+
             // Set up response handler
             const handleResponse = (event) => {
                 try {
+                    console.log('Received response:', event.data);
                     const response = JSON.parse(event.data);
+
                     if (response.request_id === requestId) {
                         socket.removeEventListener('message', handleResponse);
                         setIsLoading(false);
 
+                        console.log('Google signup response:', response);
+
                         if (response.success) {
+                            console.log('Signup successful:', response.data);
                             // Auto-login the user
                             login(response.data.username, null, response.data.is_manager, true); // true for Google auth
                             onComplete(response.data);
                         } else {
+                            console.error('Signup failed:', response.error);
                             setError(response.error || 'Signup failed');
                         }
                     }

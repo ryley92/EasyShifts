@@ -195,6 +195,27 @@ class UsersRepository(BaseRepository):
             self.db.rollback()
             raise e
 
+    def get_users_by_client_company_id(self, client_company_id: int):
+        """
+        Retrieves all users belonging to a specific client company.
+
+        Parameters:
+            client_company_id (int): The client company ID.
+
+        Returns:
+            List[User]: List of users belonging to the client company.
+        """
+        return self.db.query(User).filter(User.client_company_id == client_company_id).all()
+
+    def get_all_client_users(self):
+        """
+        Retrieves all users that are client users (have client_company_id set).
+
+        Returns:
+            List[User]: List of all client users.
+        """
+        return self.db.query(User).filter(User.client_company_id.isnot(None)).all()
+
     def update_last_login(self, user_id: int):
         """
         Update user's last login time.

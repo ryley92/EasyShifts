@@ -15,6 +15,10 @@ const ManagerJobDashboard = () => {
   // Form state for creating a new job
   const [newJobName, setNewJobName] = useState('');
   const [selectedClientCompany, setSelectedClientCompany] = useState('');
+  const [newJobVenueName, setNewJobVenueName] = useState('');
+  const [newJobVenueAddress, setNewJobVenueAddress] = useState('');
+  const [newJobVenueContact, setNewJobVenueContact] = useState('');
+  const [newJobDescription, setNewJobDescription] = useState('');
 
   const fetchClientCompanies = useCallback(() => {
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -66,6 +70,10 @@ const ManagerJobDashboard = () => {
             setJobs(prevJobs => [...prevJobs, response.data]);
             setNewJobName('');
             setSelectedClientCompany('');
+            setNewJobVenueName('');
+            setNewJobVenueAddress('');
+            setNewJobVenueContact('');
+            setNewJobDescription('');
             setError('');
           } else {
             setSuccessMessage('');
@@ -87,8 +95,8 @@ const ManagerJobDashboard = () => {
 
   const handleCreateJobSubmit = (e) => {
     e.preventDefault();
-    if (!newJobName.trim() || !selectedClientCompany) {
-      setError('Job name and client company are required.');
+    if (!newJobName.trim() || !selectedClientCompany || !newJobVenueName.trim() || !newJobVenueAddress.trim()) {
+      setError('Job name, client company, venue name, and venue address are required.');
       return;
     }
     if (socket && socket.readyState === WebSocket.OPEN) {
@@ -100,6 +108,10 @@ const ManagerJobDashboard = () => {
         data: {
           name: newJobName,
           client_company_id: parseInt(selectedClientCompany, 10),
+          venue_name: newJobVenueName,
+          venue_address: newJobVenueAddress,
+          venue_contact_info: newJobVenueContact,
+          description: newJobDescription,
         },
       };
       socket.send(JSON.stringify(request));
@@ -137,41 +149,99 @@ const ManagerJobDashboard = () => {
 
       <div style={{ marginBottom: '30px', padding: '20px', border: '1px solid #ccc', borderRadius: '5px', backgroundColor: '#f9f9f9' }}>
         <h3>Create New Job</h3>
+        <p style={{ marginBottom: '15px', color: '#666', fontSize: '14px' }}>
+          Each job represents a specific project at a specific venue. All shifts for this job will be at the same location.
+        </p>
         <form onSubmit={handleCreateJobSubmit}>
-          <div style={{ marginBottom: '10px' }}>
-            <label htmlFor="jobName" style={{ display: 'block', marginBottom: '5px' }}>Job Name:</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div>
+              <label htmlFor="jobName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Job Name: *</label>
+              <input
+                type="text"
+                id="jobName"
+                value={newJobName}
+                onChange={(e) => setNewJobName(e.target.value)}
+                placeholder="e.g., CRSSD Festival Setup"
+                required
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+            <div>
+              <label htmlFor="clientCompany" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Client Company: *</label>
+              <select
+                id="clientCompany"
+                value={selectedClientCompany}
+                onChange={(e) => setSelectedClientCompany(e.target.value)}
+                required
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
+              >
+                <option value="">Select a Client Company</option>
+                {clientCompanies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name} (ID: {company.id})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
+            <div>
+              <label htmlFor="venueName" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Venue Name: *</label>
+              <input
+                type="text"
+                id="venueName"
+                value={newJobVenueName}
+                onChange={(e) => setNewJobVenueName(e.target.value)}
+                placeholder="e.g., Waterfront Park"
+                required
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+            <div>
+              <label htmlFor="venueContact" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Venue Contact:</label>
+              <input
+                type="text"
+                id="venueContact"
+                value={newJobVenueContact}
+                onChange={(e) => setNewJobVenueContact(e.target.value)}
+                placeholder="e.g., John Doe - (555) 123-4567"
+                style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label htmlFor="venueAddress" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Venue Address: *</label>
             <input
               type="text"
-              id="jobName"
-              value={newJobName}
-              onChange={(e) => setNewJobName(e.target.value)}
+              id="venueAddress"
+              value={newJobVenueAddress}
+              onChange={(e) => setNewJobVenueAddress(e.target.value)}
+              placeholder="e.g., 1600 Pacific Hwy, San Diego, CA 92101"
               required
               style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
             />
           </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label htmlFor="clientCompany" style={{ display: 'block', marginBottom: '5px' }}>Client Company:</label>
-            <select
-              id="clientCompany"
-              value={selectedClientCompany}
-              onChange={(e) => setSelectedClientCompany(e.target.value)}
-              required
-              style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd' }}
-            >
-              <option value="">Select a Client Company</option>
-              {clientCompanies.map((company) => (
-                <option key={company.id} value={company.id}>
-                  {company.name} (ID: {company.id})
-                </option>
-              ))}
-            </select>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label htmlFor="jobDescription" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Job Description:</label>
+            <textarea
+              id="jobDescription"
+              value={newJobDescription}
+              onChange={(e) => setNewJobDescription(e.target.value)}
+              placeholder="e.g., Stage setup and teardown for 3-day music festival"
+              rows="3"
+              style={{ width: '100%', padding: '8px', boxSizing: 'border-box', borderRadius: '4px', border: '1px solid #ddd', resize: 'vertical' }}
+            />
           </div>
-          <button 
-            type="submit" 
-            disabled={isLoading} 
-            style={{ padding: '10px 20px', backgroundColor: isLoading ? '#ccc' : '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: isLoading ? 'not-allowed' : 'pointer' }}
+
+          <button
+            type="submit"
+            disabled={isLoading}
+            style={{ padding: '12px 24px', backgroundColor: isLoading ? '#ccc' : '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: isLoading ? 'not-allowed' : 'pointer', fontSize: '16px', fontWeight: 'bold' }}
           >
-            {isLoading ? 'Processing...' : 'Create Job'}
+            {isLoading ? 'Creating Job...' : 'Create Job'}
           </button>
         </form>
       </div>
@@ -182,15 +252,76 @@ const ManagerJobDashboard = () => {
       {jobs.length > 0 && (
         <ul style={{ listStyleType: 'none', padding: 0 }}>
           {jobs.map((job) => (
-            <li key={job.id} style={{ border: '1px solid #eee', padding: '15px', marginBottom: '10px', borderRadius: '4px', backgroundColor: '#fff' }}>
-              <h4>{job.name} (Job ID: {job.id})</h4>
-              <p>Client Company ID: {job.client_company_id}</p>
-              <button 
-                onClick={() => navigate(`/manager-jobs/${job.id}/shifts`, { state: { jobName: job.name, clientCompanyId: job.client_company_id } })}
-                style={{ marginTop: '10px', padding: '8px 15px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-              >
-                Manage Shifts
-              </button>
+            <li key={job.id} style={{ border: '1px solid #eee', padding: '20px', marginBottom: '15px', borderRadius: '8px', backgroundColor: '#fff', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '15px' }}>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ margin: '0 0 10px 0', color: '#333', fontSize: '18px' }}>{job.name}</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '14px', color: '#666' }}>
+                    <div>
+                      <strong>Job ID:</strong> {job.id}
+                    </div>
+                    <div>
+                      <strong>Client Company ID:</strong> {job.client_company_id}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate(`/manager-jobs/${job.id}/shifts`, {
+                    state: {
+                      jobName: job.name,
+                      clientCompanyId: job.client_company_id,
+                      venueName: job.venue_name,
+                      venueAddress: job.venue_address
+                    }
+                  })}
+                  style={{ padding: '10px 20px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                >
+                  Manage Shifts
+                </button>
+              </div>
+
+              {(job.venue_name || job.venue_address) && (
+                <div style={{ backgroundColor: '#f8f9fa', padding: '15px', borderRadius: '6px', marginBottom: '10px' }}>
+                  <h5 style={{ margin: '0 0 8px 0', color: '#495057', fontSize: '14px', fontWeight: 'bold' }}>📍 Location</h5>
+                  {job.venue_name && (
+                    <div style={{ marginBottom: '5px', fontSize: '14px' }}>
+                      <strong>Venue:</strong> {job.venue_name}
+                    </div>
+                  )}
+                  {job.venue_address && (
+                    <div style={{ marginBottom: '5px', fontSize: '14px' }}>
+                      <strong>Address:</strong> {job.venue_address}
+                    </div>
+                  )}
+                  {job.venue_contact_info && (
+                    <div style={{ fontSize: '14px' }}>
+                      <strong>Contact:</strong> {job.venue_contact_info}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {job.description && (
+                <div style={{ marginBottom: '10px' }}>
+                  <h5 style={{ margin: '0 0 5px 0', color: '#495057', fontSize: '14px', fontWeight: 'bold' }}>Description</h5>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>{job.description}</p>
+                </div>
+              )}
+
+              {(job.estimated_start_date || job.estimated_end_date) && (
+                <div style={{ fontSize: '12px', color: '#888', marginTop: '10px' }}>
+                  {job.estimated_start_date && (
+                    <span style={{ marginRight: '15px' }}>
+                      <strong>Est. Start:</strong> {new Date(job.estimated_start_date).toLocaleDateString()}
+                    </span>
+                  )}
+                  {job.estimated_end_date && (
+                    <span>
+                      <strong>Est. End:</strong> {new Date(job.estimated_end_date).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              )}
             </li>
           ))}
         </ul>

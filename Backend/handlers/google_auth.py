@@ -8,13 +8,13 @@ from dotenv import load_dotenv
 
 from db.controllers.users_controller import UsersController
 from user_session import UserSession
-from main import initialize_database_and_session
+from main import get_database_session
 
 # Load environment variables
 load_dotenv()
 
-# Initialize the database and session
-db, _ = initialize_database_and_session()
+# Get the shared database session
+db = get_database_session()
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
@@ -27,11 +27,12 @@ class GoogleAuthHandler:
     def verify_google_token(self, token):
         """Verify Google ID token and extract user information"""
         try:
-            # Verify the token
+            # Verify the token with clock skew tolerance
             idinfo = id_token.verify_oauth2_token(
-                token, 
-                requests.Request(), 
-                self.google_client_id
+                token,
+                requests.Request(),
+                self.google_client_id,
+                clock_skew_in_seconds=300  # Allow 5 minutes of clock skew
             )
             
             # Token is valid, extract user info
@@ -293,10 +294,15 @@ class GoogleAuthHandler:
     def handle_google_signup_manager(self, data):
         """Handle Google signup for manager (Request ID 70)"""
         try:
+            logging.info(f"Google signup manager data received: {data}")
+
             username = data.get('username')
             google_data = data.get('googleData')
             name = data.get('name')
             email = data.get('email')
+
+            logging.info(f"Extracted data - username: {username}, name: {name}, email: {email}")
+            logging.info(f"Google data: {google_data}")
 
             # Check if username already exists
             if self.users_controller.check_username_existence(username):

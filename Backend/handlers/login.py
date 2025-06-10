@@ -1,9 +1,9 @@
 from db.controllers.users_controller import UsersController
 from user_session import UserSession
-from main import initialize_database_and_session
+from main import get_database_session
 
-# Initialize the database and session
-db, _ = initialize_database_and_session()
+# Get the shared database session
+db = get_database_session()
 
 
 def handle_login(data):

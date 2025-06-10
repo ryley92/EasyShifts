@@ -12,7 +12,7 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState('link'); // 'link' or 'create'
   const socket = useSocket();
-  const { login } = useAuth();
+  const { googleLogin } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -62,7 +62,7 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
                   email: googleData.email
                 };
                 
-                login(formData.username, null, userData);
+                googleLogin(userData);
                 
                 if (onSuccess) {
                   onSuccess(userData);
@@ -137,7 +137,7 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
                   email: googleData.email
                 };
                 
-                login(formData.username, null, userData);
+                googleLogin(userData);
                 
                 if (onSuccess) {
                   onSuccess(userData);

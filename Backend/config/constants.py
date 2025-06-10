@@ -1,12 +1,10 @@
 import datetime
 
-from main import initialize_database_and_session
+from main import get_database_session, initialize_database_and_session
 
-db = None
-session = None
-
-# Initialize the database and session
-db, session = initialize_database_and_session()
+# Get the shared database session
+db = get_database_session()
+_, session = initialize_database_and_session()  # Get session factory
 
 
 # Define the next_sunday function to be used as the default value

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ENV } from './utils/env';
 
 let socket_obj = null;
 
@@ -8,7 +9,9 @@ export function useSocket() {
     useEffect(() => {
         if (socket_obj == null) {
             // Establish WebSocket connection when the component mounts
-            const newSocket = new WebSocket('ws://localhost:8080');
+            const wsUrl = ENV.API_URL;
+            console.log('Connecting to WebSocket:', wsUrl);
+            const newSocket = new WebSocket(wsUrl);
 
             // Event listener for WebSocket errors
             newSocket.onerror = (error) => {

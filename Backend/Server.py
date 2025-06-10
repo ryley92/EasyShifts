@@ -6,8 +6,9 @@ import asyncio
 import json
 from handlers import login, employee_signin, manager_signin, employee_shifts_request, \
     get_employee_requests, manager_insert_shifts, employee_list, send_profile, manager_schedule, \
-    send_shifts_to_employee, make_shifts, timesheet_management_handlers, enhanced_schedule_handlers
-from handlers import crew_chief_handlers, client_company_handlers, job_handlers, shift_management_handlers
+    send_shifts_to_employee, make_shifts, timesheet_management_handlers, enhanced_schedule_handlers, \
+    enhanced_settings_handlers
+from handlers import crew_chief_handlers, client_company_handlers, client_directory_handlers, job_handlers, shift_management_handlers, user_management_handlers
 from handlers.google_auth import google_auth_handler
 from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
@@ -69,6 +70,14 @@ def handle_request(request_id, data):
             return {"request_id": request_id, "success": False, "error": "User session not found."}
         is_in_window = employee_shifts_request.handle_is_in_request_window(user_session)
         return {"request_id": request_id, "success": True, "data": {"is_in_window": is_in_window}}
+
+    elif request_id == 42:
+        # Get request window times
+        print("Received Get Request Window Times")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        window_times = employee_shifts_request.handle_get_request_window_times(user_session)
+        return {"request_id": request_id, "success": True, "data": window_times}
 
     elif request_id == 50:
         # Manager Get Employees Requests Request
@@ -252,6 +261,18 @@ def handle_request(request_id, data):
             return {"request_id": request_id, "success": False, "error": "User session not found."}
         return crew_chief_handlers.handle_submit_shift_times(data, user_session)
 
+    elif request_id == 103: # Get all submitted timesheets for manager
+        print("Received Get All Submitted Timesheets request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_get_all_submitted_timesheets(user_session)
+
+    elif request_id == 104: # Update timesheet status (approve/reject)
+        print("Received Update Timesheet Status request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return timesheet_management_handlers.handle_update_timesheet_status(data, user_session)
+
     elif request_id == 200: # Get All Client Companies
         print("Received Get All Client Companies request")
         return client_company_handlers.handle_get_all_client_companies(user_session)
@@ -268,11 +289,28 @@ def handle_request(request_id, data):
         print("Received Delete Client Company request")
         return client_company_handlers.handle_delete_client_company(data, user_session)
 
-    elif request_id == 210: # Create Job
+    # === CLIENT DIRECTORY HANDLERS ===
+    elif request_id == 210: # Get Client Directory
+        print("Received Get Client Directory request")
+        return client_directory_handlers.handle_get_client_directory(user_session)
+
+    elif request_id == 211: # Get Client Company Details
+        print("Received Get Client Company Details request")
+        return client_directory_handlers.handle_get_client_company_details(data, user_session)
+
+    elif request_id == 212: # Update Client User Status
+        print("Received Update Client User Status request")
+        return client_directory_handlers.handle_update_client_user_status(data, user_session)
+
+    elif request_id == 213: # Get Client Analytics
+        print("Received Get Client Analytics request")
+        return client_directory_handlers.handle_get_client_analytics(user_session)
+
+    elif request_id == 215: # Create Job
         print("Received Create Job request")
         return job_handlers.handle_create_job(data, user_session)
 
-    elif request_id == 211: # Get Jobs by Manager
+    elif request_id == 216: # Get Jobs by Manager
         print("Received Get Jobs by Manager request")
         return job_handlers.handle_get_jobs_by_manager(user_session)
 
@@ -291,6 +329,32 @@ def handle_request(request_id, data):
     elif request_id == 231: # Unassign Worker from Shift
         print("Received Unassign Worker from Shift request")
         return shift_management_handlers.handle_unassign_worker_from_shift(data, user_session)
+
+    # === TIMECARD MANAGEMENT HANDLERS ===
+    elif request_id == 240: # Get Shift Timecard
+        print("Received Get Shift Timecard request")
+        from handlers.timecard_handlers import handle_get_shift_timecard
+        return handle_get_shift_timecard(data, user_session)
+
+    elif request_id == 241: # Clock In/Out Worker
+        print("Received Clock In/Out Worker request")
+        from handlers.timecard_handlers import handle_clock_in_out_worker
+        return handle_clock_in_out_worker(data, user_session)
+
+    elif request_id == 242: # Mark Worker Absent
+        print("Received Mark Worker Absent request")
+        from handlers.timecard_handlers import handle_mark_worker_absent
+        return handle_mark_worker_absent(data, user_session)
+
+    elif request_id == 243: # Update Worker Notes
+        print("Received Update Worker Notes request")
+        from handlers.timecard_handlers import handle_update_worker_notes
+        return handle_update_worker_notes(data, user_session)
+
+    elif request_id == 244: # End Shift - Clock Out All
+        print("Received End Shift - Clock Out All request")
+        from handlers.timecard_handlers import handle_end_shift_clock_out_all
+        return handle_end_shift_clock_out_all(data, user_session)
 
     elif request_id == 991:
         # Set preferences
@@ -451,13 +515,190 @@ def handle_request(request_id, data):
 
         return {"request_id": request_id, **response}
 
+    # === USER MANAGEMENT HANDLERS ===
+    elif request_id == 300: # Create Manager
+        print("Received Create Manager request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return user_management_handlers.handle_create_manager(data, user_session)
+
+    elif request_id == 301: # Create Admin
+        print("Received Create Admin request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return user_management_handlers.handle_create_admin(data, user_session)
+
+    elif request_id == 302: # Get All Users
+        print("Received Get All Users request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return user_management_handlers.handle_get_all_users(user_session)
+
+    elif request_id == 303: # Update User Role
+        print("Received Update User Role request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return user_management_handlers.handle_update_user_role(data, user_session)
+
+    # === EXTENDED SETTINGS HANDLERS ===
+    elif request_id == 1100: # Update Company Profile Settings
+        print("Received Update Company Profile Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_company_profile_settings(data, user_session)
+
+    elif request_id == 1101: # Update User Management Settings
+        print("Received Update User Management Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_user_management_settings(data, user_session)
+
+    elif request_id == 1102: # Update Certifications Settings
+        print("Received Update Certifications Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_certifications_settings(data, user_session)
+
+    elif request_id == 1103: # Update Client Management Settings
+        print("Received Update Client Management Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_client_management_settings(data, user_session)
+
+    elif request_id == 1104: # Update Job Configuration Settings
+        print("Received Update Job Configuration Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_job_configuration_settings(data, user_session)
+
+    elif request_id == 1105: # Update Advanced Timesheet Settings
+        print("Received Update Advanced Timesheet Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_timesheet_advanced_settings(data, user_session)
+
+    elif request_id == 1106: # Update Google Integration Settings
+        print("Received Update Google Integration Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_google_integration_settings(data, user_session)
+
+    elif request_id == 1107: # Update Reporting Settings
+        print("Received Update Reporting Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_reporting_settings(data, user_session)
+
+    elif request_id == 1108: # Update Security Settings
+        print("Received Update Security Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_security_settings(data, user_session)
+
+    elif request_id == 1109: # Update Mobile Accessibility Settings
+        print("Received Update Mobile Accessibility Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_mobile_accessibility_settings(data, user_session)
+
+    elif request_id == 1110: # Update System Admin Settings
+        print("Received Update System Admin Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_update_system_admin_settings(data, user_session)
+
+    elif request_id == 1111: # Get All Extended Settings
+        print("Received Get All Extended Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_get_extended_settings(user_session)
+
+    elif request_id == 1112: # Reset Extended Settings to Defaults
+        print("Received Reset Extended Settings to Defaults request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_reset_extended_settings_to_defaults(user_session)
+
+    elif request_id == 1113: # Test Google Connection
+        print("Received Test Google Connection request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_test_google_connection(data, user_session)
+
+    elif request_id == 1114: # Manual Google Sync
+        print("Received Manual Google Sync request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_manual_google_sync(user_session)
+
+    elif request_id == 1115: # System Health Check
+        print("Received System Health Check request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_system_health_check(user_session)
+
+    elif request_id == 1116: # Manual Backup
+        print("Received Manual Backup request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_manual_backup(user_session)
+
+    # === ADVANCED SETTINGS MANAGEMENT ===
+    elif request_id == 1117: # Get Settings Summary
+        print("Received Get Settings Summary request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_get_settings_summary(user_session)
+
+    elif request_id == 1118: # Bulk Update Settings
+        print("Received Bulk Update Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_bulk_update_settings(data, user_session)
+
+    elif request_id == 1119: # Export Settings Backup
+        print("Received Export Settings Backup request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_export_settings_backup(user_session)
+
+    elif request_id == 1120: # Import Settings Backup
+        print("Received Import Settings Backup request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_import_settings_backup(data, user_session)
+
+    elif request_id == 1121: # Get Settings Templates
+        print("Received Get Settings Templates request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_get_settings_templates(user_session)
+
+    elif request_id == 1122: # Apply Settings Template
+        print("Received Apply Settings Template request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_apply_settings_template(data, user_session)
+
+    elif request_id == 1123: # Compare Settings
+        print("Received Compare Settings request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_compare_settings(data, user_session)
+
+    elif request_id == 1124: # Validate Settings Bulk
+        print("Received Validate Settings Bulk request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return enhanced_settings_handlers.handle_validate_settings_bulk(data, user_session)
+
     else:
         print("Unknown request ID:", request_id)
         return {"request_id": request_id, "success": False, "error": f"Unknown request ID: {request_id}"}
 
 
 async def handle_client(websocket, path=None): # Add default value for path
-    print("new client connected")
+    print(f"🔌 New client connected from {websocket.remote_address}")
     if path is not None:
         print(f"Connection path: {path}")
     else:
@@ -482,7 +723,7 @@ async def handle_client(websocket, path=None): # Add default value for path
             await websocket.send(json_data)
             print(response)
     except websockets.exceptions.ConnectionClosed:
-        print(f"Connection closed for {websocket.remote_address}")
+        print(f"🔌 Connection closed for {websocket.remote_address}")
     except Exception as e:
         if "User session not found" in str(e):
             # Handle the "User session not found" exception here
@@ -495,15 +736,114 @@ async def handle_client(websocket, path=None): # Add default value for path
 
 
 async def start_server():
+    import os
+    from aiohttp import web, WSMsgType
+    import aiohttp_cors
+    import json
+    from datetime import datetime
+
+    # Get host and port from environment variables (Cloud Run compatibility)
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', 8080))
+
+    async def health_check(request):
+        """Health check endpoint for Cloud Run"""
+        return web.Response(
+            text=json.dumps({
+                "status": "healthy",
+                "timestamp": datetime.utcnow().isoformat(),
+                "service": "easyshifts-backend"
+            }),
+            content_type='application/json'
+        )
+
+    async def websocket_handler(request):
+        """WebSocket handler using aiohttp"""
+        ws = web.WebSocketResponse()
+        await ws.prepare(request)
+
+        print(f"🔌 New WebSocket client connected from {request.remote}")
+
+        try:
+            async for msg in ws:
+                if msg.type == WSMsgType.TEXT:
+                    try:
+                        # Parse the JSON message
+                        data = json.loads(msg.data)
+                        print("Received data:", data)
+
+                        # Extract the request_id and data
+                        request_id = data.get('request_id', None)
+                        request_data = data.get('data', None)
+
+                        print("Request ID:", request_id)
+                        print("Data:", request_data)
+
+                        response = handle_request(request_id, request_data)
+                        json_data = json.dumps(response)
+                        await ws.send_str(json_data)
+                        print(response)
+                    except json.JSONDecodeError as e:
+                        print(f"JSON decode error: {e}")
+                        await ws.send_str(json.dumps({"success": False, "error": "Invalid JSON"}))
+                    except Exception as e:
+                        print(f"Error handling WebSocket message: {e}")
+                        await ws.send_str(json.dumps({"success": False, "error": str(e)}))
+                elif msg.type == WSMsgType.ERROR:
+                    print(f'WebSocket error: {ws.exception()}')
+                    break
+        except Exception as e:
+            print(f"WebSocket connection error: {e}")
+        finally:
+            print(f"🔌 WebSocket connection closed for {request.remote}")
+
+        return ws
+
     try:
-        async with websockets.serve(handle_client, "localhost", 8080):
-            print("Server started")
-            await asyncio.Future()  # Keep the server running until Enter is pressed
+        # Create aiohttp application
+        app = web.Application()
+
+        # Configure CORS
+        cors = aiohttp_cors.setup(app, defaults={
+            "*": aiohttp_cors.ResourceOptions(
+                allow_credentials=True,
+                expose_headers="*",
+                allow_headers="*",
+                allow_methods="*"
+            )
+        })
+
+        # Add routes
+        app.router.add_get('/health', health_check)
+        app.router.add_get('/', health_check)  # Root path also returns health
+        app.router.add_get('/ws', websocket_handler)  # WebSocket endpoint
+
+        # Add CORS to all routes
+        for route in list(app.router.routes()):
+            cors.add(route)
+
+        # Start the server
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host, port)
+        await site.start()
+
+        print(f"🚀 EasyShifts server started on {host}:{port}")
+        print(f"📡 WebSocket endpoint: ws://{host}:{port}/ws")
+        print(f"🏥 Health check endpoint: http://{host}:{port}/health")
+
+        # Keep the server running
+        await asyncio.Future()
+
     except asyncio.CancelledError:
         print("Server stopped.")
+        if 'runner' in locals():
+            await runner.cleanup()
         exit(0)
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        if 'runner' in locals():
+            await runner.cleanup()
 
 
 if __name__ == "__main__":

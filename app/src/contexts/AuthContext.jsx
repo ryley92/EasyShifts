@@ -87,6 +87,14 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  const googleLogin = (userData) => {
+    setUser(userData);
+    setIsAuthenticated(true);
+
+    // Persist to localStorage
+    localStorage.setItem('easyshifts_user', JSON.stringify(userData));
+  };
+
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
@@ -98,6 +106,7 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     isLoading,
     login,
+    googleLogin,
     logout,
     isManager: user?.isManager || false,
     username: user?.username || ''

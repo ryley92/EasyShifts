@@ -1,0 +1,64 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: easyshifts-backend
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/memory: "1Gi"
+        run.googleapis.com/cpu: "1000m"
+    spec:
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      containers:
+      - image: us-central1-docker.pkg.dev/goog-71174/easyshifts-repo/easyshifts-backend:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: GOOGLE_CLIENT_ID
+          value: "794306818447-4prnpg1p13a4smvnnfs7tfvkesrld9ms.apps.googleusercontent.com"
+        - name: DB_HOST
+          value: "miano.h.filess.io"
+        - name: DB_PORT
+          value: "3305"
+        - name: DB_USER
+          value: "easyshiftsdb_danceshall"
+        - name: DB_NAME
+          value: "easyshiftsdb_danceshall"
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-password
+              key: password
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+  traffic:
+  - percent: 100
+    latestRevision: true
+

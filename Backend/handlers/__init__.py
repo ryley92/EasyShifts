@@ -35,6 +35,12 @@ from .client_company_handlers import (
     handle_update_client_company,
     handle_delete_client_company
 )
+from .client_directory_handlers import (
+    handle_get_client_directory,
+    handle_get_client_company_details,
+    handle_update_client_user_status,
+    handle_get_client_analytics
+)
 from .job_handlers import handle_create_job, handle_get_jobs_by_manager
 from .crew_chief_handlers import (
     handle_get_crew_chief_shifts,

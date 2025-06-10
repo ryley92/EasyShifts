@@ -1,6 +1,5 @@
 from config.constants import db
 from db.controllers.users_controller import UsersController
-from db.controllers.workPlaces_controller import WorkPlacesController
 from db.controllers.employee_certifications_controller import EmployeeCertificationsController
 from user_session import UserSession
 
@@ -11,21 +10,22 @@ def handle_employee_list(user_session: UserSession) -> dict:
         return {"request_id": request_id, "success": False, "error": "User session not found."}
 
     if user_session.can_access_manager_page():
-        work_places_controller = WorkPlacesController(db)
-        manager_id = user_session.get_id
-        
+        users_controller = UsersController(db)
+
         try:
-            active_workers_approved = work_places_controller.get_active_approve_workers_for_user(manager_id)
-            active_workers_unapproved = work_places_controller.get_active_unapprove_workers_for_user(manager_id)
+            # For Hands on Labor: All managers can see all employees (no workplace restrictions)
+            all_users = users_controller.get_all_entities()
 
             active_workers = []
-            if active_workers_approved: 
-                for worker_username, worker_name in active_workers_approved:
-                    active_workers.append({"userName": worker_username, "name": worker_name, "approved": True})
-            if active_workers_unapproved: 
-                for worker_username, worker_name in active_workers_unapproved:
-                    active_workers.append({"userName": worker_username, "name": worker_name, "approved": False})
-            
+            for user in all_users:
+                # Only include non-manager users (employees)
+                if not user.isManager and user.isActive:
+                    active_workers.append({
+                        "userName": user.username,
+                        "name": user.name,
+                        "approved": user.isApproval
+                    })
+
             return {"request_id": request_id, "success": True, "data": active_workers}
         except Exception as e:
             print(f"Error fetching employee list: {e}")
@@ -37,8 +37,8 @@ def handle_employee_list(user_session: UserSession) -> dict:
 
 def handle_get_all_approved_worker_details(user_session: UserSession) -> dict:
     """
-    Get all approved workers with their certification details for the manager.
-    This is used for shift assignment with role filtering.
+    Get all approved workers with their certification details for Hands on Labor.
+    Since there's only one company, all managers can see all approved workers.
     """
     request_id = 94
     if user_session is None:
@@ -47,10 +47,9 @@ def handle_get_all_approved_worker_details(user_session: UserSession) -> dict:
     if user_session.can_access_manager_page():
         try:
             certifications_controller = EmployeeCertificationsController(db)
-            manager_id = user_session.get_id
 
-            # Get all employees with certifications for this manager's workplace
-            employees_with_certs = certifications_controller.get_all_employees_with_certifications(manager_id)
+            # Get all employees with certifications for Hands on Labor (no workplace restriction)
+            employees_with_certs = certifications_controller.get_all_employees_with_certifications(None)
 
             return {"request_id": request_id, "success": True, "data": employees_with_certs}
 
@@ -93,7 +92,6 @@ def handle_employee_rejection(data: dict, user_session: UserSession) -> dict:
 
     if user_session.can_access_manager_page():
         users_controller = UsersController(db)
-        workplaces_controller = WorkPlacesController(db) 
         user_name = data.get('userName')
 
         if not user_name:
@@ -103,13 +101,7 @@ def handle_employee_rejection(data: dict, user_session: UserSession) -> dict:
             user_id = users_controller.get_user_id_by_username(user_name)
 
             if user_id is not None:
-                try:
-                    workplace_entry = workplaces_controller.get_entity(user_id)
-                    if workplace_entry:
-                         workplaces_controller.delete_entity(user_id)
-                except Exception as e: 
-                    print(f"No workplace entry found for user ID {user_id} or error deleting: {e}")
-                
+                # For Hands on Labor: No workplace entries to delete, just delete the user
                 deleted_user_entity = users_controller.delete_entity(user_id)
 
                 if deleted_user_entity:

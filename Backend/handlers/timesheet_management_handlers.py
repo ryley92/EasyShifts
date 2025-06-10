@@ -355,7 +355,127 @@ def handle_get_employee_timesheet_history(data: dict, user_session: UserSession)
         )
         
         return {"request_id": request_id, "success": True, "data": timesheet_history}
-        
+
     except Exception as e:
         print(f"Error getting employee timesheet history: {e}")
         return {"request_id": request_id, "success": False, "error": "Failed to retrieve timesheet history."}
+
+
+def handle_get_all_submitted_timesheets(user_session: UserSession) -> dict:
+    """
+    Get all submitted timesheets for manager review.
+    Only managers can access this.
+    """
+    request_id = 103
+    if not user_session:
+        return {"request_id": request_id, "success": False, "error": "User session not found."}
+
+    try:
+        # Verify permissions - only managers can view all submitted timesheets
+        users_controller = UsersController(db)
+        user = users_controller.get_entity(user_session.get_id)
+
+        if not user.isManager:
+            return {"request_id": request_id, "success": False, "error": "Only managers can view all submitted timesheets."}
+
+        shift_workers_controller = ShiftWorkersController(db)
+        shifts_controller = ShiftsController(db)
+        jobs_controller = JobsController(db)
+        client_companies_controller = ClientCompaniesController(db)
+
+        # Get all submitted timesheets for the manager's workplace
+        submitted_timesheets = shift_workers_controller.get_submitted_timesheets_for_workplace(user.workplaceID)
+
+        # Format the data for frontend
+        timesheet_data = []
+        for sw in submitted_timesheets:
+            # Get shift details
+            shift = shifts_controller.get_entity(sw.shiftID)
+            if not shift:
+                continue
+
+            # Get job and client details
+            job = jobs_controller.get_entity(shift.job_id)
+            client_company = None
+            if job and job.client_company_id:
+                client_company = client_companies_controller.get_entity(job.client_company_id)
+
+            # Get worker details
+            worker = users_controller.get_entity(sw.userID)
+            if not worker:
+                continue
+
+            timesheet_entry = {
+                'shift_id': sw.shiftID,
+                'worker_id': sw.userID,
+                'worker_name': worker.name,
+                'job_name': job.jobName if job else 'Unknown Job',
+                'client_company_name': client_company.companyName if client_company else 'Unknown Client',
+                'shift_date': shift.shiftDate.isoformat() if shift.shiftDate else None,
+                'shift_part': shift.shiftPart.value if shift.shiftPart else None,
+                'role_assigned': sw.role_assigned.value,
+                'total_hours': sw.total_hours,
+                'submitted_at': sw.times_submitted_at.isoformat() if sw.times_submitted_at else None,
+                'approved_at': sw.times_approved_at.isoformat() if sw.times_approved_at else None,
+                'approved_by': sw.times_approved_by,
+                'status': 'approved' if sw.times_approved_at else 'submitted',
+                'notes': sw.notes
+            }
+            timesheet_data.append(timesheet_entry)
+
+        return {"request_id": request_id, "success": True, "data": timesheet_data}
+
+    except Exception as e:
+        print(f"Error getting all submitted timesheets: {e}")
+        return {"request_id": request_id, "success": False, "error": "Failed to retrieve submitted timesheets."}
+
+
+def handle_update_timesheet_status(data: dict, user_session: UserSession) -> dict:
+    """
+    Update timesheet status (approve/reject).
+    Only managers can update timesheet status.
+    """
+    request_id = 104
+    if not user_session:
+        return {"request_id": request_id, "success": False, "error": "User session not found."}
+
+    try:
+        shift_id = data.get('shift_id')
+        worker_id = data.get('worker_id')
+        action = data.get('action')  # 'approve' or 'reject'
+
+        if not all([shift_id, worker_id, action]):
+            return {"request_id": request_id, "success": False, "error": "shift_id, worker_id, and action are required."}
+
+        if action not in ['approve', 'reject']:
+            return {"request_id": request_id, "success": False, "error": "Action must be 'approve' or 'reject'."}
+
+        # Verify permissions - only managers can update timesheet status
+        users_controller = UsersController(db)
+        user = users_controller.get_entity(user_session.get_id)
+
+        if not user.isManager:
+            return {"request_id": request_id, "success": False, "error": "Only managers can update timesheet status."}
+
+        shift_workers_controller = ShiftWorkersController(db)
+
+        if action == 'approve':
+            success = shift_workers_controller.approve_timesheet_for_worker(
+                shift_id, worker_id, user_session.get_id
+            )
+            message = "Timesheet approved successfully." if success else "Failed to approve timesheet."
+        else:  # reject
+            success = shift_workers_controller.reject_timesheet_for_worker(
+                shift_id, worker_id, user_session.get_id
+            )
+            message = "Timesheet rejected successfully." if success else "Failed to reject timesheet."
+
+        if success:
+            db.commit()
+            return {"request_id": request_id, "success": True, "message": message}
+        else:
+            return {"request_id": request_id, "success": False, "error": message}
+
+    except Exception as e:
+        print(f"Error updating timesheet status: {e}")
+        return {"request_id": request_id, "success": False, "error": "Failed to update timesheet status."}

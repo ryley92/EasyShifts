@@ -241,3 +241,255 @@ class ShiftWorkersController(BaseController):
             list: List of timesheet records with shift details
         """
         return self.service.get_employee_timesheet_history(employee_id, start_date, end_date)
+
+    def get_submitted_timesheets_for_workplace(self, workplace_id: str) -> list:
+        """
+        Get all submitted timesheets for a workplace.
+
+        Args:
+            workplace_id (str): The workplace ID
+
+        Returns:
+            list: List of submitted shift worker records
+        """
+        try:
+            # Get all shift workers with submitted timesheets for this workplace
+            from sqlalchemy import and_
+            from ..models import ShiftWorker, Shift, User
+
+            query = self.repository.db.query(ShiftWorker).join(
+                Shift, ShiftWorker.shiftID == Shift.id
+            ).join(
+                User, ShiftWorker.userID == User.id
+            ).filter(
+                and_(
+                    User.workplaceID == workplace_id,
+                    ShiftWorker.times_submitted_at.isnot(None)
+                )
+            ).order_by(ShiftWorker.times_submitted_at.desc())
+
+            return query.all()
+        except Exception as e:
+            print(f"Error getting submitted timesheets for workplace: {e}")
+            return []
+
+    def reject_timesheet_for_worker(self, shift_id: int, worker_id: int, rejected_by_id: int) -> bool:
+        """
+        Reject timesheet for a worker (reset submission status).
+
+        Args:
+            shift_id (int): The shift ID
+            worker_id (int): The worker's user ID
+            rejected_by_id (int): ID of manager rejecting
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Get all shift worker records for this worker on this shift
+            shift_workers = self.repository.get_workers_for_shift_and_user(shift_id, worker_id)
+
+            for sw in shift_workers:
+                # Reset submission status
+                sw.times_submitted_at = None
+                sw.times_submitted_by = None
+                sw.is_approved = False
+                sw.approved_at = None
+                sw.approved_by = None
+
+            self.repository.db.commit()
+            return True
+        except Exception as e:
+            print(f"Error rejecting timesheet: {e}")
+            self.repository.db.rollback()
+            return False
+
+    # === TIMECARD MANAGEMENT METHODS ===
+
+    def get_workers_by_shift_id(self, shift_id: int):
+        """
+        Get all workers assigned to a specific shift for timecard management.
+        """
+        return self.repository.get_shift_workers_by_shift_id(str(shift_id))
+
+    def get_shift_worker_for_timecard(self, shift_id: int, user_id: int):
+        """
+        Get a specific shift worker record for timecard (any role).
+        """
+        # Get all records for this user on this shift (they might have multiple roles)
+        workers = self.repository.get_workers_for_shift_and_user(shift_id, user_id)
+        return workers[0] if workers else None
+
+    def update_clock_time(self, shift_id: int, user_id: int, action: str, time, manager_id: int) -> bool:
+        """
+        Update clock in/out time for a worker.
+        """
+        try:
+            from datetime import datetime
+
+            # Get the shift worker record
+            shift_worker = self.get_shift_worker_for_timecard(shift_id, user_id)
+            if not shift_worker:
+                return False
+
+            # Update status and time based on action
+            if action == "clock_in":
+                # Find the next available clock_in slot
+                if not shift_worker.clock_in_time_1:
+                    shift_worker.clock_in_time_1 = time
+                elif not shift_worker.clock_in_time_2:
+                    shift_worker.clock_in_time_2 = time
+                elif not shift_worker.clock_in_time_3:
+                    shift_worker.clock_in_time_3 = time
+                else:
+                    return False  # All slots filled
+
+                shift_worker.current_status = 'clocked_in'
+
+            elif action == "clock_out":
+                # Find the corresponding clock_out slot
+                if shift_worker.clock_in_time_1 and not shift_worker.clock_out_time_1:
+                    shift_worker.clock_out_time_1 = time
+                elif shift_worker.clock_in_time_2 and not shift_worker.clock_out_time_2:
+                    shift_worker.clock_out_time_2 = time
+                elif shift_worker.clock_in_time_3 and not shift_worker.clock_out_time_3:
+                    shift_worker.clock_out_time_3 = time
+                else:
+                    return False  # No matching clock_in or all slots filled
+
+                shift_worker.current_status = 'clocked_out'
+
+            shift_worker.last_action_time = time
+
+            # Recalculate total hours
+            shift_worker.calculate_total_hours()
+
+            self.repository.db.commit()
+            return True
+
+        except Exception as e:
+            print(f"Error updating clock time: {e}")
+            self.repository.db.rollback()
+            return False
+
+    def mark_worker_absent(self, shift_id: int, user_id: int, manager_id: int) -> bool:
+        """
+        Mark a worker as absent for a shift.
+        """
+        try:
+            from datetime import datetime
+
+            shift_worker = self.get_shift_worker_for_timecard(shift_id, user_id)
+            if not shift_worker:
+                return False
+
+            shift_worker.is_absent = True
+            shift_worker.marked_absent_at = datetime.now()
+            shift_worker.marked_absent_by = manager_id
+            shift_worker.current_status = 'absent'
+
+            self.repository.db.commit()
+            return True
+
+        except Exception as e:
+            print(f"Error marking worker absent: {e}")
+            self.repository.db.rollback()
+            return False
+
+    def update_worker_notes(self, shift_id: int, user_id: int, notes: str) -> bool:
+        """
+        Update notes for a worker on a shift.
+        """
+        try:
+            shift_worker = self.get_shift_worker_for_timecard(shift_id, user_id)
+            if not shift_worker:
+                return False
+
+            shift_worker.shift_notes = notes
+
+            self.repository.db.commit()
+            return True
+
+        except Exception as e:
+            print(f"Error updating worker notes: {e}")
+            self.repository.db.rollback()
+            return False
+
+    def clock_out_all_workers(self, shift_id: int, time, manager_id: int) -> list:
+        """
+        Clock out all workers still clocked in for a shift.
+        """
+        try:
+            workers = self.get_workers_by_shift_id(shift_id)
+            clocked_out_workers = []
+
+            for worker in workers:
+                current_status = getattr(worker, 'current_status', 'not_started')
+                if current_status == 'clocked_in':
+                    if self.update_clock_time(shift_id, worker.userID, 'clock_out', time, manager_id):
+                        clocked_out_workers.append({
+                            'user_id': worker.userID,
+                            'clocked_out_at': time.isoformat()
+                        })
+
+            return clocked_out_workers
+
+        except Exception as e:
+            print(f"Error clocking out all workers: {e}")
+            return []
+
+    def generate_shift_timesheet(self, shift_id: int) -> dict:
+        """
+        Generate a draft timesheet for a shift.
+        """
+        try:
+            from ..controllers.users_controller import UsersController
+            from ..controllers.shifts_controller import ShiftsController
+
+            workers = self.get_workers_by_shift_id(shift_id)
+            users_controller = UsersController(self.repository.db)
+            shifts_controller = ShiftsController(self.repository.db)
+
+            # Get shift details
+            shift = shifts_controller.get_shift_by_id(shift_id)
+
+            timesheet_data = {
+                'shift_id': shift_id,
+                'shift_info': {
+                    'shift_start_datetime': shift.shift_start_datetime.isoformat() if shift.shift_start_datetime else None,
+                    'shift_end_datetime': shift.shift_end_datetime.isoformat() if shift.shift_end_datetime else None,
+                    'shift_description': getattr(shift, 'shift_description', ''),
+                },
+                'workers': [],
+                'summary': {
+                    'total_workers': len(workers),
+                    'total_regular_hours': 0,
+                    'total_overtime_hours': 0,
+                    'total_cost': 0  # Would need hourly rates to calculate
+                }
+            }
+
+            for worker in workers:
+                user = users_controller.get_entity(worker.userID)
+
+                worker_data = {
+                    'user_id': worker.userID,
+                    'user_name': user.name if user else 'Unknown',
+                    'role_assigned': worker.role_assigned.value if worker.role_assigned else None,
+                    'time_pairs': worker.get_time_pairs(),
+                    'total_hours_worked': worker.total_hours_worked or 0,
+                    'overtime_hours': worker.overtime_hours or 0,
+                    'is_absent': getattr(worker, 'is_absent', False),
+                    'shift_notes': getattr(worker, 'shift_notes', ''),
+                    'current_status': getattr(worker, 'current_status', 'not_started')
+                }
+
+                timesheet_data['workers'].append(worker_data)
+                timesheet_data['summary']['total_regular_hours'] += (worker.total_hours_worked or 0)
+                timesheet_data['summary']['total_overtime_hours'] += (worker.overtime_hours or 0)
+
+            return timesheet_data
+
+        except Exception as e:
+            print(f"Error generating shift timesheet: {e}")
+            return {}

@@ -7,7 +7,7 @@ import './GoogleSignIn.css';
 
 const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { googleLogin } = useAuth();
   const { isConfigured } = useGoogleAuth();
   const socket = useSocket();
 
@@ -67,7 +67,7 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
                   };
 
                   // Update auth context
-                  login(response.data.username, null, userData);
+                  googleLogin(userData);
 
                   if (onSuccess) {
                     onSuccess(userData);

@@ -727,3 +727,348 @@ input:checked + .toggle-slider:before {
 .status-text.pending {
   color: #f39c12;
 }
+
+/* New Settings Components Styles */
+
+/* Custom Certifications */
+.custom-certifications {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-cert-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.custom-cert-row input {
+  margin: 0;
+}
+
+.toggle-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-left: 8px;
+}
+
+/* Job Templates */
+.job-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.job-template-row {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.template-basic-info {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.template-roles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.template-roles label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.template-roles input {
+  width: 60px;
+}
+
+/* Report Templates */
+.report-templates {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.template-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.template-info {
+  flex: 1;
+}
+
+.template-name {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.template-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 8px;
+}
+
+.template-details {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+}
+
+.template-details span {
+  padding: 2px 8px;
+  border-radius: 4px;
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+.template-controls {
+  margin-left: 16px;
+}
+
+/* System Status */
+.system-status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.status-item {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+  text-align: center;
+}
+
+.status-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.status-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.status-actions, .backup-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+/* Sync Status */
+.sync-status {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: #f9fafb;
+}
+
+.sync-status h4 {
+  margin: 0 0 12px 0;
+  color: #111827;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+/* Color Input */
+.color-input {
+  width: 60px !important;
+  height: 40px;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+/* Button Enhancements */
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.875rem;
+}
+
+.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.btn-primary:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  border: 1px solid #dc2626;
+}
+
+.btn-danger:hover {
+  background-color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.btn-secondary {
+  background-color: #6b7280;
+  color: white;
+  border: 1px solid #6b7280;
+}
+
+.btn-secondary:hover {
+  background-color: #4b5563;
+  border-color: #4b5563;
+}
+
+/* Settings Card Enhancements */
+.settings-card {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background-color: white;
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.settings-card-icon {
+  font-size: 1.5rem;
+  margin-right: 12px;
+}
+
+.settings-card-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+/* Toggle Setting Layout */
+.toggle-setting {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.toggle-info {
+  flex: 1;
+}
+
+.toggle-title {
+  font-weight: 500;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.toggle-description {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+/* Settings Header */
+.settings-header {
+  margin-bottom: 24px;
+}
+
+.settings-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.settings-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Enhanced Responsive Design for New Components */
+@media (max-width: 768px) {
+  .custom-cert-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .template-basic-info {
+    grid-template-columns: 1fr;
+  }
+
+  .template-roles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .system-status-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .status-actions, .backup-actions {
+    flex-direction: column;
+  }
+
+  .toggle-setting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .template-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .template-controls {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+}

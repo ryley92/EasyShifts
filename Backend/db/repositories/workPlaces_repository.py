@@ -23,7 +23,7 @@ class WorkPlacesRepository(BaseRepository):
         # Query users by joining WorkPlace and User tables
         return (
             self.db.query(User)
-            .join(WorkPlace)
+            .join(WorkPlace, User.id == WorkPlace.id)
             .filter(WorkPlace.workPlaceID == workplace_id)
             .all()
         )
@@ -39,9 +39,10 @@ class WorkPlacesRepository(BaseRepository):
             list[User]: A list of active users working in the specified workplace.
         """
         # Query active users by joining WorkPlace and User tables and filtering by isActive = 1
+        # Specify explicit join condition to avoid ambiguity
         return (
             self.db.query(User)
-            .join(WorkPlace)
+            .join(WorkPlace, User.id == WorkPlace.id)
             .filter(WorkPlace.workPlaceID == workplace_id)
             .filter(User.isActive == 1)
             .all()
@@ -138,7 +139,7 @@ class WorkPlacesRepository(BaseRepository):
         # Query the User table to find the user by name
         return (
             self.db.query(User)
-            .join(WorkPlace)
+            .join(WorkPlace, User.id == WorkPlace.id)
             .filter(WorkPlace.workPlaceID == workplace_id)
             .filter(User.name == worker_name)
             .first()

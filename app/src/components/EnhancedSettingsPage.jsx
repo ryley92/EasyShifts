@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../utils';
+import CompanyProfileSettings from './settings/CompanyProfileSettings';
+import UserManagementSettings from './settings/UserManagementSettings';
+import CertificationsSettings from './settings/CertificationsSettings';
+import ClientManagementSettings from './settings/ClientManagementSettings';
+import JobConfigurationSettings from './settings/JobConfigurationSettings';
 import SchedulingSettings from './settings/SchedulingSettings';
+import TimesheetAdvancedSettings from './settings/TimesheetAdvancedSettings';
 import NotificationSettings from './settings/NotificationSettings';
-import RequestWindowSettings from './settings/RequestWindowSettings';
-import WorkerManagementSettings from './settings/WorkerManagementSettings';
-import TimesheetSettings from './settings/TimesheetSettings';
-import DisplaySettings from './settings/DisplaySettings';
+import GoogleIntegrationSettings from './settings/GoogleIntegrationSettings';
+import ReportingSettings from './settings/ReportingSettings';
 import SecuritySettings from './settings/SecuritySettings';
-import IntegrationSettings from './settings/IntegrationSettings';
-import CustomFieldsSettings from './settings/CustomFieldsSettings';
+import MobileAccessibilitySettings from './settings/MobileAccessibilitySettings';
+import SystemAdminSettings from './settings/SystemAdminSettings';
+import DisplaySettings from './settings/DisplaySettings';
 import './EnhancedSettingsPage.css';
 
 const EnhancedSettingsPage = () => {
   const socket = useSocket();
   const [settings, setSettings] = useState(null);
-  const [activeTab, setActiveTab] = useState('scheduling');
+  const [activeTab, setActiveTab] = useState('company-profile');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
@@ -22,15 +27,20 @@ const EnhancedSettingsPage = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const tabs = [
+    { id: 'company-profile', label: 'Company Profile', icon: '🏢', description: 'Company information, branding, and contact details' },
+    { id: 'user-management', label: 'User Management', icon: '👥', description: 'Role management, permissions, and approval workflows' },
+    { id: 'certifications', label: 'Certifications & Roles', icon: '🎓', description: 'Employee certifications, role definitions, and training' },
+    { id: 'client-management', label: 'Client Management', icon: '🤝', description: 'Client onboarding, communication, and billing settings' },
+    { id: 'job-configuration', label: 'Job & Shift Config', icon: '⚙️', description: 'Job templates, shift requirements, and locations' },
     { id: 'scheduling', label: 'Scheduling', icon: '📅', description: 'Shift scheduling and timing preferences' },
+    { id: 'timesheet-advanced', label: 'Advanced Timesheets', icon: '⏱️', description: 'Clock rules, overtime policies, and approvals' },
     { id: 'notifications', label: 'Notifications', icon: '🔔', description: 'Email, SMS, and push notification settings' },
-    { id: 'request-windows', label: 'Request Windows', icon: '⏰', description: 'When workers can request shifts' },
-    { id: 'worker-management', label: 'Worker Management', icon: '👥', description: 'Auto-assignment and worker rules' },
-    { id: 'timesheet', label: 'Timesheet & Payroll', icon: '💰', description: 'Time tracking and overtime settings' },
-    { id: 'display', label: 'Display & UI', icon: '🎨', description: 'Interface appearance and preferences' },
-    { id: 'security', label: 'Security', icon: '🔒', description: 'Access control and data retention' },
-    { id: 'integrations', label: 'Integrations', icon: '🔗', description: 'External system connections' },
-    { id: 'custom-fields', label: 'Custom Fields', icon: '📝', description: 'Custom data fields for shifts and workers' },
+    { id: 'google-integration', label: 'Google Integration', icon: '🔗', description: 'OAuth, calendar sync, and Google services' },
+    { id: 'reporting', label: 'Reporting & Analytics', icon: '📊', description: 'Report preferences, data retention, and exports' },
+    { id: 'security', label: 'Security & Access', icon: '🔒', description: 'Authentication, access control, and compliance' },
+    { id: 'mobile-accessibility', label: 'Mobile & Accessibility', icon: '📱', description: 'Mobile app settings and accessibility options' },
+    { id: 'system-admin', label: 'System Administration', icon: '🛠️', description: 'Backup, audit logs, and system maintenance' },
+    { id: 'display', label: 'Display & UI', icon: '🎨', description: 'Interface appearance and preferences' }
   ];
 
   useEffect(() => {
@@ -52,7 +62,7 @@ const EnhancedSettingsPage = () => {
           } else {
             setError(response.error || 'Failed to load settings');
           }
-        } else if ([996, 997, 998, 999, 1000, 1001].includes(response.request_id)) {
+        } else if ([996, 997, 998, 999, 1000, 1001, 1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019, 1020].includes(response.request_id)) {
           // Update settings responses
           setIsSaving(false);
           if (response.success) {
@@ -101,11 +111,19 @@ const EnhancedSettingsPage = () => {
     setSuccessMessage('');
 
     const requestIdMap = {
+      'company-profile': 1010,
+      'user-management': 1011,
+      'certifications': 1012,
+      'client-management': 1013,
+      'job-configuration': 1014,
       'scheduling': 996,
+      'timesheet-advanced': 1015,
       'notifications': 997,
-      'request-windows': 998,
-      'worker-management': 999,
-      'timesheet': 1000,
+      'google-integration': 1016,
+      'reporting': 1017,
+      'security': 1018,
+      'mobile-accessibility': 1019,
+      'system-admin': 1020,
       'display': 1001,
     };
 
@@ -153,24 +171,34 @@ const EnhancedSettingsPage = () => {
     };
 
     switch (activeTab) {
+      case 'company-profile':
+        return <CompanyProfileSettings {...commonProps} />;
+      case 'user-management':
+        return <UserManagementSettings {...commonProps} />;
+      case 'certifications':
+        return <CertificationsSettings {...commonProps} />;
+      case 'client-management':
+        return <ClientManagementSettings {...commonProps} />;
+      case 'job-configuration':
+        return <JobConfigurationSettings {...commonProps} />;
       case 'scheduling':
         return <SchedulingSettings {...commonProps} />;
+      case 'timesheet-advanced':
+        return <TimesheetAdvancedSettings {...commonProps} />;
       case 'notifications':
         return <NotificationSettings {...commonProps} />;
-      case 'request-windows':
-        return <RequestWindowSettings {...commonProps} />;
-      case 'worker-management':
-        return <WorkerManagementSettings {...commonProps} />;
-      case 'timesheet':
-        return <TimesheetSettings {...commonProps} />;
-      case 'display':
-        return <DisplaySettings {...commonProps} />;
+      case 'google-integration':
+        return <GoogleIntegrationSettings {...commonProps} />;
+      case 'reporting':
+        return <ReportingSettings {...commonProps} />;
       case 'security':
         return <SecuritySettings {...commonProps} />;
-      case 'integrations':
-        return <IntegrationSettings {...commonProps} />;
-      case 'custom-fields':
-        return <CustomFieldsSettings {...commonProps} />;
+      case 'mobile-accessibility':
+        return <MobileAccessibilitySettings {...commonProps} />;
+      case 'system-admin':
+        return <SystemAdminSettings {...commonProps} />;
+      case 'display':
+        return <DisplaySettings {...commonProps} />;
       default:
         return <div>Select a settings category</div>;
     }

@@ -184,3 +184,97 @@ class UsersController(BaseController):
             user_id (int): The user ID to update.
         """
         return self.repository.update_last_login(user_id)
+
+    def get_user_by_username(self, username: str):
+        """
+        Get user by username.
+
+        Parameters:
+            username (str): The username to search for.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.repository.get_user_by_username(username)
+
+    def find_user_by_email(self, email: str):
+        """
+        Find user by email address.
+
+        Parameters:
+            email (str): The email address to search for.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.repository.get_user_by_email(email)
+
+    def get_user_by_username(self, username: str):
+        """
+        Get user by username.
+
+        Parameters:
+            username (str): The username to search for.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.repository.get_user_by_username(username)
+
+    def find_user_by_email(self, email: str):
+        """
+        Find user by email address.
+
+        Parameters:
+            email (str): The email address to search for.
+
+        Returns:
+            User: The user object if found, None otherwise.
+        """
+        return self.repository.get_user_by_email(email)
+
+    def get_all_approved_workers(self):
+        """
+        Get all approved workers (non-manager users).
+
+        Returns:
+            List[User]: List of approved worker users.
+        """
+        try:
+            from sqlalchemy import and_
+            from ..models import User
+
+            query = self.repository.db.query(User).filter(
+                and_(
+                    User.isApproval == True,
+                    User.isManager == False,
+                    User.isActive == True
+                )
+            )
+
+            return query.all()
+
+        except Exception as e:
+            print(f"Error getting all approved workers: {e}")
+            return []
+
+    def get_users_by_client_company_id(self, client_company_id: int):
+        """
+        Retrieves all users belonging to a specific client company.
+
+        Parameters:
+            client_company_id (int): The client company ID.
+
+        Returns:
+            List[User]: List of users belonging to the client company.
+        """
+        return self.repository.get_users_by_client_company_id(client_company_id)
+
+    def get_all_client_users(self):
+        """
+        Retrieves all users that are client users (have client_company_id set).
+
+        Returns:
+            List[User]: List of all client users.
+        """
+        return self.repository.get_all_client_users()

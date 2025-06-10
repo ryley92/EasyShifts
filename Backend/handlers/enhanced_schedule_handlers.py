@@ -57,7 +57,7 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
                 'shift_start_datetime': shift.shift_start_datetime.isoformat() if shift.shift_start_datetime else None,
                 'shift_end_datetime': shift.shift_end_datetime.isoformat() if shift.shift_end_datetime else None,
                 'client_po_number': shift.client_po_number,
-                'role_requirements': shift.role_requirements or {},
+                'role_requirements': shift.required_employee_counts or {},
                 # Legacy fields for backward compatibility
                 'shiftDate': shift.shiftDate.isoformat() if shift.shiftDate else None,
                 'shiftPart': shift.shiftPart.value if shift.shiftPart else None,
@@ -67,12 +67,14 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
             if shift.job_id:
                 job = jobs_controller.get_entity(shift.job_id)
                 if job:
-                    shift_dict['job_name'] = job.jobName
-                    shift_dict['job_location'] = job.location
+                    shift_dict['job_name'] = job.name
+                    shift_dict['job_location'] = f"{job.venue_name}, {job.venue_address}"
+                    shift_dict['venue_name'] = job.venue_name
+                    shift_dict['venue_address'] = job.venue_address
                     if job.client_company_id:
                         client = client_companies_controller.get_entity(job.client_company_id)
                         if client:
-                            shift_dict['client_company_name'] = client.companyName
+                            shift_dict['client_company_name'] = client.name
             
             # Get assigned workers
             assigned_workers = shift_workers_controller.get_workers_for_shift(shift.id)
@@ -136,16 +138,18 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
             for job in jobs:
                 job_dict = {
                     'id': job.id,
-                    'jobName': job.jobName,
-                    'location': job.location,
+                    'jobName': job.name,
+                    'location': f"{job.venue_name}, {job.venue_address}",
+                    'venue_name': job.venue_name,
+                    'venue_address': job.venue_address,
                     'client_company_id': job.client_company_id,
-                    'isActive': job.isActive
+                    'isActive': job.is_active
                 }
-                
+
                 if job.client_company_id:
                     client = client_companies_controller.get_entity(job.client_company_id)
                     if client:
-                        job_dict['client_company_name'] = client.companyName
+                        job_dict['client_company_name'] = client.name
                 
                 jobs_data.append(job_dict)
             
@@ -159,10 +163,9 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
             for client in clients:
                 clients_data.append({
                     'id': client.id,
-                    'companyName': client.companyName,
-                    'contactEmail': client.contactEmail,
-                    'contactPhone': client.contactPhone,
-                    'isActive': getattr(client, 'isActive', True)
+                    'companyName': client.name,
+                    'name': client.name,
+                    'isActive': True  # ClientCompany model doesn't have isActive field
                 })
             
             response_data['clients'] = clients_data
@@ -301,16 +304,16 @@ def handle_create_shift_enhanced(data: dict, user_session: UserSession) -> dict:
         role_requirements = data.get('role_requirements', {})
         client_po_number = data.get('client_po_number')
         auto_assign_worker = data.get('auto_assign_worker')
-        
+
         if not shift_start_datetime:
             return {"request_id": request_id, "success": False, "error": "shift_start_datetime is required."}
-        
+
         # Create shift
         shifts_controller = ShiftsController(db)
         shift_data = {
             'shift_start_datetime': datetime.fromisoformat(shift_start_datetime.replace('Z', '+00:00')),
             'job_id': job_id,
-            'role_requirements': role_requirements,
+            'required_employee_counts': role_requirements,
             'client_po_number': client_po_number
         }
         
@@ -339,7 +342,7 @@ def handle_create_shift_enhanced(data: dict, user_session: UserSession) -> dict:
             'shift_start_datetime': shift.shift_start_datetime.isoformat() if shift.shift_start_datetime else None,
             'shift_end_datetime': shift.shift_end_datetime.isoformat() if shift.shift_end_datetime else None,
             'client_po_number': shift.client_po_number,
-            'role_requirements': shift.role_requirements or {},
+            'role_requirements': shift.required_employee_counts or {},
             'assigned_workers': []
         }
         
@@ -384,7 +387,7 @@ def handle_update_shift_enhanced(data: dict, user_session: UserSession) -> dict:
             update_data['job_id'] = data['job_id']
         
         if 'role_requirements' in data:
-            update_data['role_requirements'] = data['role_requirements']
+            update_data['required_employee_counts'] = data['role_requirements']
         
         if 'client_po_number' in data:
             update_data['client_po_number'] = data['client_po_number']
@@ -398,7 +401,7 @@ def handle_update_shift_enhanced(data: dict, user_session: UserSession) -> dict:
                 'shift_start_datetime': updated_shift.shift_start_datetime.isoformat() if updated_shift.shift_start_datetime else None,
                 'shift_end_datetime': updated_shift.shift_end_datetime.isoformat() if updated_shift.shift_end_datetime else None,
                 'client_po_number': updated_shift.client_po_number,
-                'role_requirements': updated_shift.role_requirements or {}
+                'role_requirements': updated_shift.required_employee_counts or {}
             }
             
             return {"request_id": request_id, "success": True, "data": shift_dict, "message": "Shift updated successfully."}

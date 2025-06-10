@@ -21,7 +21,8 @@ const Toolbar = () => {
     return (
         <div className="toolbar">
             <Link to={isAuthenticated ? "/dashboard" : "/"} className="toolbar-logo">
-                <h3>EasyShifts</h3>
+                <h3>Hands on Labor</h3>
+                <span className="toolbar-subtitle">EasyShifts</span>
             </Link>
             <div className="toolbar-nav">
                 {isAuthenticated ? (

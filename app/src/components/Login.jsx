@@ -82,7 +82,8 @@ function Login() {
         <>
             <div className="login-container">
                 <div className="login-form">
-                    <h2 className="login-title">Sign In to EasyShifts</h2>
+                    <h2 className="login-title">Sign In to Hands on Labor</h2>
+                    <p className="login-subtitle">Access your EasyShifts dashboard</p>
 
                     {error && (
                         <div className="error-message">

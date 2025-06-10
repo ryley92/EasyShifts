@@ -1,0 +1,55 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: easyshifts-frontend
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/execution-environment: gen2
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/cpu-throttling: "false"
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/memory: "512Mi"
+        run.googleapis.com/cpu: "500m"
+    spec:
+      containerConcurrency: 100
+      timeoutSeconds: 300
+      containers:
+      - image: us-central1-docker.pkg.dev/goog-71174/easyshifts-repo/easyshifts-frontend:latest
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        env:
+        - name: REACT_APP_GOOGLE_CLIENT_ID
+          value: "794306818447-4prnpg1p13a4smvnnfs7tfvkesrld9ms.apps.googleusercontent.com"
+        - name: REACT_APP_API_URL
+          value: "wss://easyshifts-backend-HASH-uc.a.run.app"
+        - name: REACT_APP_ENV
+          value: "production"
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+  traffic:
+  - percent: 100
+    latestRevision: true
+

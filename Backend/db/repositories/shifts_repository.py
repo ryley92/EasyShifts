@@ -14,7 +14,19 @@ class ShiftsRepository(BaseRepository):
         """
         Retrieves all shifts associated with a specific job ID, ordered by date and part.
         """
-        return self.db.query(Shift).filter(Shift.job_id == job_id).order_by(Shift.shiftDate, Shift.shiftPart).all()
+        try:
+            # Try to order by new datetime fields first, fallback to legacy fields
+            # Use COALESCE to handle NULL values instead of NULLS LAST (MariaDB compatibility)
+            from sqlalchemy import func
+            return self.db.query(Shift).filter(Shift.job_id == job_id).order_by(
+                func.coalesce(Shift.shift_start_datetime, '9999-12-31 23:59:59').asc(),
+                Shift.shiftDate,
+                Shift.shiftPart
+            ).all()
+        except Exception as e:
+            # Fallback to legacy fields only if datetime fields don't exist
+            print(f"Using legacy shift fields due to: {e}")
+            return self.db.query(Shift).filter(Shift.job_id == job_id).order_by(Shift.shiftDate, Shift.shiftPart).all()
 
     def get_shift_by_day_and_part_and_workplace(self, day: str, part: str, workplace: int):
         return self.db.query(Shift).filter(Shift.shiftDay == day, Shift.shiftPart == part,

@@ -14,6 +14,7 @@ import ManagerSettings from '../components/ManagerSettings';
 import ManagerJobDashboard from '../components/ManagerJobDashboard';
 import ManagerShiftEditor from '../components/ManagerShiftEditor';
 import ManagerClientCompaniesPage from '../components/ManagerClientCompaniesPage';
+import ClientDirectory from '../components/clients/ClientDirectory';
 import SignUpManager from '../components/SignUpManager';
 import SignUpEmployee from '../components/SignUpEmployee';
 import SignUpClient from '../components/SignUpClient';
@@ -28,7 +29,9 @@ import CrewShiftTimeEntry from '../components/CrewShiftTimeEntry'; // Import the
 import ManagerTimesheets from '../components/ManagerTimesheets';
 import EnhancedTimesheetManager from '../components/EnhancedTimesheetManager';
 import EnhancedScheduleView from '../components/schedule/EnhancedScheduleView';
+import ShiftTimecard from '../components/ShiftTimecard';
 import GoogleOAuthSetup from '../components/GoogleOAuthSetup';
+import TestGoogleSignup from '../components/TestGoogleSignup';
 import Toolbar from '../components/Toolbar';
 import './App.css';
 
@@ -51,7 +54,9 @@ function App() {
           <Route path="/manager-settings" element={<ProtectedRoute requireManager={true}><ManagerSettings /></ProtectedRoute>} />
           <Route path="/manager-jobs" element={<ProtectedRoute requireManager={true}><ManagerJobDashboard /></ProtectedRoute>} />
           <Route path="/manager-jobs/:jobId/shifts" element={<ProtectedRoute requireManager={true}><ManagerShiftEditor /></ProtectedRoute>} />
-          <Route path="/manager-clients" element={<ProtectedRoute requireManager={true}><ManagerClientCompaniesPage /></ProtectedRoute>} />
+          <Route path="/shift/:shiftId/timecard" element={<ProtectedRoute requireManager={true}><ShiftTimecard /></ProtectedRoute>} />
+          <Route path="/manager-clients" element={<ProtectedRoute requireManager={true}><ClientDirectory /></ProtectedRoute>} />
+          <Route path="/manager-clients-legacy" element={<ProtectedRoute requireManager={true}><ManagerClientCompaniesPage /></ProtectedRoute>} />
           <Route path="/signupManager" element={<SignUpManager />} />
           <Route path="/signupEmployee" element={<SignUpEmployee />} />
           <Route path="/signupClient" element={<SignUpClient />} />
@@ -68,6 +73,7 @@ function App() {
           <Route path="/timesheet/:shiftId" element={<ProtectedRoute><EnhancedTimesheetManager /></ProtectedRoute>} />
           <Route path="/enhanced-schedule" element={<ProtectedRoute requireManager={true}><EnhancedScheduleView /></ProtectedRoute>} />
           <Route path="/google-oauth-setup" element={<GoogleOAuthSetup />} />
+          <Route path="/test-google-signup" element={<TestGoogleSignup />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </div>

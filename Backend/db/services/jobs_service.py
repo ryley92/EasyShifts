@@ -16,6 +16,13 @@ class JobsService(BaseService):
 
     def get_jobs_by_workplace_id(self, workplace_id: int) -> List[Job]:
         """
+        DEPRECATED: Use get_all_active_jobs() instead.
         Retrieves all jobs for a given workplace ID.
         """
         return self.repository.get_jobs_by_workplace_id(workplace_id)
+
+    def get_all_active_jobs(self) -> List[Job]:
+        """
+        Retrieves all active jobs for Hands on Labor.
+        """
+        return self.repository.get_all_active_jobs()
