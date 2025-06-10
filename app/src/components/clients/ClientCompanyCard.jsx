@@ -19,7 +19,7 @@ const ClientCompanyCard = ({ client, onRefresh }) => {
       try {
         const response = JSON.parse(event.data);
 
-        if (response.request_id === 211) { // GET_CLIENT_COMPANY_DETAILS response
+        if (response.request_id === 213) { // GET_CLIENT_COMPANY_DETAILS response
           setIsLoading(false);
           if (response.success) {
             setClientDetails(response.data);
@@ -49,7 +49,7 @@ const ClientCompanyCard = ({ client, onRefresh }) => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       setIsLoading(true);
       const request = {
-        request_id: 211, // GET_CLIENT_COMPANY_DETAILS
+        request_id: 213, // GET_CLIENT_COMPANY_DETAILS
         data: { company_id: client.id }
       };
       socket.send(JSON.stringify(request));

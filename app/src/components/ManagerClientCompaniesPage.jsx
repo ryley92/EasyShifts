@@ -3,7 +3,7 @@ import { useSocket } from '../utils';
 import '../css/ManagerClientCompanies.css';
 
 const ManagerClientCompaniesPage = () => {
-  const socket = useSocket();
+  const { socket, connectionStatus, reconnect } = useSocket();
   const [clientCompanies, setClientCompanies] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,6 +29,27 @@ const ManagerClientCompaniesPage = () => {
       setError('Cannot fetch client companies: WebSocket is not connected.');
     }
   }, [socket]);
+
+  const getConnectionStatusDisplay = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return { text: 'Connecting...', color: '#ffa500', showReconnect: false };
+      case 'connected':
+        return { text: 'Connected', color: '#28a745', showReconnect: false };
+      case 'disconnected':
+        return { text: 'Disconnected', color: '#dc3545', showReconnect: true };
+      case 'reconnecting':
+        return { text: 'Reconnecting...', color: '#ffa500', showReconnect: false };
+      case 'failed':
+        return { text: 'Connection Failed', color: '#dc3545', showReconnect: true };
+      case 'error':
+        return { text: 'Connection Error', color: '#dc3545', showReconnect: true };
+      default:
+        return { text: 'Unknown', color: '#6c757d', showReconnect: true };
+    }
+  };
+
+  const isConnected = connectionStatus === 'connected';
 
   const handleCreateCompany = () => {
     if (!newCompanyName.trim()) {
@@ -154,13 +175,40 @@ const ManagerClientCompaniesPage = () => {
     <div className="client-companies-container">
       <div className="header-section">
         <h2>Client Companies Directory</h2>
-        <button
-          className="create-button"
-          onClick={() => setShowCreateForm(!showCreateForm)}
-          disabled={isLoading}
-        >
-          {showCreateForm ? 'Cancel' : 'Add New Client'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              color: getConnectionStatusDisplay().color,
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}>
+              ● {getConnectionStatusDisplay().text}
+            </span>
+            {getConnectionStatusDisplay().showReconnect && (
+              <button
+                onClick={reconnect}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Reconnect
+              </button>
+            )}
+          </div>
+          <button
+            className="create-button"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            disabled={isLoading || !isConnected}
+          >
+            {showCreateForm ? 'Cancel' : 'Add New Client'}
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -183,7 +231,7 @@ const ManagerClientCompaniesPage = () => {
           <div className="form-actions">
             <button
               onClick={handleCreateCompany}
-              disabled={isCreating || !newCompanyName.trim()}
+              disabled={isCreating || !newCompanyName.trim() || !isConnected}
               className="submit-button"
             >
               {isCreating ? 'Creating...' : 'Create Company'}
@@ -227,7 +275,7 @@ const ManagerClientCompaniesPage = () => {
                   <div className="form-actions">
                     <button
                       onClick={handleUpdateCompany}
-                      disabled={!editCompanyName.trim()}
+                      disabled={!editCompanyName.trim() || !isConnected}
                       className="submit-button"
                     >
                       Save
@@ -257,12 +305,14 @@ const ManagerClientCompaniesPage = () => {
                         setSuccessMessage('');
                       }}
                       className="edit-button"
+                      disabled={!isConnected}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteCompany(company.id)}
                       className="delete-button"
+                      disabled={!isConnected}
                     >
                       Delete
                     </button>

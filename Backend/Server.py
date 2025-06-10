@@ -125,6 +125,12 @@ def handle_request(request_id, data):
         success = employee_list.handle_employee_rejection(data, user_session)
         return {"request_id": request_id, "success": success}
 
+    elif request_id == 65: # CREATE_EMPLOYEE_BY_MANAGER
+        print("Received Create Employee by Manager request")
+        if not user_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return employee_list.handle_create_employee_by_manager(data, user_session)
+
     elif request_id == 70:
         # Send user profile handling
         print("Send user profile")
@@ -304,30 +310,31 @@ def handle_request(request_id, data):
         print("Received Delete Client Company request")
         return client_company_handlers.handle_delete_client_company(data, user_session)
 
-    # === CLIENT DIRECTORY HANDLERS ===
-    elif request_id == 210: # Get Client Directory
-        print("Received Get Client Directory request")
-        return client_directory_handlers.handle_get_client_directory(user_session)
-
-    elif request_id == 211: # Get Client Company Details
-        print("Received Get Client Company Details request")
-        return client_directory_handlers.handle_get_client_company_details(data, user_session)
-
-    elif request_id == 212: # Update Client User Status
-        print("Received Update Client User Status request")
-        return client_directory_handlers.handle_update_client_user_status(data, user_session)
-
-    elif request_id == 213: # Get Client Analytics
-        print("Received Get Client Analytics request")
-        return client_directory_handlers.handle_get_client_analytics(user_session)
-
-    elif request_id == 215: # Create Job
+    # === JOB MANAGEMENT HANDLERS ===
+    elif request_id == 210: # Create Job
         print("Received Create Job request")
         return job_handlers.handle_create_job(data, user_session)
 
-    elif request_id == 216: # Get Jobs by Manager
+    elif request_id == 211: # Get Jobs by Manager
         print("Received Get Jobs by Manager request")
         return job_handlers.handle_get_jobs_by_manager(user_session)
+
+    # === CLIENT DIRECTORY HANDLERS ===
+    elif request_id == 212: # Get Client Directory
+        print("Received Get Client Directory request")
+        return client_directory_handlers.handle_get_client_directory(user_session)
+
+    elif request_id == 213: # Get Client Company Details
+        print("Received Get Client Company Details request")
+        return client_directory_handlers.handle_get_client_company_details(data, user_session)
+
+    elif request_id == 214: # Update Client User Status
+        print("Received Update Client User Status request")
+        return client_directory_handlers.handle_update_client_user_status(data, user_session)
+
+    elif request_id == 215: # Get Client Analytics
+        print("Received Get Client Analytics request")
+        return client_directory_handlers.handle_get_client_analytics(user_session)
 
     elif request_id == 220: # Create Shift
         print("Received Create Shift request")

@@ -5,7 +5,7 @@ import { useSocket } from '../utils';
 
 const ManagerJobDashboard = () => {
   const navigate = useNavigate(); // Add this line
-  const socket = useSocket();
+  const { socket, connectionStatus, reconnect } = useSocket();
   const [clientCompanies, setClientCompanies] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +35,27 @@ const ManagerJobDashboard = () => {
       socket.send(JSON.stringify(request));
     }
   }, [socket]);
+
+  const getConnectionStatusDisplay = () => {
+    switch (connectionStatus) {
+      case 'connecting':
+        return { text: 'Connecting...', color: '#ffa500', showReconnect: false };
+      case 'connected':
+        return { text: 'Connected', color: '#28a745', showReconnect: false };
+      case 'disconnected':
+        return { text: 'Disconnected', color: '#dc3545', showReconnect: true };
+      case 'reconnecting':
+        return { text: 'Reconnecting...', color: '#ffa500', showReconnect: false };
+      case 'failed':
+        return { text: 'Connection Failed', color: '#dc3545', showReconnect: true };
+      case 'error':
+        return { text: 'Connection Error', color: '#dc3545', showReconnect: true };
+      default:
+        return { text: 'Unknown', color: '#6c757d', showReconnect: true };
+    }
+  };
+
+  const isConnected = connectionStatus === 'connected';
 
   useEffect(() => {
     // Initial data fetch
@@ -123,16 +144,44 @@ const ManagerJobDashboard = () => {
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2>Job Management</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <h2>Job Management</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              color: getConnectionStatusDisplay().color,
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}>
+              ● {getConnectionStatusDisplay().text}
+            </span>
+            {getConnectionStatusDisplay().showReconnect && (
+              <button
+                onClick={reconnect}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: '12px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                Reconnect
+              </button>
+            )}
+          </div>
+        </div>
         <button
           onClick={() => navigate('/enhanced-schedule')}
+          disabled={!isConnected}
           style={{
             padding: '12px 20px',
-            backgroundColor: '#3498db',
+            backgroundColor: isConnected ? '#3498db' : '#ccc',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
-            cursor: 'pointer',
+            cursor: isConnected ? 'pointer' : 'not-allowed',
             fontSize: '14px',
             fontWeight: '600',
             display: 'flex',
@@ -238,8 +287,17 @@ const ManagerJobDashboard = () => {
 
           <button
             type="submit"
-            disabled={isLoading}
-            style={{ padding: '12px 24px', backgroundColor: isLoading ? '#ccc' : '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: isLoading ? 'not-allowed' : 'pointer', fontSize: '16px', fontWeight: 'bold' }}
+            disabled={isLoading || !isConnected}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: (isLoading || !isConnected) ? '#ccc' : '#007bff',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: (isLoading || !isConnected) ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
           >
             {isLoading ? 'Creating Job...' : 'Create Job'}
           </button>

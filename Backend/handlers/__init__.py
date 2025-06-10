@@ -5,7 +5,7 @@ from .manager_signin import handle_manager_signin
 from .employee_shifts_request import handle_employee_shifts_request, handle_is_in_request_window, handle_get_request_window_times
 from .get_employee_requests import handle_get_employee_requests
 from .manager_insert_shifts import handle_manager_insert_shifts
-from .employee_list import handle_employee_list, handle_employee_approval, handle_employee_rejection, handle_get_all_approved_worker_details
+from .employee_list import handle_employee_list, handle_employee_approval, handle_employee_rejection, handle_get_all_approved_worker_details, handle_create_employee_by_manager
 from .send_profile import handle_send_profile
 from .manager_schedule import (
     handle_create_new_board,

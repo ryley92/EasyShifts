@@ -9,9 +9,8 @@ from typing import Dict, List, Optional, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 
-from .base_controller import BaseController
 from ..models import (
-    CompanyProfile, UserManagementSettings, CertificationsSettings, 
+    CompanyProfile, UserManagementSettings, CertificationsSettings,
     ClientManagementSettings
 )
 from ..extended_settings_models import (
@@ -22,13 +21,13 @@ from ..additional_settings_models import (
 )
 
 
-class ExtendedSettingsController(BaseController):
+class ExtendedSettingsController:
     """
     Controller for managing extended settings across all categories.
     """
 
     def __init__(self, db_session: Session):
-        super().__init__(db_session)
+        self.db_session = db_session
 
     def get_all_extended_settings(self) -> Dict[str, Any]:
         """

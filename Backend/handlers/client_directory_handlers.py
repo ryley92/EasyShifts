@@ -15,10 +15,10 @@ from sqlalchemy import func
 def handle_get_client_directory(user_session: UserSession) -> dict:
     """
     Get comprehensive client directory with companies, users, and statistics.
-    Request ID: 210
+    Request ID: 212
     """
     if not user_session or not user_session.can_access_manager_page():
-        return {"request_id": 210, "success": False, "error": "Manager access required."}
+        return {"request_id": 212, "success": False, "error": "Manager access required."}
     
     try:
         client_companies_controller = ClientCompaniesController(db)
@@ -83,7 +83,7 @@ def handle_get_client_directory(user_session: UserSession) -> dict:
             client_directory.append(company_data)
         
         return {
-            "request_id": 210,
+            "request_id": 212,
             "success": True,
             "data": {
                 "companies": client_directory,
@@ -95,23 +95,23 @@ def handle_get_client_directory(user_session: UserSession) -> dict:
                 }
             }
         }
-        
+
     except Exception as e:
         print(f"Error in handle_get_client_directory: {e}")
-        return {"request_id": 210, "success": False, "error": str(e)}
+        return {"request_id": 212, "success": False, "error": str(e)}
 
 
 def handle_get_client_company_details(data: dict, user_session: UserSession) -> dict:
     """
     Get detailed information about a specific client company.
-    Request ID: 211
+    Request ID: 213
     """
     if not user_session or not user_session.can_access_manager_page():
-        return {"request_id": 211, "success": False, "error": "Manager access required."}
-    
+        return {"request_id": 213, "success": False, "error": "Manager access required."}
+
     company_id = data.get("company_id")
     if not company_id:
-        return {"request_id": 211, "success": False, "error": "company_id is required."}
+        return {"request_id": 213, "success": False, "error": "company_id is required."}
     
     try:
         client_companies_controller = ClientCompaniesController(db)
@@ -121,7 +121,7 @@ def handle_get_client_company_details(data: dict, user_session: UserSession) -> 
         # Get company details
         company = client_companies_controller.get_entity(company_id)
         if not company:
-            return {"request_id": 211, "success": False, "error": "Client company not found."}
+            return {"request_id": 213, "success": False, "error": "Client company not found."}
         
         # Get all users for this company
         client_users = users_controller.get_users_by_client_company_id(company_id)
@@ -181,39 +181,39 @@ def handle_get_client_company_details(data: dict, user_session: UserSession) -> 
             }
         }
         
-        return {"request_id": 211, "success": True, "data": company_details}
-        
+        return {"request_id": 213, "success": True, "data": company_details}
+
     except Exception as e:
         print(f"Error in handle_get_client_company_details: {e}")
-        return {"request_id": 211, "success": False, "error": str(e)}
+        return {"request_id": 213, "success": False, "error": str(e)}
 
 
 def handle_update_client_user_status(data: dict, user_session: UserSession) -> dict:
     """
     Update client user status (activate/deactivate, approve/unapprove).
-    Request ID: 212
+    Request ID: 214
     """
     if not user_session or not user_session.can_access_manager_page():
-        return {"request_id": 212, "success": False, "error": "Manager access required."}
+        return {"request_id": 214, "success": False, "error": "Manager access required."}
     
     user_id = data.get("user_id")
     action = data.get("action")  # "activate", "deactivate", "approve", "unapprove"
     
     if not user_id or not action:
-        return {"request_id": 212, "success": False, "error": "user_id and action are required."}
-    
+        return {"request_id": 214, "success": False, "error": "user_id and action are required."}
+
     if action not in ["activate", "deactivate", "approve", "unapprove"]:
-        return {"request_id": 212, "success": False, "error": "Invalid action. Must be activate, deactivate, approve, or unapprove."}
+        return {"request_id": 214, "success": False, "error": "Invalid action. Must be activate, deactivate, approve, or unapprove."}
     
     try:
         users_controller = UsersController(db)
         user = users_controller.get_entity(user_id)
         
         if not user:
-            return {"request_id": 212, "success": False, "error": "User not found."}
-        
+            return {"request_id": 214, "success": False, "error": "User not found."}
+
         if not user.client_company_id:
-            return {"request_id": 212, "success": False, "error": "User is not a client user."}
+            return {"request_id": 214, "success": False, "error": "User is not a client user."}
         
         # Update user status based on action
         if action == "activate":
@@ -228,7 +228,7 @@ def handle_update_client_user_status(data: dict, user_session: UserSession) -> d
         db.commit()
         
         return {
-            "request_id": 212,
+            "request_id": 214,
             "success": True,
             "message": f"User {action}d successfully.",
             "data": {
@@ -237,19 +237,19 @@ def handle_update_client_user_status(data: dict, user_session: UserSession) -> d
                 "isApproval": user.isApproval
             }
         }
-        
+
     except Exception as e:
         print(f"Error in handle_update_client_user_status: {e}")
-        return {"request_id": 212, "success": False, "error": str(e)}
+        return {"request_id": 214, "success": False, "error": str(e)}
 
 
 def handle_get_client_analytics(user_session: UserSession) -> dict:
     """
     Get analytics and insights about client companies and their activity.
-    Request ID: 213
+    Request ID: 215
     """
     if not user_session or not user_session.can_access_manager_page():
-        return {"request_id": 213, "success": False, "error": "Manager access required."}
+        return {"request_id": 215, "success": False, "error": "Manager access required."}
     
     try:
         client_companies_controller = ClientCompaniesController(db)
@@ -299,8 +299,8 @@ def handle_get_client_analytics(user_session: UserSession) -> dict:
         analytics["top_clients"].sort(key=lambda x: x["job_count"], reverse=True)
         analytics["top_clients"] = analytics["top_clients"][:10]  # Top 10
         
-        return {"request_id": 213, "success": True, "data": analytics}
-        
+        return {"request_id": 215, "success": True, "data": analytics}
+
     except Exception as e:
         print(f"Error in handle_get_client_analytics: {e}")
-        return {"request_id": 213, "success": False, "error": str(e)}
+        return {"request_id": 215, "success": False, "error": str(e)}

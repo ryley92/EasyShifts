@@ -76,7 +76,7 @@ def handle_get_schedule_data(data: dict, user_session: UserSession) -> dict:
                             shift_dict['client_company_name'] = client.name
             
             # Get assigned workers
-            assigned_workers = shift_workers_controller.get_workers_for_shift(shift.id)
+            assigned_workers = shift_workers_controller.get_shift_workers_by_shift_id(shift.id)
             shift_dict['assigned_workers'] = []
             
             for sw in assigned_workers:
@@ -207,7 +207,7 @@ def handle_assign_worker_to_shift_enhanced(data: dict, user_session: UserSession
         if not user.isManager:
             # Check if user is crew chief on this shift
             shift_workers_controller = ShiftWorkersController(db)
-            shift_workers = shift_workers_controller.get_workers_for_shift(shift_id)
+            shift_workers = shift_workers_controller.get_shift_workers_by_shift_id(shift_id)
             is_crew_chief = any(sw.userID == user_session.get_id and 
                               sw.role_assigned.value == 'crew_chief' 
                               for sw in shift_workers)
@@ -258,7 +258,7 @@ def handle_unassign_worker_from_shift_enhanced(data: dict, user_session: UserSes
         if not user.isManager:
             # Check if user is crew chief on this shift
             shift_workers_controller = ShiftWorkersController(db)
-            shift_workers = shift_workers_controller.get_workers_for_shift(shift_id)
+            shift_workers = shift_workers_controller.get_shift_workers_by_shift_id(shift_id)
             is_crew_chief = any(sw.userID == user_session.get_id and 
                               sw.role_assigned.value == 'crew_chief' 
                               for sw in shift_workers)

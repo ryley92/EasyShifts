@@ -249,7 +249,7 @@ def handle_import_settings(data: dict, user_session: UserSession) -> dict:
             return {"request_id": request_id, "success": False, "error": f"Invalid settings: {'; '.join(errors)}"}
         
         # Import settings
-        updated_settings = controller.update_settings(user_session.get_id, settings_data)
+        updated_settings = controller.update_settings(settings_data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error importing settings: {e}")
@@ -323,7 +323,7 @@ def handle_update_certifications_settings(data: dict, user_session: UserSession)
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_certifications_settings(user_session.get_id, data)
+        updated_settings = controller.update_certifications_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating certifications settings: {e}")
@@ -347,7 +347,7 @@ def handle_update_client_management_settings(data: dict, user_session: UserSessi
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_client_management_settings(user_session.get_id, data)
+        updated_settings = controller.update_client_management_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating client management settings: {e}")
@@ -371,7 +371,7 @@ def handle_update_job_configuration_settings(data: dict, user_session: UserSessi
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_job_configuration_settings(user_session.get_id, data)
+        updated_settings = controller.update_job_configuration_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating job configuration settings: {e}")
@@ -395,7 +395,7 @@ def handle_update_timesheet_advanced_settings(data: dict, user_session: UserSess
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_timesheet_advanced_settings(user_session.get_id, data)
+        updated_settings = controller.update_timesheet_advanced_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating advanced timesheet settings: {e}")
@@ -419,7 +419,7 @@ def handle_update_google_integration_settings(data: dict, user_session: UserSess
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_google_integration_settings(user_session.get_id, data)
+        updated_settings = controller.update_google_integration_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating Google integration settings: {e}")
@@ -443,7 +443,7 @@ def handle_update_reporting_settings(data: dict, user_session: UserSession) -> d
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_reporting_settings(user_session.get_id, data)
+        updated_settings = controller.update_reporting_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating reporting settings: {e}")
@@ -467,7 +467,7 @@ def handle_update_security_settings(data: dict, user_session: UserSession) -> di
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_security_settings(user_session.get_id, data)
+        updated_settings = controller.update_security_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating security settings: {e}")
@@ -491,7 +491,7 @@ def handle_update_mobile_accessibility_settings(data: dict, user_session: UserSe
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_mobile_accessibility_settings(user_session.get_id, data)
+        updated_settings = controller.update_mobile_accessibility_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating mobile accessibility settings: {e}")
@@ -515,7 +515,7 @@ def handle_update_system_admin_settings(data: dict, user_session: UserSession) -
         if errors:
             return {"request_id": request_id, "success": False, "error": "; ".join(errors)}
 
-        updated_settings = controller.update_system_admin_settings(user_session.get_id, data)
+        updated_settings = controller.update_system_admin_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
         print(f"Error updating system admin settings: {e}")

@@ -22,7 +22,7 @@ const ClientDirectory = () => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       setIsLoading(true);
       setError('');
-      const request = { request_id: 210 }; // GET_CLIENT_DIRECTORY
+      const request = { request_id: 212 }; // GET_CLIENT_DIRECTORY
       socket.send(JSON.stringify(request));
     } else {
       setError('Cannot fetch client directory: WebSocket is not connected.');
@@ -31,7 +31,7 @@ const ClientDirectory = () => {
 
   const fetchClientAnalytics = useCallback(() => {
     if (socket && socket.readyState === WebSocket.OPEN) {
-      const request = { request_id: 213 }; // GET_CLIENT_ANALYTICS
+      const request = { request_id: 215 }; // GET_CLIENT_ANALYTICS
       socket.send(JSON.stringify(request));
     }
   }, [socket]);
@@ -93,14 +93,14 @@ const ClientDirectory = () => {
         const response = JSON.parse(event.data);
         setIsLoading(false);
 
-        if (response.request_id === 210) { // Client Directory
+        if (response.request_id === 212) { // Client Directory
           if (response.success) {
             setClientDirectory(response.data.companies);
             setSummary(response.data.summary);
           } else {
             setError(response.error || 'Failed to fetch client directory.');
           }
-        } else if (response.request_id === 213) { // Client Analytics
+        } else if (response.request_id === 215) { // Client Analytics
           if (response.success) {
             setAnalytics(response.data);
           } else {

@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const socket = useSocket();
+  const { socket } = useSocket();
 
   // Check for existing authentication on app load
   useEffect(() => {

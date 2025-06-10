@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 async def test_schedule_data():
     """Test the schedule data retrieval functionality with login"""
-    uri = "ws://localhost:8080/ws"
+    uri = "wss://easyshifts-backend-794306818447.us-central1.run.app/ws"
 
     try:
         async with websockets.connect(uri) as websocket:

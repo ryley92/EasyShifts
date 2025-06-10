@@ -11,7 +11,7 @@ const ClientUsersList = ({ users, companyId, onRefresh }) => {
       setProcessingUsers(prev => new Set(prev).add(userId));
       
       const request = {
-        request_id: 212, // UPDATE_CLIENT_USER_STATUS
+        request_id: 214, // UPDATE_CLIENT_USER_STATUS
         data: {
           user_id: userId,
           action: action
@@ -28,7 +28,7 @@ const ClientUsersList = ({ users, companyId, onRefresh }) => {
       try {
         const response = JSON.parse(event.data);
 
-        if (response.request_id === 212) { // Update Client User Status
+        if (response.request_id === 214) { // Update Client User Status
           if (response.success) {
             setProcessingUsers(prev => {
               const newSet = new Set(prev);

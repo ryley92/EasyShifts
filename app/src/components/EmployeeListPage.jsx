@@ -30,7 +30,7 @@ const EmployeeListPage = () => {
     const [sortBy, setSortBy] = useState('name'); // name, username, role, status
     const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
     const [viewMode, setViewMode] = useState('grid'); // grid, list, table
-    const socket = useSocket();
+    const { socket, connectionStatus, reconnect } = useSocket();
 
     const fetchEmployees = useCallback(() => {
         if (socket && socket.readyState === WebSocket.OPEN) {
@@ -299,6 +299,35 @@ const EmployeeListPage = () => {
                     <div className="alert alert-success">
                         <span className="alert-icon">✅</span>
                         {successMessage}
+                    </div>
+                )}
+
+                {connectionStatus !== 'connected' && (
+                    <div className={`alert ${connectionStatus === 'error' || connectionStatus === 'failed' ? 'alert-error' : 'alert-warning'}`}>
+                        <span className="alert-icon">
+                            {connectionStatus === 'connecting' && '🔄'}
+                            {connectionStatus === 'reconnecting' && '🔄'}
+                            {connectionStatus === 'disconnected' && '⚠️'}
+                            {connectionStatus === 'error' && '❌'}
+                            {connectionStatus === 'failed' && '❌'}
+                        </span>
+                        <div className="alert-content">
+                            <strong>Connection Status:</strong>
+                            {connectionStatus === 'connecting' && ' Connecting to server...'}
+                            {connectionStatus === 'reconnecting' && ' Reconnecting to server...'}
+                            {connectionStatus === 'disconnected' && ' Connection lost. Attempting to reconnect...'}
+                            {connectionStatus === 'error' && ' Connection error occurred.'}
+                            {connectionStatus === 'failed' && ' Connection failed after multiple attempts.'}
+                            {(connectionStatus === 'error' || connectionStatus === 'failed' || connectionStatus === 'disconnected') && (
+                                <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={reconnect}
+                                    style={{ marginLeft: '10px' }}
+                                >
+                                    🔄 Retry Connection
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

@@ -29,7 +29,7 @@ export const ENV = {
   GOOGLE_CLIENT_ID: getEnvVar('REACT_APP_GOOGLE_CLIENT_ID'),
   
   // API Configuration
-  API_URL: getEnvVar('REACT_APP_API_URL', 'ws://localhost:8080').replace(/\/$/, '') + '/ws',
+  API_URL: getEnvVar('REACT_APP_API_URL', 'ws://localhost:8083').replace(/\/$/, '') + '/ws',
   
   // Environment
   ENVIRONMENT: getEnvVar('REACT_APP_ENV', 'development'),
