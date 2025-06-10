@@ -1,4 +1,4 @@
-from config.constants import db
+from main import get_db_session
 from db.controllers.shiftBoard_controller import ShiftBoardController
 from db.controllers.users_controller import UsersController
 from handlers.login import handle_login

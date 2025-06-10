@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-d
 import { AuthProvider } from '../contexts/AuthContext';
 import { GoogleAuthContextProvider } from '../contexts/GoogleAuthContext';
 import ProtectedRoute from '../components/ProtectedRoute';
+import ErrorBoundary from '../components/ErrorBoundary';
 import DashboardRouter from '../components/DashboardRouter';
 import Home from '../components/Home';
 import Login from '../components/Login';
@@ -14,7 +15,10 @@ import ManagerSettings from '../components/ManagerSettings';
 import ManagerJobDashboard from '../components/ManagerJobDashboard';
 import ManagerShiftEditor from '../components/ManagerShiftEditor';
 import ManagerClientCompaniesPage from '../components/ManagerClientCompaniesPage';
+import EnhancedSettingsPage from '../components/EnhancedSettingsPage';
 import ClientDirectory from '../components/clients/ClientDirectory';
+import ClientDirectoryDebug from '../components/clients/ClientDirectoryDebug';
+import DebugDashboard from '../components/DebugDashboard';
 import SignUpManager from '../components/SignUpManager';
 import SignUpEmployee from '../components/SignUpEmployee';
 import SignUpClient from '../components/SignUpClient';
@@ -39,12 +43,13 @@ import './App.css';
 
 function App() {
   return (
-    <GoogleAuthContextProvider>
-      <AuthProvider>
-        <Router>
-        <div className="App">
-          <Toolbar />
-          <Routes>
+    <ErrorBoundary>
+      <GoogleAuthContextProvider>
+        <AuthProvider>
+          <Router>
+          <div className="App">
+            <Toolbar />
+            <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<DashboardRouter />} />
             <Route path="/login" element={<Login />} />
@@ -52,10 +57,12 @@ function App() {
           <Route path="/manager-schedule" element={<ProtectedRoute requireManager={true}><ManagerSchedule /></ProtectedRoute>} />
           <Route path="/manager-profile" element={<ProtectedRoute requireManager={true}><ManagerProfile /></ProtectedRoute>} />
           <Route path="/manager-settings" element={<ProtectedRoute requireManager={true}><ManagerSettings /></ProtectedRoute>} />
+          <Route path="/manager-advanced-settings" element={<ProtectedRoute requireManager={true}><EnhancedSettingsPage /></ProtectedRoute>} />
           <Route path="/manager-jobs" element={<ProtectedRoute requireManager={true}><ManagerJobDashboard /></ProtectedRoute>} />
           <Route path="/manager-jobs/:jobId/shifts" element={<ProtectedRoute requireManager={true}><ManagerShiftEditor /></ProtectedRoute>} />
           <Route path="/shift/:shiftId/timecard" element={<ProtectedRoute requireManager={true}><ShiftTimecard /></ProtectedRoute>} />
           <Route path="/manager-clients" element={<ProtectedRoute requireManager={true}><ClientDirectory /></ProtectedRoute>} />
+          <Route path="/manager-clients-debug" element={<ProtectedRoute requireManager={true}><ClientDirectoryDebug /></ProtectedRoute>} />
           <Route path="/manager-clients-legacy" element={<ProtectedRoute requireManager={true}><ManagerClientCompaniesPage /></ProtectedRoute>} />
           <Route path="/signupManager" element={<SignUpManager />} />
           <Route path="/signupEmployee" element={<SignUpEmployee />} />
@@ -74,12 +81,14 @@ function App() {
           <Route path="/enhanced-schedule" element={<ProtectedRoute requireManager={true}><EnhancedScheduleView /></ProtectedRoute>} />
           <Route path="/google-oauth-setup" element={<GoogleOAuthSetup />} />
           <Route path="/test-google-signup" element={<TestGoogleSignup />} />
+          <Route path="/debug" element={<DebugDashboard />} />
           <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-        </div>
-        </Router>
-      </AuthProvider>
-    </GoogleAuthContextProvider>
+          </Routes>
+          </div>
+          </Router>
+        </AuthProvider>
+      </GoogleAuthContextProvider>
+    </ErrorBoundary>
   );
 }
 

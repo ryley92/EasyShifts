@@ -3,7 +3,7 @@
 Script to check and fix workplace setup for managers.
 """
 
-from main import initialize_database_and_session
+from main import initialize_database_and_session_factory
 from db.controllers.users_controller import UsersController
 from db.controllers.workPlaces_controller import WorkPlacesController
 from sqlalchemy import text
@@ -13,7 +13,7 @@ def check_workplace_setup():
     print("🔍 Checking workplace setup...")
     
     try:
-        db, _ = initialize_database_and_session()
+        db, _ = initialize_database_and_session_factory()
         users_controller = UsersController(db)
         workplaces_controller = WorkPlacesController(db)
         

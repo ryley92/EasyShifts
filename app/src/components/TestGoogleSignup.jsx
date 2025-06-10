@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 const TestGoogleSignup = () => {
     const [result, setResult] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const socket = useSocket();
+    const { socket } = useSocket();
     const { login } = useAuth();
 
     const testManagerSignup = () => {

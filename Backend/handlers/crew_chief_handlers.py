@@ -1,5 +1,5 @@
 from sqlalchemy.exc import NoResultFound
-from config.constants import db
+from main import get_db_session
 from db.services.shiftWorkers_service import ShiftWorkersService
 from db.repositories.shiftWorkers_repository import ShiftWorkersRepository
 from user_session import UserSession

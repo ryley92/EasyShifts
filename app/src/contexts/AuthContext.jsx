@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useSocket } from '../utils';
+import { useSocket, logDebug, logError, logWarning, logInfo } from '../utils';
 
 const AuthContext = createContext();
 
@@ -15,22 +15,54 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { socket } = useSocket();
+  const [authError, setAuthError] = useState(null);
+  const { socket, connectionStatus, isConnected } = useSocket();
+
+  logDebug('AuthProvider', 'AuthProvider rendering', {
+    isAuthenticated,
+    isLoading,
+    connectionStatus,
+    hasUser: !!user
+  });
 
   // Check for existing authentication on app load
   useEffect(() => {
-    const savedUser = localStorage.getItem('easyshifts_user');
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser);
-        setUser(userData);
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Error parsing saved user data:', error);
-        localStorage.removeItem('easyshifts_user');
+    try {
+      logDebug('AuthProvider', 'Checking for saved authentication');
+      const savedUser = localStorage.getItem('easyshifts_user');
+
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          logInfo('AuthProvider', 'Found saved user data', {
+            username: userData.username,
+            isManager: userData.isManager,
+            loginTime: userData.loginTime
+          });
+
+          // Validate saved user data structure
+          if (userData.username && typeof userData.isManager === 'boolean') {
+            setUser(userData);
+            setIsAuthenticated(true);
+            setAuthError(null);
+          } else {
+            logWarning('AuthProvider', 'Invalid saved user data structure', userData);
+            localStorage.removeItem('easyshifts_user');
+          }
+        } catch (parseError) {
+          logError('AuthProvider', 'Error parsing saved user data', parseError);
+          localStorage.removeItem('easyshifts_user');
+          setAuthError('Invalid saved authentication data');
+        }
+      } else {
+        logDebug('AuthProvider', 'No saved authentication found');
       }
+    } catch (error) {
+      logError('AuthProvider', 'Error during authentication check', error);
+      setAuthError('Authentication check failed');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const login = async (username, password) => {

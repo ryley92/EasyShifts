@@ -4,15 +4,11 @@ Includes clock in/out, absence marking, notes, and timesheet generation.
 """
 
 from datetime import datetime
-from main import get_database_session
+from main import get_db_session
 from user_session import UserSession
 from db.controllers.shiftWorkers_controller import ShiftWorkersController
 from db.controllers.shifts_controller import ShiftsController
 from db.controllers.users_controller import UsersController
-
-def get_db_session():
-    """Get the shared database session."""
-    return get_database_session()
 
 def handle_get_shift_timecard(data: dict, user_session: UserSession):
     """
@@ -27,52 +23,52 @@ def handle_get_shift_timecard(data: dict, user_session: UserSession):
         return {"request_id": 240, "success": False, "error": "shift_id is required."}
 
     try:
-        db = get_db_session()
-        shift_workers_controller = ShiftWorkersController(db)
-        shifts_controller = ShiftsController(db)
-        users_controller = UsersController(db)
-        
-        # Get shift details
-        shift = shifts_controller.get_shift_by_id(shift_id)
-        if not shift:
-            return {"request_id": 240, "success": False, "error": "Shift not found."}
-        
-        # Get all workers assigned to this shift
-        shift_workers = shift_workers_controller.get_workers_by_shift_id(shift_id)
-        
-        # Format timecard data
-        timecard_data = []
-        for sw in shift_workers:
-            # Get user details
-            user = users_controller.get_entity(sw.userID)
-            
-            timecard_entry = {
-                "user_id": sw.userID,
-                "user_name": user.name if user else "Unknown",
-                "role_assigned": sw.role_assigned.value if sw.role_assigned else None,
-                "current_status": getattr(sw, 'current_status', 'not_started'),
-                "last_action_time": getattr(sw, 'last_action_time').isoformat() if getattr(sw, 'last_action_time', None) else None,
-                "is_absent": getattr(sw, 'is_absent', False),
-                "shift_notes": getattr(sw, 'shift_notes', ''),
-                "time_pairs": sw.get_time_pairs(),
-                "total_hours_worked": sw.total_hours_worked,
-                "is_approved": sw.is_approved
+        with get_db_session() as session:
+            shift_workers_controller = ShiftWorkersController(session)
+            shifts_controller = ShiftsController(session)
+            users_controller = UsersController(session)
+
+            # Get shift details
+            shift = shifts_controller.get_shift_by_id(shift_id)
+            if not shift:
+                return {"request_id": 240, "success": False, "error": "Shift not found."}
+
+            # Get all workers assigned to this shift
+            shift_workers = shift_workers_controller.get_workers_by_shift_id(shift_id)
+
+            # Format timecard data
+            timecard_data = []
+            for sw in shift_workers:
+                # Get user details
+                user = users_controller.get_entity(sw.userID)
+
+                timecard_entry = {
+                    "user_id": sw.userID,
+                    "user_name": user.name if user else "Unknown",
+                    "role_assigned": sw.role_assigned.value if sw.role_assigned else None,
+                    "current_status": getattr(sw, 'current_status', 'not_started'),
+                    "last_action_time": getattr(sw, 'last_action_time').isoformat() if getattr(sw, 'last_action_time', None) else None,
+                    "is_absent": getattr(sw, 'is_absent', False),
+                    "shift_notes": getattr(sw, 'shift_notes', ''),
+                    "time_pairs": sw.get_time_pairs(),
+                    "total_hours_worked": sw.total_hours_worked,
+                    "is_approved": sw.is_approved
+                }
+                timecard_data.append(timecard_entry)
+
+            return {
+                "request_id": 240,
+                "success": True,
+                "data": {
+                    "shift_id": shift_id,
+                    "shift_info": {
+                        "shift_start_datetime": shift.shift_start_datetime.isoformat() if shift.shift_start_datetime else None,
+                        "shift_end_datetime": shift.shift_end_datetime.isoformat() if shift.shift_end_datetime else None,
+                        "shift_description": getattr(shift, 'shift_description', ''),
+                    },
+                    "workers": timecard_data
+                }
             }
-            timecard_data.append(timecard_entry)
-        
-        return {
-            "request_id": 240,
-            "success": True,
-            "data": {
-                "shift_id": shift_id,
-                "shift_info": {
-                    "shift_start_datetime": shift.shift_start_datetime.isoformat() if shift.shift_start_datetime else None,
-                    "shift_end_datetime": shift.shift_end_datetime.isoformat() if shift.shift_end_datetime else None,
-                    "shift_description": getattr(shift, 'shift_description', ''),
-                },
-                "workers": timecard_data
-            }
-        }
         
     except Exception as e:
         print(f"Error in handle_get_shift_timecard: {e}")

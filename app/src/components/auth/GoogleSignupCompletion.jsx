@@ -16,7 +16,7 @@ const GoogleSignupCompletion = ({ googleData, onComplete, onCancel }) => {
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const socket = useSocket();
+    const { socket } = useSocket();
     const { login } = useAuth();
 
     const handleChange = (e) => {

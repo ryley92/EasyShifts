@@ -3,7 +3,7 @@ User Management Handlers for EasyShifts
 Handles creation and management of managers and admins.
 """
 
-from config.constants import db
+from main import get_db_session
 from db.controllers.users_controller import UsersController
 from db.controllers.employee_certifications_controller import EmployeeCertificationsController
 from user_session import UserSession

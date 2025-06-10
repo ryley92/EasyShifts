@@ -1,4 +1,5 @@
 from datetime import timedelta, datetime
+from main import get_db_session
 from db.controllers.shiftWorkers_controller import ShiftWorkersController
 from db.controllers.jobs_controller import JobsController
 from db.controllers.client_companies_controller import ClientCompaniesController
@@ -9,7 +10,7 @@ from db.controllers.workPlaces_controller import WorkPlacesController
 from db.controllers.userRequests_controller import UserRequestsController
 from db.controllers.users_controller import UsersController
 from db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
-from config.constants import db, next_sunday
+from config.constants import next_sunday
 
 
 def get_or_create_default_job(user_session):
@@ -18,46 +19,47 @@ def get_or_create_default_job(user_session):
     For Hands on Labor, we need a default job to link shifts to.
     """
     try:
-        jobs_controller = JobsController(db)
-        client_companies_controller = ClientCompaniesController(db)
+        with get_db_session() as session:
+            jobs_controller = JobsController(session)
+            client_companies_controller = ClientCompaniesController(session)
 
-        # Try to get existing default job
-        all_jobs = jobs_controller.get_all_active_jobs()
-        if all_jobs:
-            # Return the first active job as default
-            return all_jobs[0]['id']
+            # Try to get existing default job
+            all_jobs = jobs_controller.get_all_active_jobs()
+            if all_jobs:
+                # Return the first active job as default
+                return all_jobs[0]['id']
 
-        # If no jobs exist, create a default one
-        # First, get or create a default client company
-        all_companies = client_companies_controller.get_all_entities()
-        if not all_companies:
-            # Create a default client company for Hands on Labor
-            default_company_data = {
-                "name": "Default Client",
-                "contact_email": "default@handsonlabor.com",
-                "contact_phone": "555-0000",
-                "address": "San Diego, CA",
+            # If no jobs exist, create a default one
+            # First, get or create a default client company
+            all_companies = client_companies_controller.get_all_entities()
+            if not all_companies:
+                # Create a default client company for Hands on Labor
+                default_company_data = {
+                    "name": "Default Client",
+                    "contact_email": "default@handsonlabor.com",
+                    "contact_phone": "555-0000",
+                    "address": "San Diego, CA",
+                    "is_active": True
+                }
+                default_company = client_companies_controller.create_entity(default_company_data)
+                client_company_id = default_company.id
+            else:
+                client_company_id = all_companies[0].id
+
+            # Create default job
+            default_job_data = {
+                "name": "General Labor - Default",
+                "client_company_id": client_company_id,
+                "venue_name": "Various Locations",
+                "venue_address": "San Diego, CA",
+                "venue_contact_info": "Contact Hands on Labor for details",
+                "description": "Default job for general labor assignments",
+                "created_by": user_session.get_id,
                 "is_active": True
             }
-            default_company = client_companies_controller.create_entity(default_company_data)
-            client_company_id = default_company.id
-        else:
-            client_company_id = all_companies[0].id
 
-        # Create default job
-        default_job_data = {
-            "name": "General Labor - Default",
-            "client_company_id": client_company_id,
-            "venue_name": "Various Locations",
-            "venue_address": "San Diego, CA",
-            "venue_contact_info": "Contact Hands on Labor for details",
-            "description": "Default job for general labor assignments",
-            "created_by": user_session.get_id,
-            "is_active": True
-        }
-
-        created_job = jobs_controller.create_job(default_job_data)
-        return created_job['id']
+            created_job = jobs_controller.create_job(default_job_data)
+            return created_job['id']
 
     except Exception as e:
         print(f"Error creating default job: {e}")
@@ -66,28 +68,30 @@ def get_or_create_default_job(user_session):
 
 
 def handle_create_new_board(user_session: UserSession):
-    # Create a controller for the shift board
-    shift_board_controller = ShiftBoardController(db)
+    """Create a new shift board with proper database session management."""
+    with get_db_session() as session:
+        # Create a controller for the shift board
+        shift_board_controller = ShiftBoardController(session)
 
-    # In case the manager wants to create his first board
-    try:
-        shift_board_controller.get_last_shift_board(user_session.get_id)
-    except IndexError:
+        # In case the manager wants to create his first board
+        try:
+            shift_board_controller.get_last_shift_board(user_session.get_id)
+        except IndexError:
+            # Create a new shift board
+            board = shift_board_controller.create_shift_board(
+                {"weekStartDate": next_sunday, "workplaceID": user_session.get_id})
+            return board
+
+        # Get the last shift board
+        last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
+
         # Create a new shift board
-        board = shift_board_controller.create_shift_board(
-            {"weekStartDate": next_sunday, "workplaceID": user_session.get_id})
-        return board
+        new_week_start_date = last_board.weekStartDate + timedelta(days=7)  # A week after the last shift board
+        new_board = shift_board_controller.create_shift_board(
+            {"weekStartDate": new_week_start_date, "workplaceID": user_session.get_id})
 
-    # Get the last shift board
-    last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
-
-    # Create a new shift board
-    new_week_start_date = last_board.weekStartDate + timedelta(days=7)  # A week after the last shift board
-    new_board = shift_board_controller.create_shift_board(
-        {"weekStartDate": new_week_start_date, "workplaceID": user_session.get_id})
-
-    # Return the new shift board
-    return new_board
+        # Return the new shift board
+        return new_board
 
 
 def handle_get_board(user_session: UserSession) -> dict:

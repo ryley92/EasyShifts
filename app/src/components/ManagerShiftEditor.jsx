@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
-import { useSocket } from '../utils';
+import { useSocket, logDebug, logError, logWarning, logInfo } from '../utils';
 import ShiftAssignmentRow from './ShiftAssignmentRow';
 import RoleRequirementBuilder from './RoleRequirementBuilder';
 import './ManagerShiftEditor.css';
@@ -15,20 +15,24 @@ const employeeTypes = [
 ];
 
 const ManagerShiftEditor = () => {
+  logDebug('ManagerShiftEditor', 'Component rendering', { jobId: useParams().jobId });
+
   const { jobId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const socket = useSocket();
+  const { socket, connectionStatus, isConnected, hasError, lastError } = useSocket();
 
   const jobName = location.state?.jobName;
   const clientCompanyId = location.state?.clientCompanyId;
   const clientCompanyName = location.state?.clientCompanyName;
 
   const [shifts, setShifts] = useState([]);
-  const [availableWorkers, setAvailableWorkers] = useState([]); // New state for workers
+  const [availableWorkers, setAvailableWorkers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
+  const [lastFetchTime, setLastFetchTime] = useState(null);
 
   // Form state for new shift
   const [newShiftStartDateTime, setNewShiftStartDateTime] = useState('');
@@ -47,28 +51,92 @@ const ManagerShiftEditor = () => {
   }, [socket]);
 
   const fetchShiftsForJob = useCallback(() => {
-    if (socket && socket.readyState === WebSocket.OPEN && jobId) {
+    try {
+      logDebug('ManagerShiftEditor', 'fetchShiftsForJob called', {
+        jobId,
+        socketState: socket?.readyState,
+        connectionStatus
+      });
+
+      if (!jobId) {
+        const errorMsg = 'Job ID is missing';
+        logError('ManagerShiftEditor', errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      if (!socket) {
+        const errorMsg = 'WebSocket not available';
+        logError('ManagerShiftEditor', errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      if (socket.readyState !== WebSocket.OPEN) {
+        const errorMsg = `WebSocket not connected (state: ${socket.readyState})`;
+        logWarning('ManagerShiftEditor', errorMsg);
+        setError('Connection not ready. Please wait or try refreshing.');
+        return;
+      }
+
       setIsLoading(true);
       setError('');
+      setLastFetchTime(new Date().toISOString());
+
       const request = {
         request_id: 221, // GET_SHIFTS_BY_JOB
         data: { job_id: parseInt(jobId, 10) },
       };
-      socket.send(JSON.stringify(request));
-    }
-  }, [socket, jobId]);
 
+      logDebug('ManagerShiftEditor', 'Sending shifts request', request);
+      socket.send(JSON.stringify(request));
+
+      // Set timeout for request using a ref to track current loading state
+      const timeoutId = setTimeout(() => {
+        setIsLoading(prevLoading => {
+          if (prevLoading) {
+            logWarning('ManagerShiftEditor', 'Shifts request timeout');
+            setError('Request timed out. Please try again.');
+            return false;
+          }
+          return prevLoading;
+        });
+      }, 10000);
+
+      // Store timeout ID for cleanup if needed
+      return timeoutId;
+
+    } catch (error) {
+      logError('ManagerShiftEditor', 'Error in fetchShiftsForJob', error);
+      setIsLoading(false);
+      setError(`Failed to fetch shifts: ${error.message}`);
+    }
+  }, [socket, jobId, connectionStatus]); // Removed isLoading from dependencies
+
+  // Initial load effect
   useEffect(() => {
     if (!jobName || !jobId) {
-      // If jobName or jobId is not available (e.g., direct navigation without state), redirect or show error
-      console.warn('Job details not found, redirecting or showing error.');
-      // navigate('/manager-jobs'); // Or some error page
+      logWarning('ManagerShiftEditor', 'Job details not found');
       setError('Job details are missing. Please navigate from the Job Management page.');
       return;
     }
-    fetchShiftsForJob();
-    fetchAvailableWorkers();
-  }, [jobId, jobName, fetchShiftsForJob, fetchAvailableWorkers, navigate]); // Add fetchAvailableWorkers to dependency array
+
+    // Only fetch if we have a valid connection
+    if (socket && socket.readyState === WebSocket.OPEN) {
+      fetchShiftsForJob();
+      fetchAvailableWorkers();
+    }
+  }, [jobId, jobName]); // Only depend on job details
+
+  // Connection status effect
+  useEffect(() => {
+    if (jobId && jobName && socket && socket.readyState === WebSocket.OPEN && shifts.length === 0 && !isLoading) {
+      // Fetch data when connection becomes available and we don't have data yet
+      logDebug('ManagerShiftEditor', 'Connection available, fetching data');
+      fetchShiftsForJob();
+      fetchAvailableWorkers();
+    }
+  }, [socket, connectionStatus, isConnected]); // React to connection changes
 
   useEffect(() => {
     if (!socket) return;
@@ -76,12 +144,20 @@ const ManagerShiftEditor = () => {
     const handleMessage = (event) => {
       try {
         const response = JSON.parse(event.data);
-        setIsLoading(false);
+
+        logDebug('ManagerShiftEditor', 'Received WebSocket message', {
+          request_id: response.request_id,
+          success: response.success
+        });
 
         if (response.request_id === 221) { // Get Shifts by Job
+          setIsLoading(false);
           if (response.success && Array.isArray(response.data)) {
+            logInfo('ManagerShiftEditor', 'Shifts loaded successfully', { count: response.data.length });
             setShifts(response.data);
+            setError(''); // Clear any previous errors
           } else {
+            logError('ManagerShiftEditor', 'Failed to fetch shifts', response.error);
             setError(response.error || 'Failed to fetch shifts for this job.');
             setShifts([]);
           }

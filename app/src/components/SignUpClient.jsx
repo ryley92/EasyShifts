@@ -18,7 +18,7 @@ const SignUpClient = () => {
     });
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const socket = useSocket();
+    const { socket } = useSocket();
     const navigate = useNavigate();
     const { login } = useAuth();
 

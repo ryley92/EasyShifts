@@ -1,6 +1,23 @@
-from __future__ import annotations
-import sys
 import os
+import sys
+import json
+import asyncio
+import logging
+import websockets
+from datetime import datetime, timezone
+from aiohttp import web
+import aiohttp_cors
+from dotenv import load_dotenv
+from handlers.google_auth import google_auth_handler
+
+# Configure logging
+logging.basicConfig(level=logging.INFO,
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+# Load environment variables
+load_dotenv()
+
 print(f"🚀 Starting EasyShifts Backend Server...")
 print(f"🐍 Python version: {sys.version}")
 print(f"📁 Working directory: {os.getcwd()}")
@@ -9,7 +26,6 @@ print(f"   HOST: {os.getenv('HOST', 'not set')}")
 print(f"   PORT: {os.getenv('PORT', 'not set')}")
 
 from user_session import UserSession
-from main import initialize_database_and_session
 import websockets
 import asyncio
 import json
@@ -21,14 +37,29 @@ from handlers import crew_chief_handlers, client_company_handlers, client_direct
 from handlers.google_auth import google_auth_handler
 from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
-# Initialize the database and session
+# Initialize the database engine and session factory
+database_initialized = False
 try:
-    db, _ = initialize_database_and_session()
-    print("✅ Database initialized successfully")
+    from main import initialize_database_and_session_factory
+    initialize_database_and_session_factory()
+    database_initialized = True
+    print("✅ Database engine and session factory initialized successfully")
+except ImportError as e:
+    print(f"⚠️  Database module import failed: {e}")
+    print("⚠️  Server will start but database operations will fail")
 except Exception as e:
     print(f"⚠️  Database initialization failed: {e}")
     print("⚠️  Server will start but database operations may fail")
-    db = None
+    print(f"⚠️  Error details: {type(e).__name__}: {str(e)}")
+
+# Print environment info for debugging
+print(f"🔍 Environment check:")
+print(f"   DB_HOST: {os.getenv('DB_HOST', 'not set')}")
+print(f"   DB_PORT: {os.getenv('DB_PORT', 'not set')}")
+print(f"   DB_USER: {os.getenv('DB_USER', 'not set')}")
+print(f"   DB_NAME: {os.getenv('DB_NAME', 'not set')}")
+print(f"   DB_PASSWORD: {'set' if os.getenv('DB_PASSWORD') else 'not set'}")
+print(f"   Database initialized: {database_initialized}")
 
 # Global variable declaration
 user_session: UserSession | None = None
@@ -719,154 +750,179 @@ def handle_request(request_id, data):
         return {"request_id": request_id, "success": False, "error": f"Unknown request ID: {request_id}"}
 
 
-async def handle_client(websocket, path=None): # Add default value for path
-    print(f"🔌 New client connected from {websocket.remote_address}")
-    if path is not None:
-        print(f"Connection path: {path}")
-    else:
-        print("Connection path not provided.")
- 
-        
+async def handle_client(websocket, path=None):
+    client_id = id(websocket)
+    client_ip = websocket.remote_address[0] if websocket.remote_address else "unknown"
+    logger.info(f"New client connected: {client_id} from {client_ip}")
+
     try:
         async for message in websocket:
-            # Parse the JSON message
-            data = json.loads(message)
-            print("Received data:", data)
+            try:
+                logger.info(f"Received message from client {client_id}: {message[:100]}...")
+                request = json.loads(message)
+                request_id = request.get('request_id')
+                data = request.get('data', {})
 
-            # Extract the request_id and data
-            request_id = data.get('request_id', None)
-            request_data = data.get('data', None)
+                # Use the existing handle_request function
+                response = handle_request(request_id, data)
 
-            print("Request ID:", request_id)
-            print("Data:", request_data)
+                # Send response back to client
+                await websocket.send(json.dumps(response))
+                logger.info(f"Sent response to client {client_id} for request {request_id}")
 
-            response = handle_request(request_id, request_data)
-            json_data = json.dumps(response)
-            await websocket.send(json_data)
-            print(response)
-    except websockets.exceptions.ConnectionClosed:
-        print(f"🔌 Connection closed for {websocket.remote_address}")
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON from client {client_id}")
+                await websocket.send(json.dumps({
+                    "success": False,
+                    "error": "Invalid JSON"
+                }))
+            except Exception as e:
+                logger.exception(f"Error processing message from client {client_id}: {str(e)}")
+                await websocket.send(json.dumps({
+                    "request_id": request.get('request_id') if 'request' in locals() else None,
+                    "success": False,
+                    "error": f"Server error: {str(e)}"
+                }))
+    except websockets.exceptions.ConnectionClosed as e:
+        logger.info(f"Client {client_id} disconnected: {e.code} {e.reason}")
     except Exception as e:
-        if "User session not found" in str(e):
-            # Handle the "User session not found" exception here
-            print("User session not found. Sending an appropriate response.")
-            await websocket.send(json.dumps({"success": False, "error": "User session not found. Please log in."}))
-        else:
-            # Handle other exceptions
-            print(f"An unexpected error occurred: {e}")
-            await websocket.send(json.dumps({"success": False, "error": "An unexpected error occurred. Please try again later."}))
+        logger.exception(f"Unexpected error with client {client_id}: {str(e)}")
+    finally:
+        logger.info(f"Client {client_id} connection closed")
 
 
-async def start_server():
-    import os
-    from aiohttp import web, WSMsgType
-    import aiohttp_cors
-    import json
-    from datetime import datetime
-
-    # Get host and port from environment variables (Cloud Run compatibility)
-    host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8080))
-
-    async def health_check(request):
-        """Health check endpoint for Cloud Run"""
+async def handle_http_request(request):
+    """Handle HTTP requests (health checks)"""
+    if request.path in ['/', '/health']:
         return web.Response(
             text=json.dumps({
                 "status": "healthy",
-                "timestamp": datetime.utcnow().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "service": "easyshifts-backend"
             }),
             content_type='application/json'
         )
+    else:
+        return web.Response(text="Not Found", status=404)
 
-    async def websocket_handler(request):
-        """WebSocket handler using aiohttp"""
-        ws = web.WebSocketResponse()
-        await ws.prepare(request)
 
-        print(f"🔌 New WebSocket client connected from {request.remote}")
+async def handle_websocket_request(request):
+    """Handle WebSocket upgrade requests"""
+    ws = web.WebSocketResponse(heartbeat=30)  # Add heartbeat to keep connection alive
+    await ws.prepare(request)
 
-        try:
-            async for msg in ws:
-                if msg.type == WSMsgType.TEXT:
-                    try:
-                        # Parse the JSON message
-                        data = json.loads(msg.data)
-                        print("Received data:", data)
-
-                        # Extract the request_id and data
-                        request_id = data.get('request_id', None)
-                        request_data = data.get('data', None)
-
-                        print("Request ID:", request_id)
-                        print("Data:", request_data)
-
-                        response = handle_request(request_id, request_data)
-                        json_data = json.dumps(response)
-                        await ws.send_str(json_data)
-                        print(response)
-                    except json.JSONDecodeError as e:
-                        print(f"JSON decode error: {e}")
-                        await ws.send_str(json.dumps({"success": False, "error": "Invalid JSON"}))
-                    except Exception as e:
-                        print(f"Error handling WebSocket message: {e}")
-                        await ws.send_str(json.dumps({"success": False, "error": str(e)}))
-                elif msg.type == WSMsgType.ERROR:
-                    print(f'WebSocket error: {ws.exception()}')
-                    break
-        except Exception as e:
-            print(f"WebSocket connection error: {e}")
-        finally:
-            print(f"🔌 WebSocket connection closed for {request.remote}")
-
-        return ws
+    client_id = id(ws)
+    client_ip = request.remote if request.remote else "unknown"
+    logger.info(f"New WebSocket client connected: {client_id} from {client_ip}")
 
     try:
-        # Create aiohttp application
-        app = web.Application()
+        async for msg in ws:
+            if msg.type == web.WSMsgType.TEXT:
+                try:
+                    logger.info(f"Received message from client {client_id}: {msg.data[:100]}...")
+                    request_data = json.loads(msg.data)
+                    request_id = request_data.get('request_id')
+                    data = request_data.get('data', {})
 
-        # Configure CORS
-        cors = aiohttp_cors.setup(app, defaults={
-            "*": aiohttp_cors.ResourceOptions(
-                allow_credentials=True,
-                expose_headers="*",
-                allow_headers="*",
-                allow_methods="*"
-            )
-        })
+                    logger.info(f"Processing request {request_id} from client {client_id}")
 
-        # Add routes
-        app.router.add_get('/health', health_check)
-        app.router.add_get('/', health_check)  # Root path also returns health
-        app.router.add_get('/ws', websocket_handler)  # WebSocket endpoint
+                    # Use the existing handle_request function
+                    response = handle_request(request_id, data)
 
-        # Add CORS to all routes
-        for route in list(app.router.routes()):
-            cors.add(route)
+                    # Ensure response has request_id for client matching
+                    if 'request_id' not in response:
+                        response['request_id'] = request_id
 
-        # Start the server
+                    # Send response back to client
+                    response_json = json.dumps(response)
+                    await ws.send_str(response_json)
+                    logger.info(f"Sent response to client {client_id} for request {request_id}: {response.get('success', 'unknown')}")
+
+                except json.JSONDecodeError as e:
+                    logger.error(f"Invalid JSON from client {client_id}: {e}")
+                    await ws.send_str(json.dumps({
+                        "success": False,
+                        "error": "Invalid JSON format"
+                    }))
+                except Exception as e:
+                    logger.exception(f"Error processing message from client {client_id}: {str(e)}")
+                    error_response = {
+                        "request_id": request_data.get('request_id') if 'request_data' in locals() else None,
+                        "success": False,
+                        "error": f"Server error: {str(e)}"
+                    }
+                    await ws.send_str(json.dumps(error_response))
+            elif msg.type == web.WSMsgType.ERROR:
+                logger.error(f"WebSocket error from client {client_id}: {ws.exception()}")
+                break
+            elif msg.type == web.WSMsgType.CLOSE:
+                logger.info(f"WebSocket close message from client {client_id}")
+                break
+    except Exception as e:
+        logger.exception(f"Unexpected error with WebSocket client {client_id}: {str(e)}")
+    finally:
+        logger.info(f"WebSocket client {client_id} connection closed")
+
+    return ws
+
+
+async def create_combined_app():
+    """Create the combined HTTP/WebSocket application"""
+    app = web.Application()
+
+    # Configure CORS
+    cors = aiohttp_cors.setup(app, defaults={
+        "*": aiohttp_cors.ResourceOptions(
+            allow_credentials=True,
+            expose_headers="*",
+            allow_headers="*",
+            allow_methods="*"
+        )
+    })
+
+    # Add HTTP routes
+    app.router.add_get('/', handle_http_request)
+    app.router.add_get('/health', handle_http_request)
+
+    # Add WebSocket route
+    app.router.add_get('/ws', handle_websocket_request)
+
+    # Add CORS to all routes
+    for route in list(app.router.routes()):
+        cors.add(route)
+
+    return app
+
+
+async def start_combined_server():
+    """Start the combined HTTP/WebSocket server on port 8080"""
+    port = int(os.getenv('PORT', 8080))
+    host = os.getenv('HOST', '0.0.0.0')
+
+    try:
+        app = await create_combined_app()
         runner = web.AppRunner(app)
         await runner.setup()
+
         site = web.TCPSite(runner, host, port)
         await site.start()
 
-        print(f"🚀 EasyShifts server started on {host}:{port}")
-        print(f"📡 WebSocket endpoint: ws://{host}:{port}/ws")
-        print(f"🏥 Health check endpoint: http://{host}:{port}/health")
+        logger.info(f"Combined HTTP/WebSocket server started on {host}:{port}")
+        logger.info(f"Health check available at: http://{host}:{port}/health")
+        logger.info(f"WebSocket endpoint available at: ws://{host}:{port}/ws")
 
         # Keep the server running
-        await asyncio.Future()
+        await asyncio.Future()  # Run forever
 
-    except asyncio.CancelledError:
-        print("Server stopped.")
-        if 'runner' in locals():
-            await runner.cleanup()
-        exit(0)
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
-        if 'runner' in locals():
-            await runner.cleanup()
+        logger.exception(f"Failed to start combined server: {str(e)}")
+        raise
 
 
 if __name__ == "__main__":
-    asyncio.run(start_server())
+    try:
+        asyncio.run(start_combined_server())
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        logger.exception(f"Server crashed: {str(e)}")

@@ -7,7 +7,7 @@ import GoogleSignIn from './auth/GoogleSignIn';
 
 function SignUpManager() {
     const navigate = useNavigate();
-    const socket = useSocket();
+    const { socket } = useSocket();
     const { login } = useAuth();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');

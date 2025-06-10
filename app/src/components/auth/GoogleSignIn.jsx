@@ -1,144 +1,170 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGoogleAuth } from '../../contexts/GoogleAuthContext';
-import { useSocket } from '../../utils';
+import { useSocket, logDebug, logError, logWarning, logInfo } from '../../utils';
 import './GoogleSignIn.css';
 
 const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" }) => {
   const [isLoading, setIsLoading] = useState(false);
   const { googleLogin } = useAuth();
   const { isConfigured } = useGoogleAuth();
-  const socket = useSocket();
+  const { socket, connectionStatus, reconnect, isConnected, hasError } = useSocket();
 
-  // Don't render if Google OAuth is not configured
-  if (!isConfigured) {
-    return (
-      <div className="google-signin-container">
-        <div className="google-signin-disabled">
-          <div className="config-notice">
-            <span className="config-icon">⚙️</span>
-            <div className="config-text">
-              <strong>Google Sign-In Setup Required</strong>
-              <p>To enable Google signup, please:</p>
-              <ol style={{textAlign: 'left', fontSize: '12px', marginTop: '8px'}}>
-                <li>Add <code>http://localhost:3000</code> to authorized origins in Google Cloud Console</li>
-                <li>Verify the Google Client ID is correctly configured</li>
-                <li>Check the troubleshooting guide for detailed steps</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Monitor connection status
+  useEffect(() => {
+    logDebug('GoogleSignIn', 'WebSocket connection status changed', {
+      connectionStatus,
+      isConnected,
+      hasError
+    });
+  }, [connectionStatus, isConnected, hasError]);
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    logInfo('GoogleSignIn', 'Received credential response');
     setIsLoading(true);
-    
+
     try {
-      // Send Google credential to backend for verification
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        const request = {
-          request_id: 66, // GOOGLE_AUTH_LOGIN
-          data: {
-            credential: credentialResponse.credential,
-            clientId: credentialResponse.clientId
+      // Check connection status with improved logic
+      if (!isConnected) {
+        logWarning('GoogleSignIn', 'WebSocket not connected, attempting to reconnect');
+        reconnect();
+
+        // Wait for connection with proper status checking
+        const maxWaitTime = 5000; // 5 seconds
+        const checkInterval = 100; // 100ms
+        const maxAttempts = maxWaitTime / checkInterval;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await new Promise(resolve => setTimeout(resolve, checkInterval));
+
+          // Check if connection is established
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            logDebug('GoogleSignIn', 'Connection established after waiting');
+            break;
           }
-        };
 
-        // Set up message listener for Google auth response
-        const handleMessage = (event) => {
-          try {
-            const response = JSON.parse(event.data);
+          // Check if connection failed
+          if (hasError || connectionStatus === 'failed') {
+            logError('GoogleSignIn', 'Connection failed during wait');
+            throw new Error('Connection failed. Please try again.');
+          }
+        }
 
-            if (response.request_id === 66) {
-              socket.removeEventListener('message', handleMessage);
+        // Final check
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          logError('GoogleSignIn', 'Could not establish server connection after waiting');
+          throw new Error('Could not establish server connection');
+        }
+      }
 
-              if (response.success && response.data) {
-                // If user exists, log them in
-                if (response.data.user_exists) {
-                  const userData = {
-                    username: response.data.username,
-                    isManager: response.data.is_manager,
-                    loginTime: new Date().toISOString(),
-                    googleLinked: true,
-                    email: response.data.email
-                  };
+      logInfo('GoogleSignIn', 'Sending authentication request');
+      
+      // Create request
+      const request = {
+        request_id: 66, // GOOGLE_AUTH_LOGIN
+        data: {
+          credential: credentialResponse.credential,
+          clientId: credentialResponse.clientId
+        }
+      };
+      
+      // Set up message listener for Google auth response
+      const handleMessage = (event) => {
+        try {
+          const response = JSON.parse(event.data);
+          logDebug('GoogleSignIn', 'Received response', {
+            request_id: response.request_id,
+            success: response.success,
+            hasData: !!response.data
+          });
 
-                  // Update auth context
-                  googleLogin(userData);
+          if (response.request_id === 66) {
+            socket.removeEventListener('message', handleMessage);
 
-                  if (onSuccess) {
-                    onSuccess(userData);
-                  }
-                } else {
-                  // User doesn't exist, check if this is signup or login context
-                  if (buttonText === "signup_with") {
-                    // This is a signup flow, redirect to signup completion
-                    if (onSuccess) {
-                      onSuccess({
-                        needsSignup: true,
-                        googleData: response.data.google_user_info
-                      });
-                    }
-                  } else {
-                    // This is a login flow, redirect to account linking
-                    if (onSuccess) {
-                      onSuccess({
-                        needsLinking: true,
-                        googleData: response.data.google_user_info
-                      });
-                    }
-                  }
+            if (response.success && response.data) {
+              // Process successful response
+              if (response.data.user_exists) {
+                logInfo('GoogleSignIn', 'User authenticated successfully', {
+                  username: response.data.username,
+                  isManager: response.data.is_manager
+                });
+                const userData = {
+                  username: response.data.username,
+                  isManager: response.data.is_manager,
+                  loginTime: new Date().toISOString(),
+                  googleLinked: true,
+                  email: response.data.email
+                };
+
+                // Update auth context
+                googleLogin(userData);
+
+                if (onSuccess) {
+                  onSuccess(userData);
                 }
               } else {
-                throw new Error(response.error || 'Google authentication failed');
-              }
-            } else if (response.error && response.error.includes('Unknown request ID: 66')) {
-              // Backend doesn't support Google OAuth yet
-              socket.removeEventListener('message', handleMessage);
-              if (onError) {
-                onError('Google Sign-In requires backend support. Please contact your administrator to enable Google OAuth.');
-              }
-            }
-          } catch (error) {
-            socket.removeEventListener('message', handleMessage);
-            console.error('Google auth error:', error);
+                // Handle signup or account linking
+                logInfo('GoogleSignIn', 'User needs signup/linking', {
+                  buttonText,
+                  hasGoogleUserInfo: !!response.data.google_user_info
+                });
 
-            // Check if it's a backend support issue
-            if (error.message && error.message.includes('Unknown request ID')) {
-              if (onError) {
-                onError('Google Sign-In requires backend support. Please contact your administrator to enable Google OAuth.');
+                if (buttonText === "signup_with") {
+                  if (onSuccess) {
+                    onSuccess({
+                      needsSignup: true,
+                      googleData: response.data.google_user_info
+                    });
+                  }
+                } else {
+                  if (onSuccess) {
+                    onSuccess({
+                      needsLinking: true,
+                      googleData: response.data.google_user_info
+                    });
+                  }
+                }
               }
             } else {
-              if (onError) {
-                onError(error.message || 'Authentication failed');
-              }
+              logError('GoogleSignIn', 'Authentication failed', response.error);
+              throw new Error(response.error || 'Google authentication failed');
             }
-          } finally {
-            setIsLoading(false);
           }
-        };
-
-        socket.addEventListener('message', handleMessage);
-        socket.send(JSON.stringify(request));
-
-        // Timeout after 10 seconds
-        setTimeout(() => {
+        } catch (error) {
           socket.removeEventListener('message', handleMessage);
-          setIsLoading(false);
+          logError('GoogleSignIn', 'Error processing authentication response', error);
+          
           if (onError) {
-            onError('Authentication request timed out');
+            onError(error.message || 'Authentication failed');
           }
-        }, 10000);
+        } finally {
+          setIsLoading(false);
+        }
+      };
 
-      } else {
-        throw new Error('Not connected to server');
+      // Add message listener
+      socket.addEventListener('message', handleMessage);
+
+      // Send request
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        throw new Error('WebSocket connection not available');
       }
+
+      socket.send(JSON.stringify(request));
+      logInfo('GoogleSignIn', 'Authentication request sent', { request_id: 66 });
+      
+      // Set timeout
+      setTimeout(() => {
+        socket.removeEventListener('message', handleMessage);
+        setIsLoading(false);
+        if (onError) {
+          onError('Authentication request timed out');
+        }
+      }, 10000);
     } catch (error) {
       setIsLoading(false);
-      console.error('Google sign-in error:', error);
+      logError('GoogleSignIn', 'Google sign-in error', error);
       if (onError) {
         onError(error.message || 'Authentication failed');
       }
@@ -195,3 +221,8 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
 };
 
 export default GoogleSignIn;
+
+
+
+
+

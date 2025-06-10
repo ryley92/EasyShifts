@@ -1,8 +1,16 @@
 import os
+import time
+import logging
+from contextlib import contextmanager
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import OperationalError, DisconnectionError
 from db.models import Base # Assuming Base is correctly defined in db.models
 from config.private_password import PASSWORD
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 _engine = None
 _session_factory = None
@@ -27,13 +35,17 @@ def initialize_database_and_session_factory():
     try:
         engine = create_engine(
             connection_url,
-            echo=False, 
+            echo=False,
             pool_pre_ping=True,
             pool_recycle=3600,
+            pool_size=10,
+            max_overflow=20,
+            pool_timeout=30,
             connect_args={
-                'connect_timeout': 10,
+                'connect_timeout': 30,
                 'read_timeout': 30,
-                'write_timeout': 30
+                'write_timeout': 30,
+                'charset': 'utf8mb4'
             }
         )
 
@@ -69,7 +81,7 @@ def create_session():
     Attempts to initialize the factory if it hasn't been already.
     """
     global _session_factory, _initialization_error
-    
+
     if not _session_factory and not _initialization_error:
         print("Session factory not initialized. Attempting to initialize now...")
         initialize_database_and_session_factory()
@@ -78,8 +90,76 @@ def create_session():
         raise RuntimeError(f"Cannot create session: Database initialization failed: {_initialization_error}")
     if not _session_factory:
         raise RuntimeError("Cannot create session: Session factory could not be initialized.")
-        
+
     return _session_factory()
+
+
+def initialize_database_and_session():
+    """
+    Legacy function for backward compatibility.
+    Returns (session, engine) tuple.
+    """
+    initialize_database_and_session_factory()
+    session = create_session()
+    engine = get_engine()
+    return session, engine
+
+
+def get_database_session():
+    """
+    Legacy function for backward compatibility.
+    Returns a database session.
+    """
+    return create_session()
+
+
+@contextmanager
+def get_db_session():
+    """
+    Context manager for database sessions with retry logic.
+    Ensures proper session cleanup and error handling.
+
+    Usage:
+        with get_db_session() as session:
+            # Use session here
+            session.query(User).all()
+            session.commit()  # if needed
+    """
+    max_retries = 3
+    retry_delay = 1
+
+    for attempt in range(max_retries):
+        session = None
+        try:
+            session = create_session()
+            yield session
+            session.commit()  # Auto-commit if no exception
+            break  # Success, exit retry loop
+
+        except (OperationalError, DisconnectionError) as e:
+            if session:
+                session.rollback()
+                session.close()
+
+            if attempt < max_retries - 1:
+                logger.warning(f"Database connection error (attempt {attempt + 1}/{max_retries}): {e}")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+                continue
+            else:
+                logger.error(f"Database connection failed after {max_retries} attempts: {e}")
+                raise
+
+        except Exception as e:
+            if session:
+                session.rollback()
+                session.close()
+            logger.error(f"Database session error: {e}")
+            raise
+
+        finally:
+            if session:
+                session.close()  # Always close the session
 
 if _engine is None and _session_factory is None:
     try:

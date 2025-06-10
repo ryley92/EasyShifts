@@ -11,7 +11,7 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState('link'); // 'link' or 'create'
-  const socket = useSocket();
+  const { socket } = useSocket();
   const { googleLogin } = useAuth();
 
   const handleChange = (e) => {

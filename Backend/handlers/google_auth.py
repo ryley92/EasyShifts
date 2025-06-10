@@ -8,13 +8,10 @@ from dotenv import load_dotenv
 
 from db.controllers.users_controller import UsersController
 from user_session import UserSession
-from main import get_database_session
+from main import get_db_session
 
 # Load environment variables
 load_dotenv()
-
-# Get the shared database session
-db = get_database_session()
 
 # Google OAuth configuration
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
@@ -22,7 +19,6 @@ GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
 class GoogleAuthHandler:
     def __init__(self):
         self.google_client_id = GOOGLE_CLIENT_ID
-        self.users_controller = UsersController(db)
         
     def verify_google_token(self, token):
         """Verify Google ID token and extract user information"""
@@ -59,13 +55,13 @@ class GoogleAuthHandler:
         try:
             credential = data.get('credential')
             client_id = data.get('clientId')
-            
+
             if not credential:
                 return {
                     'success': False,
                     'error': 'Missing credential'
                 }
-            
+
             # Verify Google token
             verification = self.verify_google_token(credential)
             if not verification['success']:
@@ -73,48 +69,52 @@ class GoogleAuthHandler:
                     'success': False,
                     'error': verification['error']
                 }
-            
+
             google_user = verification['user']
-            
-            # Check if user exists in database
-            existing_user = self.users_controller.find_user_by_google_id_or_email(
-                google_user['google_id'], 
-                google_user['email']
-            )
-            
-            if existing_user:
-                # User exists, log them in
-                # Update last login
-                self.users_controller.update_user_last_login(existing_user.id)
-                
-                # Create user session
-                user_session = UserSession(user_id=existing_user.id, is_manager=existing_user.isManager)
-                
-                response_data = {
-                    'user_exists': True,
-                    'username': existing_user.username,
-                    'is_manager': existing_user.isManager,
-                    'email': existing_user.email,
-                    'google_linked': True,
-                    'user_session': user_session
-                }
-                
-                return {
-                    'success': True,
-                    'data': response_data
-                }
-            else:
-                # User doesn't exist, need account linking or creation
-                response_data = {
-                    'user_exists': False,
-                    'google_user_info': google_user
-                }
-                
-                return {
-                    'success': True,
-                    'data': response_data
-                }
-                
+
+            # Use database session context manager
+            with get_db_session() as session:
+                users_controller = UsersController(session)
+
+                # Check if user exists in database
+                existing_user = users_controller.find_user_by_google_id_or_email(
+                    google_user['google_id'],
+                    google_user['email']
+                )
+
+                if existing_user:
+                    # User exists, log them in
+                    # Update last login
+                    users_controller.update_user_last_login(existing_user.id)
+
+                    # Create user session
+                    user_session = UserSession(user_id=existing_user.id, is_manager=existing_user.isManager)
+
+                    response_data = {
+                        'user_exists': True,
+                        'username': existing_user.username,
+                        'is_manager': existing_user.isManager,
+                        'email': existing_user.email,
+                        'google_linked': True,
+                        'user_session': user_session
+                    }
+
+                    return {
+                        'success': True,
+                        'data': response_data
+                    }
+                else:
+                    # User doesn't exist, need account linking or creation
+                    response_data = {
+                        'user_exists': False,
+                        'google_user_info': google_user
+                    }
+
+                    return {
+                        'success': True,
+                        'data': response_data
+                    }
+
         except Exception as e:
             logging.error(f"Google auth login error: {e}")
             return {
@@ -414,3 +414,4 @@ class GoogleAuthHandler:
 
 # Global instance for use in Server.py
 google_auth_handler = GoogleAuthHandler()
+

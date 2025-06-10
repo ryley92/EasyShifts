@@ -17,7 +17,7 @@ function Shift({date, part, workers, allWorkers, workersShifts}) {
     const [showTooltip, setShowTooltip] = useState(false);
     const [editing, setEditing] = useState(false);
     const [selectedWorkers, setSelectedWorkers] = useState(workers);
-    const socket = useSocket();
+    const { socket } = useSocket();
 
     function handleEditClick() {
         return !editing

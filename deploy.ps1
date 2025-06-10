@@ -48,6 +48,15 @@ Set-Location Backend
 gcloud builds submit --tag "$Region-docker.pkg.dev/$ProjectId/easyshifts-repo/easyshifts-backend:latest" .
 
 Write-Host "🚀 Deploying backend to Cloud Run" -ForegroundColor $Yellow
+
+# Check if DB_PASSWORD is set
+if (-not $env:DB_PASSWORD) {
+    Write-Host "❌ DB_PASSWORD environment variable is not set!" -ForegroundColor $Red
+    Write-Host "Please set DB_PASSWORD before running deployment:" -ForegroundColor $Yellow
+    Write-Host '$env:DB_PASSWORD = "your_database_password"' -ForegroundColor $Cyan
+    exit 1
+}
+
 gcloud run deploy easyshifts-backend `
     --image "$Region-docker.pkg.dev/$ProjectId/easyshifts-repo/easyshifts-backend:latest" `
     --platform managed `
@@ -62,7 +71,8 @@ gcloud run deploy easyshifts-backend `
     --set-env-vars "DB_HOST=miano.h.filess.io" `
     --set-env-vars "DB_PORT=3305" `
     --set-env-vars "DB_USER=easyshiftsdb_danceshall" `
-    --set-env-vars "DB_NAME=easyshiftsdb_danceshall"
+    --set-env-vars "DB_NAME=easyshiftsdb_danceshall" `
+    --set-env-vars "DB_PASSWORD=$env:DB_PASSWORD"
 
 # Get backend URL
 $BackendUrl = gcloud run services describe easyshifts-backend --platform managed --region $Region --format 'value(status.url)'

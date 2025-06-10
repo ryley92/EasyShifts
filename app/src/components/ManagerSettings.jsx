@@ -7,7 +7,7 @@ import { useSocket } from "../utils";
 import ToggleSwitch from "./ToggleSwitch";
 
 export default function ManagerSettings() {
-    const socket = useSocket();
+    const { socket } = useSocket();
 
     // State for active tab
     const [activeTab, setActiveTab] = useState('basic');

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from enum import Enum
-from config.constants import db
+from main import get_db_session
 from db.controllers.shiftWorkers_controller import ShiftWorkersController
 from db.controllers.shifts_controller import ShiftsController
 from db.controllers.userRequests_controller import UserRequestsController

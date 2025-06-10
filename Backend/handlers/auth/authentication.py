@@ -1,5 +1,5 @@
 from sqlalchemy.exc import NoResultFound
-from config.constants import db
+from main import get_db_session
 from db.controllers.users_controller import UsersController
 
 

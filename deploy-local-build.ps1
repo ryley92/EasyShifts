@@ -77,6 +77,15 @@ if ($LASTEXITCODE -ne 0) {
 
 # Deploy backend to Cloud Run
 Write-Host "🚀 Deploying backend to Cloud Run" -ForegroundColor $Yellow
+
+# Check if DB_PASSWORD is set
+if (-not $env:DB_PASSWORD) {
+    Write-Host "❌ DB_PASSWORD environment variable is not set!" -ForegroundColor $Red
+    Write-Host "Please set DB_PASSWORD before running deployment:" -ForegroundColor $Yellow
+    Write-Host '$env:DB_PASSWORD = "your_database_password"' -ForegroundColor $Cyan
+    exit 1
+}
+
 gcloud run deploy easyshifts-backend `
     --image $backendImage `
     --platform managed `
@@ -91,16 +100,17 @@ gcloud run deploy easyshifts-backend `
     --set-env-vars "DB_HOST=miano.h.filess.io" `
     --set-env-vars "DB_PORT=3305" `
     --set-env-vars "DB_USER=easyshiftsdb_danceshall" `
-    --set-env-vars "DB_NAME=easyshiftsdb_danceshall"
+    --set-env-vars "DB_NAME=easyshiftsdb_danceshall" `
+    --set-env-vars "DB_PASSWORD=$env:DB_PASSWORD"
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Backend deployment failed" -ForegroundColor $Red
     exit 1
 }
 
-# Get backend URL
-$BackendUrl = gcloud run services describe easyshifts-backend --platform managed --region $Region --format 'value(status.url)'
-Write-Host "✅ Backend deployed at: $BackendUrl" -ForegroundColor $Green
+# Use the correct backend URL
+$BackendUrl = "https://easyshifts-backend-s5b2sxgpsa-uc.a.run.app"
+Write-Host "✅ Using backend URL: $BackendUrl" -ForegroundColor $Green
 
 # Build frontend image locally
 Write-Host "🏗️ Building frontend image locally" -ForegroundColor $Yellow

@@ -17,7 +17,7 @@ import DisplaySettings from './settings/DisplaySettings';
 import './EnhancedSettingsPage.css';
 
 const EnhancedSettingsPage = () => {
-  const socket = useSocket();
+  const { socket } = useSocket();
   const [settings, setSettings] = useState(null);
   const [activeTab, setActiveTab] = useState('company-profile');
   const [isLoading, setIsLoading] = useState(true);
@@ -95,7 +95,7 @@ const EnhancedSettingsPage = () => {
     if (socket && socket.readyState === WebSocket.OPEN) {
       setIsLoading(true);
       setError('');
-      const request = { request_id: 995 }; // Get all settings
+      const request = { request_id: 1111 }; // GET_ALL_EXTENDED_SETTINGS
       socket.send(JSON.stringify(request));
     }
   };
@@ -111,20 +111,23 @@ const EnhancedSettingsPage = () => {
     setSuccessMessage('');
 
     const requestIdMap = {
-      'company-profile': 1010,
-      'user-management': 1011,
-      'certifications': 1012,
-      'client-management': 1013,
-      'job-configuration': 1014,
-      'scheduling': 996,
-      'timesheet-advanced': 1015,
-      'notifications': 997,
-      'google-integration': 1016,
-      'reporting': 1017,
-      'security': 1018,
-      'mobile-accessibility': 1019,
-      'system-admin': 1020,
-      'display': 1001,
+      'company-profile': 1100,
+      'user-management': 1101,
+      'certifications': 1102,
+      'client-management': 1103,
+      'job-configuration': 1104,
+      'workplace_settings': 1117, // Added for WorkplaceSettings (scheduling, notifications, display etc.)
+      'timesheet-advanced': 1105,
+      'google-integration': 1106,
+      'reporting': 1107,
+      'security': 1108,
+      'mobile-accessibility': 1109,
+      'system-admin-settings': 1110, // For the SystemAdminSettings model itself
+      // Note: 'scheduling' and 'display' might map to specific fields within WorkplaceSettings or CompanyProfile
+      // Or they might need their own dedicated backend handlers if they are separate models/tables.
+      // For now, assuming they are part of other settings or need specific handling.
+      // 'scheduling': 996, // This was an old ID, WorkplaceSettings now covers scheduling
+      // 'display': 1001, // This was an old ID, CompanyProfile or WorkplaceSettings might cover display
     };
 
     const request = {

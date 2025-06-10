@@ -1,5 +1,5 @@
 from datetime import datetime
-from config.constants import db
+from main import get_db_session
 from db.controllers.userRequests_controller import UserRequestsController
 from db.controllers.users_controller import UsersController
 from db.controllers.workPlaces_controller import WorkPlacesController

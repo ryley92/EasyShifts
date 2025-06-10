@@ -8,8 +8,8 @@ import ScheduleFilters from './ScheduleFilters';
 import './EnhancedScheduleView.css';
 
 const EnhancedScheduleView = () => {
-  const socket = useSocket();
-  
+  const { socket } = useSocket();
+
   // View state
   const [currentView, setCurrentView] = useState('week'); // 'day', 'week', 'month'
   const [currentDate, setCurrentDate] = useState(new Date());

@@ -1,6 +1,6 @@
 from datetime import datetime
 import json
-from config.constants import db
+from main import get_db_session
 from db.controllers.shifts_controller import ShiftsController
 from db.controllers.shiftWorkers_controller import ShiftWorkersController
 from db.controllers.employee_certifications_controller import EmployeeCertificationsController

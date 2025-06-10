@@ -6,7 +6,7 @@ import GoogleSignIn from './auth/GoogleSignIn';
 import './../css/SignUpEmployee.css';
 
 const SignUpEmployee = () => {
-    const socket = useSocket();
+    const { socket } = useSocket();
     const navigate = useNavigate();
     const { login } = useAuth();
 

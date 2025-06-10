@@ -1,7 +1,6 @@
 // EmployeeProfile.js
 
 import React, { useState, useEffect } from 'react';
-import * as socket_object from '../utils';
 import { useSocket } from '../utils';
 import { Link, useNavigate } from 'react-router-dom';
 import '../css/EmployeeProfile.css'; // Import the CSS file

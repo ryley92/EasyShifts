@@ -8,3 +8,4 @@ google-auth-httplib2
 python-dotenv
 aiohttp
 aiohttp-cors
+requests

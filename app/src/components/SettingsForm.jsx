@@ -3,7 +3,7 @@ import Select from "react-select";
 import { useSocket } from "../utils";
 
 export default function SettingsForm() {
-    const socket = useSocket();
+    const { socket } = useSocket();
     const [shifts, setShifts] = useState(null); // Stores selected option object
     const [days, setDays] = useState([]);   // Stores array of selected option objects
     const [successMessage, setSuccessMessage] = useState('');

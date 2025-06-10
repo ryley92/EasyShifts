@@ -29,7 +29,7 @@ export const ENV = {
   GOOGLE_CLIENT_ID: getEnvVar('REACT_APP_GOOGLE_CLIENT_ID'),
   
   // API Configuration
-  API_URL: getEnvVar('REACT_APP_API_URL', 'wss://easyshifts-backend-794306818447.us-central1.run.app').replace(/\/$/, '') + '/ws',
+  API_URL: getEnvVar('REACT_APP_API_URL', 'wss://easyshifts-backend-s5b2sxgpsa-uc.a.run.app').replace(/\/$/, '') + '/ws',
   
   // Environment
   ENVIRONMENT: getEnvVar('REACT_APP_ENV', 'production'),
