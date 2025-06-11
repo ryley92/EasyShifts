@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useSocket } from '../utils';
 
 const WebSocketTest = () => {
-    const { socket, connectionStatus, reconnect } = useSocket();
+    const { socket, connectionStatus, reconnect, waitForConnection, lastError, connectionAttempts } = useSocket();
     const [testMessage, setTestMessage] = useState('');
     const [responses, setResponses] = useState([]);
+    const [connectionTest, setConnectionTest] = useState(null);
 
     useEffect(() => {
         if (socket) {
@@ -34,13 +35,25 @@ const WebSocketTest = () => {
                 request_id: 1, // LOGIN_REQUEST
                 data: {
                     username: 'manager',
-                    password: 'password'
+                    password: 'Hdfatboy1!'
                 }
             };
             socket.send(JSON.stringify(testRequest));
             setTestMessage('Test login request sent');
         } else {
             setTestMessage('Cannot send: WebSocket is not connected');
+        }
+    };
+
+    const testConnectionWait = async () => {
+        setConnectionTest('Testing connection wait...');
+        try {
+            const startTime = Date.now();
+            const connectedSocket = await waitForConnection(10000);
+            const endTime = Date.now();
+            setConnectionTest(`✅ Connection successful in ${endTime - startTime}ms`);
+        } catch (error) {
+            setConnectionTest(`❌ Connection failed: ${error.message}`);
         }
     };
 
@@ -72,9 +85,9 @@ const WebSocketTest = () => {
         <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
             <h2>WebSocket Connection Test</h2>
             
-            <div style={{ 
-                padding: '15px', 
-                border: '2px solid', 
+            <div style={{
+                padding: '15px',
+                border: '2px solid',
                 borderColor: getStatusColor(),
                 borderRadius: '8px',
                 marginBottom: '20px',
@@ -83,21 +96,45 @@ const WebSocketTest = () => {
                 <h3>Connection Status: {getStatusIcon()} {connectionStatus}</h3>
                 <p>Socket Ready State: {socket ? socket.readyState : 'No socket'}</p>
                 <p>WebSocket States: 0=CONNECTING, 1=OPEN, 2=CLOSING, 3=CLOSED</p>
-                
-                {connectionStatus !== 'connected' && (
-                    <button 
-                        onClick={reconnect}
+                <p>Connection Attempts: {connectionAttempts}</p>
+                {lastError && <p style={{ color: '#dc3545' }}>Last Error: {lastError}</p>}
+
+                <div style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    {connectionStatus !== 'connected' && (
+                        <button
+                            onClick={reconnect}
+                            style={{
+                                padding: '10px 20px',
+                                backgroundColor: '#007bff',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🔄 Reconnect
+                        </button>
+                    )}
+
+                    <button
+                        onClick={testConnectionWait}
                         style={{
                             padding: '10px 20px',
-                            backgroundColor: '#007bff',
+                            backgroundColor: '#28a745',
                             color: 'white',
                             border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer'
                         }}
                     >
-                        🔄 Reconnect
+                        🧪 Test Connection Wait
                     </button>
+                </div>
+
+                {connectionTest && (
+                    <p style={{ marginTop: '10px', fontStyle: 'italic', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                        {connectionTest}
+                    </p>
                 )}
             </div>
 

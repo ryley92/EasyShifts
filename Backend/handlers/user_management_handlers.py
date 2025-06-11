@@ -22,7 +22,9 @@ def handle_create_manager(data: dict, user_session: UserSession) -> dict:
     
     try:
         # Verify permissions - only admins can create managers
-        users_controller = UsersController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
         current_user = users_controller.get_entity(user_session.get_id)
         
         if not current_user.isAdmin:
@@ -99,7 +101,9 @@ def handle_create_admin(data: dict, user_session: UserSession) -> dict:
     
     try:
         # Verify permissions - only admins can create admins
-        users_controller = UsersController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
         current_user = users_controller.get_entity(user_session.get_id)
         
         if not current_user.isAdmin:
@@ -176,7 +180,9 @@ def handle_get_all_users(user_session: UserSession) -> dict:
     
     try:
         # Verify permissions - only admins can view all users
-        users_controller = UsersController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
         current_user = users_controller.get_entity(user_session.get_id)
         
         if not current_user.isAdmin:
@@ -252,7 +258,9 @@ def handle_update_user_role(data: dict, user_session: UserSession) -> dict:
     
     try:
         # Verify permissions - only admins can update user roles
-        users_controller = UsersController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
         current_user = users_controller.get_entity(user_session.get_id)
         
         if not current_user.isAdmin:

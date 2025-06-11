@@ -96,7 +96,8 @@ def handle_create_new_board(user_session: UserSession):
 
 def handle_get_board(user_session: UserSession) -> dict:
     # Get the last shift board
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+        shift_board_controller = ShiftBoardController(session)
     last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
 
     # Extract the content from the shift board
@@ -108,7 +109,8 @@ def handle_get_board(user_session: UserSession) -> dict:
 
 def handle_get_start_date(user_session: UserSession) -> dict:
     # Get the last shift board
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+        shift_board_controller = ShiftBoardController(session)
     last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
 
     # Extract the start date from the shift board
@@ -126,7 +128,12 @@ def handle_save_board(data, user_session: UserSession) -> ShiftBoard:
     content = data["content"]  # TODO: Depending on the client!
 
     # Update the shift board
-    shift_board_controller = ShiftBoardController(db)
+
+
+    with get_db_session() as session:
+
+
+        shift_board_controller = ShiftBoardController(session)
     updated_shift_board = shift_board_controller.update_shift_board(week_start_date, user_session.get_id, content)
 
     # Return the updated shift board
@@ -135,7 +142,8 @@ def handle_save_board(data, user_session: UserSession) -> ShiftBoard:
 
 def handle_reset_board(user_session: UserSession) -> ShiftBoard:
     # Get the last shift board (Assuming it is the last shift board, the others are published)
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+        shift_board_controller = ShiftBoardController(session)
     last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
 
     # Update the shift board with the default content
@@ -148,7 +156,8 @@ def handle_reset_board(user_session: UserSession) -> ShiftBoard:
 
 def handle_publish_board(user_session: UserSession) -> bool:
     # Publish the shift board (Assuming it is the last shift board, the others are published)
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+        shift_board_controller = ShiftBoardController(session)
     shift_board_controller.publish_shift_board(next_sunday, user_session.get_id)
 
     # Return True if the shift board is published
@@ -157,7 +166,8 @@ def handle_publish_board(user_session: UserSession) -> bool:
 
 def handle_unpublish_board(user_session: UserSession) -> bool:
     # Unpublish the shift board (Assuming it is the last shift board, the others are published)
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+        shift_board_controller = ShiftBoardController(session)
     shift_board_controller.unpublish_shift_board(next_sunday, user_session.get_id)
 
     # Return True if the shift board is unpublished
@@ -166,7 +176,8 @@ def handle_unpublish_board(user_session: UserSession) -> bool:
 
 def handle_get_board_content(user_session: UserSession) -> dict:
     # Get the last shift board (Assuming it is the last shift board, the others are published)
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+        shift_board_controller = ShiftBoardController(session)
     last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
 
     # Return the content of the shift board
@@ -181,7 +192,9 @@ def schedule_worker_to_shift(shift_id, worker_id) -> bool:
     }
 
     # Schedule the worker to the shift
-    shift_workers_controller = ShiftWorkersController(db)
+    with get_db_session() as session:
+
+        shift_workers_controller = ShiftWorkersController(session)
     shift_workers_controller.create_entity(shift_workers_data)
 
     # Return True if the worker is scheduled to the shift
@@ -190,7 +203,9 @@ def schedule_worker_to_shift(shift_id, worker_id) -> bool:
 
 def unschedule_worker_from_shift(shift_id, worker_id) -> bool:
     # Unschedule the worker from the shift
-    shift_workers_controller = ShiftWorkersController(db)
+    with get_db_session() as session:
+
+        shift_workers_controller = ShiftWorkersController(session)
     shift_workers_controller.delete_entity_shift_worker(shift_id, worker_id)
 
     # Return True if the worker is unscheduled from the shift
@@ -212,7 +227,9 @@ def handle_schedules(user_session, data: dict) -> bool:
     print("shift_part: ", shift_part)
 
     # Get the worker's ID - For Hands on Labor, search all active employees
-    users_controller = UsersController(db)
+    with get_db_session() as session:
+
+        users_controller = UsersController(session)
     all_users = users_controller.get_all_entities()
     worker = None
     for user in all_users:
@@ -228,7 +245,9 @@ def handle_schedules(user_session, data: dict) -> bool:
     shift_date = next_sunday + timedelta(days=convert_day_name_to_number(shift_day))
 
     # Get the shift's ID - For Hands on Labor, look for shifts by date and part only
-    shift_controller = ShiftsController(db)
+    with get_db_session() as session:
+
+        shift_controller = ShiftsController(session)
     # Since we don't have workplace concept, we need to find shifts by date and part
     # This will require updating the shifts controller method or using a different approach
     shift = shift_controller.get_shift_by_date_and_part(shift_date, shift_part)
@@ -301,7 +320,9 @@ def convert_day_name_to_number(day_name: str) -> int:
 
 def watch_workers_requests(user_session: UserSession):
     # For Hands on Labor: Get all active employees (no workplace restrictions)
-    users_controller = UsersController(db)
+    with get_db_session() as session:
+
+        users_controller = UsersController(session)
     all_users = users_controller.get_all_entities()
 
     # Get only workers where worker.isApproval is True and not managers
@@ -311,16 +332,22 @@ def watch_workers_requests(user_session: UserSession):
     workers_info = [(worker.id, worker.name) for worker in workers]
 
     # Get all requests from the workers
-    user_requests_controller = UserRequestsController(db)
+    with get_db_session() as session:
+
+        user_requests_controller = UserRequestsController(session)
 
     # Get the start and end datetimes for the requests window
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+
+        shift_board_controller = ShiftBoardController(session)
     relevant_shift_board = shift_board_controller.get_last_shift_board(user_session.get_id)
     requests_window_start = relevant_shift_board.requests_window_start
     requests_window_end = relevant_shift_board.requests_window_end
 
     combined_list = [None] * len(workers_info)
-    user_controller = UsersController(db)
+    with get_db_session() as session:
+
+        user_controller = UsersController(session)
 
     for i, (worker_id, name) in enumerate(workers_info):
             combined_list[i] = {"name": name,
@@ -342,7 +369,9 @@ def open_requests_windows(workplace_id, data: dict) -> bool:
     updated_data = {"requests_window_start": requests_window_start, "requests_window_end": requests_window_end}
 
     # Update the shift board with the new requests window
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+
+        shift_board_controller = ShiftBoardController(session)
     shift_board_controller.update_shift_board(next_sunday, workplace_id, updated_data)
 
     # Return True if the requests window is open
@@ -350,7 +379,9 @@ def open_requests_windows(workplace_id, data: dict) -> bool:
 
 
 def get_last_shift_board_window_times(workplace_id):
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+
+        shift_board_controller = ShiftBoardController(session)
     last_board = shift_board_controller.get_last_shift_board(workplace_id)
     print("Open requests window times: ", last_board.requests_window_start, last_board.requests_window_end)
     return last_board.requests_window_start, last_board.requests_window_end
@@ -358,7 +389,9 @@ def get_last_shift_board_window_times(workplace_id):
 
 def handle_get_preferences(user_session: UserSession) -> dict:
     # Get the last shift board
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+
+        shift_board_controller = ShiftBoardController(session)
     last_board = shift_board_controller.get_last_shift_board(user_session.get_id)
 
     # Extract the preferences from the shift board
@@ -382,7 +415,9 @@ def handle_save_preferences(workplace_id, data: dict) -> bool:
     print("new_preferences: ", new_preferences)
 
     # Update the shift board with the new preferences
-    shift_board_controller = ShiftBoardController(db)
+    with get_db_session() as session:
+
+        shift_board_controller = ShiftBoardController(session)
     shift_board_controller.update_shift_board(next_sunday, workplace_id, {"preferences": new_preferences})
 
     # Return True if the preferences are saved
@@ -391,7 +426,9 @@ def handle_save_preferences(workplace_id, data: dict) -> bool:
 
 def get_all_workers_names_by_workplace_id(user_session):
     # For Hands on Labor: Get all active employees (no workplace restrictions)
-    users_controller = UsersController(db)
+    with get_db_session() as session:
+
+        users_controller = UsersController(session)
     all_users = users_controller.get_all_entities()
 
     # Get only workers where worker.isApproval is True and not managers
@@ -421,14 +458,18 @@ def handle_get_assigned_shifts(user_session, data):
     assigned_shifts = []
 
     # For Hands on Labor: Get all active employees (no workplace restrictions)
-    users_controller = UsersController(db)
+    with get_db_session() as session:
+
+        users_controller = UsersController(session)
     all_users = users_controller.get_all_entities()
     workers = [user for user in all_users if not user.isManager and user.isActive and user.isApproval]
 
     # Iterate over the workers
     for worker in workers:
         # Get all shifts assigned to the worker
-        shifts_controller = ShiftsController(db)
+        with get_db_session() as session:
+
+            shifts_controller = ShiftsController(session)
         shifts = shifts_controller.get_all_shifts_between_dates_for_given_worker(worker.id, start_date, end_date)
 
         # Convert the shifts to a format that the client can understand
@@ -451,7 +492,10 @@ def get_all_approved_workers_details_by_workplace_id(user_session: UserSession):
         print("Unauthorized access attempt in get_all_approved_workers_details_by_workplace_id")
         return []
 
-    users_controller = UsersController(db)
+    with get_db_session() as session:
+
+
+        users_controller = UsersController(session)
     all_users = users_controller.get_all_entities()
 
     # For Hands on Labor: Get all active employees (no workplace restrictions)

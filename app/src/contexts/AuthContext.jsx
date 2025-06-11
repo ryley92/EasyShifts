@@ -40,6 +40,19 @@ export const AuthProvider = ({ children }) => {
             loginTime: userData.loginTime
           });
 
+          // Restore session data if available
+          const savedSession = sessionStorage.getItem('easyshifts_session');
+          if (savedSession) {
+            try {
+              const sessionData = JSON.parse(savedSession);
+              userData.sessionId = sessionData.sessionId;
+              userData.csrfToken = sessionData.csrfToken;
+            } catch (sessionError) {
+              logWarning('AuthProvider', 'Invalid session data, removing', sessionError);
+              sessionStorage.removeItem('easyshifts_session');
+            }
+          }
+
           // Validate saved user data structure
           if (userData.username && typeof userData.isManager === 'boolean') {
             setUser(userData);
@@ -48,10 +61,12 @@ export const AuthProvider = ({ children }) => {
           } else {
             logWarning('AuthProvider', 'Invalid saved user data structure', userData);
             localStorage.removeItem('easyshifts_user');
+            sessionStorage.removeItem('easyshifts_session');
           }
         } catch (parseError) {
           logError('AuthProvider', 'Error parsing saved user data', parseError);
           localStorage.removeItem('easyshifts_user');
+          sessionStorage.removeItem('easyshifts_session');
           setAuthError('Invalid saved authentication data');
         }
       } else {
@@ -85,21 +100,43 @@ export const AuthProvider = ({ children }) => {
             socket.removeEventListener('message', handleMessage);
             
             if (response.data && response.data.user_exists) {
+              // Handle new secure session format
               const userData = {
                 username,
                 isManager: response.data.is_manager,
-                loginTime: new Date().toISOString()
+                isAdmin: response.data.is_admin,
+                loginTime: new Date().toISOString(),
+                // Store secure session data
+                sessionId: response.data.session_id,
+                csrfToken: response.data.csrf_token,
+                userId: response.data.user_data?.user_id,
+                email: response.data.user_data?.email
               };
-              
+
               setUser(userData);
               setIsAuthenticated(true);
-              
-              // Persist to localStorage
-              localStorage.setItem('easyshifts_user', JSON.stringify(userData));
-              
+
+              // Persist to localStorage (excluding sensitive tokens for security)
+              const persistData = {
+                username: userData.username,
+                isManager: userData.isManager,
+                isAdmin: userData.isAdmin,
+                loginTime: userData.loginTime,
+                userId: userData.userId,
+                email: userData.email
+              };
+              localStorage.setItem('easyshifts_user', JSON.stringify(persistData));
+
+              // Store session data securely (could be moved to sessionStorage for better security)
+              sessionStorage.setItem('easyshifts_session', JSON.stringify({
+                sessionId: userData.sessionId,
+                csrfToken: userData.csrfToken
+              }));
+
               resolve(userData);
             } else {
-              reject(new Error('Invalid username or password'));
+              const errorMessage = response.data?.error || 'Invalid username or password';
+              reject(new Error(errorMessage));
             }
           }
         } catch (error) {
@@ -131,6 +168,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setIsAuthenticated(false);
     localStorage.removeItem('easyshifts_user');
+    sessionStorage.removeItem('easyshifts_session');
   };
 
   const value = {

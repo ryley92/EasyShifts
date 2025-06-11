@@ -1,4 +1,5 @@
 from config.constants import db
+from main import get_db_session
 from db.controllers.jobs_controller import JobsController
 from user_session import UserSession
 
@@ -24,7 +25,9 @@ def handle_create_job(data: dict, user_session: UserSession):
         return {"request_id": 210, "success": False, "error": "name, client_company_id, venue_name, and venue_address are required."}
 
     try:
-        controller = JobsController(db)
+        with get_db_session() as session:
+
+            controller = JobsController(session)
         job_data = {
             "name": job_name,
             "client_company_id": int(client_company_id),
@@ -63,7 +66,9 @@ def handle_get_jobs_by_manager(user_session: UserSession):
         return {"success": False, "error": "User does not have manager privileges."}
 
     try:
-        controller = JobsController(db)
+        with get_db_session() as session:
+
+            controller = JobsController(session)
         print(f"Fetching all jobs for Hands on Labor")
         jobs = controller.get_all_active_jobs()
         print(f"Found {len(jobs)} jobs: {jobs}")

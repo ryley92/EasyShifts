@@ -9,3 +9,7 @@ python-dotenv
 aiohttp
 aiohttp-cors
 requests
+redis
+aioredis
+hiredis
+bcrypt

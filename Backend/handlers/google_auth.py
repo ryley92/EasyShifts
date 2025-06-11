@@ -413,5 +413,35 @@ class GoogleAuthHandler:
             }
 
 # Global instance for use in Server.py
-google_auth_handler = GoogleAuthHandler()
+google_auth_instance = GoogleAuthHandler()
+
+def google_auth_handler(data, user_session):
+    """Main Google auth handler function called by Server.py"""
+    try:
+        # Determine which Google auth operation to perform based on data
+        operation = data.get('operation', 'login')
+
+        if operation == 'login':
+            return google_auth_instance.handle_google_auth_login(data)
+        elif operation == 'link':
+            return google_auth_instance.handle_link_google_account(data)
+        elif operation == 'create':
+            return google_auth_instance.handle_create_account_with_google(data)
+        elif operation == 'signup_employee':
+            return google_auth_instance.handle_google_signup_employee(data)
+        elif operation == 'signup_manager':
+            return google_auth_instance.handle_google_signup_manager(data)
+        elif operation == 'signup_client':
+            return google_auth_instance.handle_google_signup_client(data)
+        else:
+            return {
+                'success': False,
+                'error': f'Unknown Google auth operation: {operation}'
+            }
+    except Exception as e:
+        logging.error(f"Google auth handler error: {e}")
+        return {
+            'success': False,
+            'error': 'Google authentication failed'
+        }
 

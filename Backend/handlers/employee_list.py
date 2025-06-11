@@ -222,3 +222,61 @@ def handle_create_employee_by_manager(data: dict, user_session: UserSession) -> 
     except Exception as e:
         print(f"Error creating employee: {e}")
         return {"request_id": request_id, "success": False, "error": f"Failed to create employee account: {str(e)}"}
+
+
+def handle_manager_update_employee_certifications(data: dict, user_session: UserSession) -> dict:
+    """
+    Handle manager updating employee certifications.
+    Request ID: 410
+    """
+    request_id = 410
+
+    if not user_session or not user_session.can_access_manager_page():
+        return {"request_id": request_id, "success": False, "error": "Manager access required."}
+
+    employee_id = data.get("employee_id")
+    certifications = data.get("certifications", {})
+
+    if not employee_id:
+        return {"request_id": request_id, "success": False, "error": "employee_id is required."}
+
+    try:
+        with get_db_session() as session:
+            # Verify employee exists
+            users_controller = UsersController(session)
+            employee = users_controller.get_entity(employee_id)
+
+            if not employee:
+                return {"request_id": request_id, "success": False, "error": "Employee not found."}
+
+            # Update certifications
+            certifications_controller = EmployeeCertificationsController(session)
+
+            # Prepare certification data
+            cert_data = {
+                'can_crew_chief': certifications.get('can_crew_chief', False),
+                'can_forklift': certifications.get('can_forklift', False),
+                'can_truck': certifications.get('can_truck', False)
+            }
+
+            # Create or update certification record
+            updated_cert = certifications_controller.create_or_update_certification(employee_id, cert_data)
+
+            if updated_cert:
+                return {
+                    "request_id": request_id,
+                    "success": True,
+                    "message": f"Certifications updated for {employee.name}",
+                    "data": {
+                        "employee_id": employee_id,
+                        "employee_name": employee.name,
+                        "certifications": updated_cert.to_dict(),
+                        "available_roles": updated_cert.get_role_list()
+                    }
+                }
+            else:
+                return {"request_id": request_id, "success": False, "error": "Failed to update certifications."}
+
+    except Exception as e:
+        print(f"Error updating employee certifications: {e}")
+        return {"request_id": request_id, "success": False, "error": f"Failed to update certifications: {str(e)}"}

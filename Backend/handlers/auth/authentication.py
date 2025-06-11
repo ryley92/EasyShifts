@@ -1,13 +1,15 @@
 from sqlalchemy.exc import NoResultFound
 from main import get_db_session
 from db.controllers.users_controller import UsersController
+from security.secure_session import password_security, secure_session_manager
+import logging
 
+logger = logging.getLogger(__name__)
 
 class BackendAuthenticationUser:
     def __init__(self, username, password):
         self.username = username
         self.password = password
-        self.users_controller = UsersController(db)
         self.error_message = ""
 
     def __is_user_exists(self):
@@ -17,23 +19,55 @@ class BackendAuthenticationUser:
         Returns: True if the user exists, else False.
         """
         try:
-            self.users_controller.get_entity(self.username)
-            return True
-        except NoResultFound:
-            self.error_message = f"User with username {self.username} does not exist"
+            with get_db_session() as session:
+                users_controller = UsersController(session)
+                user = users_controller.get_user_by_username(self.username)
+                return user is not None
+        except Exception as e:
+            logger.error(f"Database error checking user existence: {e}")
+            self.error_message = "Database error occurred"
             return False
 
     def __is_username_and_password_match(self):
         """
-        Checks if the username and password match.
+        Checks if the username and password match using secure password verification.
 
         Returns: True if the username and password match, else False.
         """
-        user = self.users_controller.get_entity(self.username)
-        if user.password == self.password:
-            return True
-        else:
-            self.error_message = "Username and password do not match"
+        try:
+            with get_db_session() as session:
+                users_controller = UsersController(session)
+                user = users_controller.get_user_by_username(self.username)
+
+                if not user:
+                    self.error_message = f"User with username {self.username} does not exist"
+                    return False
+
+                # Handle legacy plain text passwords and new hashed passwords
+                if user.password:
+                    # Check if password is already hashed (starts with $2b$ for bcrypt)
+                    if user.password.startswith('$2b$'):
+                        # Use secure password verification
+                        if password_security.verify_password(self.password, user.password):
+                            return True
+                    else:
+                        # Legacy plain text password - verify and upgrade
+                        if user.password == self.password:
+                            # Upgrade to hashed password
+                            hashed_password = password_security.hash_password(self.password)
+                            users_controller.update_user_password(user.id, hashed_password)
+                            logger.info(f"Upgraded password security for user {self.username}")
+                            return True
+
+                self.error_message = "Username and password do not match"
+                return False
+
+        except NoResultFound:
+            self.error_message = f"User with username {self.username} does not exist"
+            return False
+        except Exception as e:
+            logger.error(f"Database error during password verification: {e}")
+            self.error_message = "Authentication error occurred"
             return False
 
     def validate_login(self):

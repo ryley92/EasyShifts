@@ -56,24 +56,39 @@ def check_environment():
 def check_database_connection():
     """Test database connection without creating tables"""
     print("\n=== Database Connection Check ===")
-    
+
     try:
-        from config.private_password import PASSWORD
-        print("✅ Password configuration loaded")
-    except ImportError as e:
+        # Get database password using the same method as main.py
+        def get_database_password():
+            import os
+            db_password = os.getenv("DB_PASSWORD")
+            if db_password:
+                print("✅ Using database password from environment variable")
+                return db_password
+
+            try:
+                from config.private_password import PASSWORD
+                print("✅ Using database password from config file")
+                return PASSWORD
+            except ImportError:
+                raise RuntimeError("Database password not configured")
+
+        PASSWORD = get_database_password()
+    except Exception as e:
         print(f"❌ Password configuration failed: {e}")
         return False
-    
+
     try:
         from sqlalchemy import create_engine, text
-        
-        DB_HOST = "miano.h.filess.io"
-        DB_PORT = "3305"
-        DB_USER = "easyshiftsdb_danceshall"
-        DB_NAME = "easyshiftsdb_danceshall"
-        
+        import os
+
+        DB_HOST = os.getenv("DB_HOST", "miano.h.filess.io")
+        DB_PORT = os.getenv("DB_PORT", "3305")
+        DB_USER = os.getenv("DB_USER", "easyshiftsdb_danceshall")
+        DB_NAME = os.getenv("DB_NAME", "easyshiftsdb_danceshall")
+
         print(f"Attempting connection to: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
-        
+
         engine = create_engine(
             f'mariadb+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}',
             echo=False,

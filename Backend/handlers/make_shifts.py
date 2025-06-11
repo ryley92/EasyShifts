@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from main import get_db_session
 from enum import Enum
 from config.constants import db
 from db.controllers.shifts_controller import ShiftsController
@@ -21,8 +22,12 @@ def get_or_create_default_job(user_session):
     For Hands on Labor, we need a default job to link shifts to.
     """
     try:
-        jobs_controller = JobsController(db)
-        client_companies_controller = ClientCompaniesController(db)
+        with get_db_session() as session:
+
+            jobs_controller = JobsController(session)
+        with get_db_session() as session:
+
+            client_companies_controller = ClientCompaniesController(session)
 
         # Try to get existing default job
         all_jobs = jobs_controller.get_all_active_jobs()
@@ -81,7 +86,10 @@ def make_shifts(user_session):
             # Get or create a default job for these shifts
             default_job_id = get_or_create_default_job(user_session)
 
-            shifts_controller = ShiftsController(db)
+            with get_db_session() as session:
+
+
+                shifts_controller = ShiftsController(session)
             current_date = datetime.now()
             next_sunday = current_date + timedelta(days=(6 - current_date.weekday() + 1) % 7)
             next_week_dates = [next_sunday + timedelta(days=i) for i in range(7)]

@@ -6,7 +6,6 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError, DisconnectionError
 from db.models import Base # Assuming Base is correctly defined in db.models
-from config.private_password import PASSWORD
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,6 +14,23 @@ logger = logging.getLogger(__name__)
 _engine = None
 _session_factory = None
 _initialization_error = None
+
+def get_database_password():
+    """Get database password from environment variable or fallback to config file"""
+    # First try environment variable (for Cloud Run deployment)
+    db_password = os.getenv("DB_PASSWORD")
+    if db_password:
+        logger.info("Using database password from environment variable")
+        return db_password
+
+    # Fallback to config file (for local development)
+    try:
+        from config.private_password import PASSWORD
+        logger.info("Using database password from config file")
+        return PASSWORD
+    except ImportError:
+        logger.error("No database password found in environment variable or config file")
+        raise RuntimeError("Database password not configured. Set DB_PASSWORD environment variable or create config/private_password.py")
 
 def initialize_database_and_session_factory():
     global _engine, _session_factory, _initialization_error
@@ -27,7 +43,13 @@ def initialize_database_and_session_factory():
     DB_PORT = os.getenv("DB_PORT", "3305")
     DB_USER = os.getenv("DB_USER", "easyshiftsdb_danceshall")
     DB_NAME = os.getenv("DB_NAME", "easyshiftsdb_danceshall")
-    DB_PASSWORD = PASSWORD 
+
+    try:
+        DB_PASSWORD = get_database_password()
+    except Exception as e:
+        _initialization_error = e
+        print(f"❌ Failed to get database password: {e}")
+        return
 
     connection_url = f'mariadb+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
     print(f"Attempting to initialize database engine: {DB_USER}@{DB_HOST}:{DB_PORT}/{DB_NAME}")

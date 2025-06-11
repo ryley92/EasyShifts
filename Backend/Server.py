@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 # Load environment variables
-load_dotenv()
+load_dotenv('.env')
 
 print(f"🚀 Starting EasyShifts Backend Server...")
 print(f"🐍 Python version: {sys.version}")
@@ -59,20 +59,43 @@ print(f"   DB_PORT: {os.getenv('DB_PORT', 'not set')}")
 print(f"   DB_USER: {os.getenv('DB_USER', 'not set')}")
 print(f"   DB_NAME: {os.getenv('DB_NAME', 'not set')}")
 print(f"   DB_PASSWORD: {'set' if os.getenv('DB_PASSWORD') else 'not set'}")
+print(f"   REDIS_HOST: {os.getenv('REDIS_HOST', 'not set')}")
+print(f"   REDIS_PASSWORD: {'set' if os.getenv('REDIS_PASSWORD') else 'not set'}")
+print(f"   SESSION_SECRET_KEY: {'set' if os.getenv('SESSION_SECRET_KEY') else 'not set'}")
+print(f"   CSRF_SECRET_KEY: {'set' if os.getenv('CSRF_SECRET_KEY') else 'not set'}")
 print(f"   Database initialized: {database_initialized}")
 
-# Global variable declaration
-user_session: UserSession | None = None
+# Global variable declaration - Session management
+user_sessions = {}  # Dictionary to store sessions by client_id
+user_session: UserSession | None = None  # Keep for backward compatibility
 
 
-def handle_request(request_id, data):
-    global user_session
+def handle_request(request_id, data, client_id=None):
+    global user_session, user_sessions
+
+    # Get session for this client, fallback to global session for backward compatibility
+    current_session = user_sessions.get(client_id) if client_id else user_session
+    print(f"DEBUG: handle_request - client_id: {client_id}, current_session: {current_session}")
     if request_id == 10:
         # Login request handling
         print("Received Login request")
         print(data)
 
-        response, user_session = login.handle_login(data)
+        # Get client IP for security logging
+        client_ip = "unknown"
+        if client_id in user_sessions:
+            # Try to get IP from session if available
+            client_ip = getattr(user_sessions[client_id], 'client_ip', 'unknown')
+
+        response, session = login.handle_login(data, client_ip)
+
+        # Store session for this client and update global session for backward compatibility
+        if client_id and session:
+            user_sessions[client_id] = session
+            print(f"DEBUG: Stored session for client {client_id}: {session}")
+        user_session = session  # Keep global session for backward compatibility
+        current_session = session
+
         return {"request_id": request_id, "data": response}
 
     elif request_id == 20:
@@ -254,9 +277,17 @@ def handle_request(request_id, data):
 
     elif request_id == 94: # Get All Approved Worker Details
         print("Received Get All Approved Worker Details request")
-        if not user_session:
+        print(f"DEBUG: request_id 94 - current_session: {current_session}")
+        if not current_session:
             return {"request_id": request_id, "success": False, "error": "User session not found."}
-        return employee_list.handle_get_all_approved_worker_details(user_session)
+        return employee_list.handle_get_all_approved_worker_details(current_session)
+
+    elif request_id == 410: # Update Employee Certifications
+        print("Received Update Employee Certifications request")
+        print(f"DEBUG: request_id 410 - current_session: {current_session}")
+        if not current_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return employee_list.handle_manager_update_employee_certifications(data, current_session)
 
     elif request_id == 95:
         # Get preferences for Manager Schedule
@@ -327,7 +358,8 @@ def handle_request(request_id, data):
 
     elif request_id == 200: # Get All Client Companies
         print("Received Get All Client Companies request")
-        return client_company_handlers.handle_get_all_client_companies(user_session)
+        print(f"DEBUG: request_id 200 - current_session: {current_session}")
+        return client_company_handlers.handle_get_all_client_companies(current_session)
 
     elif request_id == 201: # Create Client Company
         print("Received Create Client Company request")
@@ -373,7 +405,13 @@ def handle_request(request_id, data):
 
     elif request_id == 221: # Get Shifts by Job ID
         print("Received Get Shifts by Job ID request")
-        return shift_management_handlers.handle_get_shifts_by_job(data, user_session)
+        print(f"DEBUG: Current current_session: {current_session}")
+        print(f"DEBUG: current_session type: {type(current_session)}")
+        print(f"DEBUG: Global user_session: {user_session}")
+        if current_session:
+            print(f"DEBUG: current_session.get_id: {current_session.get_id}")
+            print(f"DEBUG: current_session._is_manager: {current_session._is_manager}")
+        return shift_management_handlers.handle_get_shifts_by_job(data, current_session)
 
     elif request_id == 230: # Assign Worker to Shift
         print("Received Assign Worker to Shift request")
@@ -382,6 +420,13 @@ def handle_request(request_id, data):
     elif request_id == 231: # Unassign Worker from Shift
         print("Received Unassign Worker from Shift request")
         return shift_management_handlers.handle_unassign_worker_from_shift(data, user_session)
+
+    elif request_id == 232: # Update Shift Requirements
+        print("Received Update Shift Requirements request")
+        print(f"DEBUG: request_id 232 - current_session: {current_session}")
+        if not current_session:
+            return {"request_id": request_id, "success": False, "error": "User session not found."}
+        return shift_management_handlers.handle_update_shift_requirements(data, current_session)
 
     # === TIMECARD MANAGEMENT HANDLERS ===
     elif request_id == 240: # Get Shift Timecard
@@ -745,6 +790,137 @@ def handle_request(request_id, data):
             return {"request_id": request_id, "success": False, "error": "User session not found."}
         return enhanced_settings_handlers.handle_validate_settings_bulk(data, user_session)
 
+    # === MISSING HANDLERS (NEWLY ADDED) ===
+    elif request_id == 1: # Test Connection
+        print("Received Test Connection request")
+        from handlers.missing_handlers import handle_test_connection
+        return handle_test_connection(data, user_session)
+
+    elif request_id == 10: # Logout
+        print("Received Logout request")
+        from handlers.missing_handlers import handle_logout
+        return handle_logout(data, user_session)
+
+    elif request_id == 72: # Enhanced Schedule Data
+        print("Received Enhanced Schedule Data request")
+        from handlers.missing_handlers import handle_get_enhanced_schedule_data
+        return handle_get_enhanced_schedule_data(data, user_session)
+
+    elif request_id == 73: # Bulk Shift Operation
+        print("Received Bulk Shift Operation request")
+        from handlers.missing_handlers import handle_bulk_shift_operation
+        return handle_bulk_shift_operation(data, user_session)
+
+    elif request_id == 86: # Schedule Analytics
+        print("Received Schedule Analytics request")
+        from handlers.missing_handlers import handle_schedule_analytics
+        return handle_schedule_analytics(data, user_session)
+
+    elif request_id == 600: # Get Client Companies
+        print("Received Get Client Companies request")
+        from handlers.missing_handlers import handle_get_client_companies
+        return handle_get_client_companies(data, user_session)
+
+    elif request_id == 601: # Create Client Company
+        print("Received Create Client Company request")
+        from handlers.missing_handlers import handle_create_client_company
+        return handle_create_client_company(data, user_session)
+
+    elif request_id == 602: # Update Client Company
+        print("Received Update Client Company request")
+        from handlers.missing_handlers import handle_update_client_company
+        return handle_update_client_company(data, user_session)
+
+    elif request_id == 603: # Delete Client Company
+        print("Received Delete Client Company request")
+        from handlers.missing_handlers import handle_delete_client_company
+        return handle_delete_client_company(data, user_session)
+
+    elif request_id == 700: # Get Employee List
+        print("Received Get Employee List request")
+        from handlers.missing_handlers import handle_get_employee_list
+        return handle_get_employee_list(data, user_session)
+
+    elif request_id == 701: # Create Employee Account
+        print("Received Create Employee Account request")
+        from handlers.missing_handlers import handle_create_employee_account
+        return handle_create_employee_account(data, user_session)
+
+    elif request_id == 702: # Update Employee Certifications
+        print("Received Update Employee Certifications request")
+        from handlers.missing_handlers import handle_update_employee_certifications
+        return handle_update_employee_certifications(data, user_session)
+
+    elif request_id == 800: # Get Timesheet Summary
+        print("Received Get Timesheet Summary request")
+        from handlers.missing_handlers import handle_get_timesheet_summary
+        return handle_get_timesheet_summary(data, user_session)
+
+    elif request_id == 900: # Get Notifications
+        print("Received Get Notifications request")
+        from handlers.missing_handlers import handle_get_notifications
+        return handle_get_notifications(data, user_session)
+
+    elif request_id == 901: # Mark Notification Read
+        print("Received Mark Notification Read request")
+        from handlers.missing_handlers import handle_mark_notification_read
+        return handle_mark_notification_read(data, user_session)
+
+    elif request_id == 902: # Send Notification
+        print("Received Send Notification request")
+        from handlers.missing_handlers import handle_send_notification
+        return handle_send_notification(data, user_session)
+
+    elif request_id == 903: # Get Notification Settings
+        print("Received Get Notification Settings request")
+        from handlers.missing_handlers import handle_get_notification_settings
+        return handle_get_notification_settings(data, user_session)
+
+    elif request_id == 904: # Update Notification Settings
+        print("Received Update Notification Settings request")
+        from handlers.missing_handlers import handle_update_notification_settings
+        return handle_update_notification_settings(data, user_session)
+
+    elif request_id == 400: # Generate Report
+        print("Received Generate Report request")
+        from handlers.missing_handlers import handle_generate_report
+        return handle_generate_report(data, user_session)
+
+    elif request_id == 998: # Debug Info
+        print("Received Debug Info request")
+        from handlers.missing_handlers import handle_debug_info
+        return handle_debug_info(data, user_session)
+
+    elif request_id == 999: # System Status
+        print("Received System Status request")
+        from handlers.missing_handlers import handle_system_status
+        return handle_system_status(data, user_session)
+
+    elif request_id == 1000: # Health Check
+        print("Received Health Check request")
+        from handlers.missing_handlers import handle_health_check
+        return handle_health_check(data, user_session)
+
+    elif request_id == 1002: # Ping
+        print("Received Ping request")
+        from handlers.missing_handlers import handle_ping
+        return handle_ping(data, user_session)
+
+    elif request_id == 500: # Get User Settings
+        print("Received Get User Settings request")
+        from handlers.missing_handlers import handle_get_user_settings
+        return handle_get_user_settings(data, user_session)
+
+    elif request_id == 501: # Update User Settings
+        print("Received Update User Settings request")
+        from handlers.missing_handlers import handle_update_user_settings
+        return handle_update_user_settings(data, user_session)
+
+    elif request_id == 502: # Reset User Settings
+        print("Received Reset User Settings request")
+        from handlers.missing_handlers import handle_reset_user_settings
+        return handle_reset_user_settings(data, user_session)
+
     else:
         print("Unknown request ID:", request_id)
         return {"request_id": request_id, "success": False, "error": f"Unknown request ID: {request_id}"}
@@ -763,8 +939,8 @@ async def handle_client(websocket, path=None):
                 request_id = request.get('request_id')
                 data = request.get('data', {})
 
-                # Use the existing handle_request function
-                response = handle_request(request_id, data)
+                # Use the existing handle_request function with client_id
+                response = handle_request(request_id, data, client_id)
 
                 # Send response back to client
                 await websocket.send(json.dumps(response))
@@ -788,6 +964,13 @@ async def handle_client(websocket, path=None):
     except Exception as e:
         logger.exception(f"Unexpected error with client {client_id}: {str(e)}")
     finally:
+        # Clean up session when client disconnects
+        if client_id in user_sessions:
+            session = user_sessions[client_id]
+            del user_sessions[client_id]
+            logger.info(f"Cleaned up session for client {client_id}: {session}")
+        else:
+            logger.info(f"No session found for client {client_id} during cleanup")
         logger.info(f"Client {client_id} connection closed")
 
 
@@ -826,8 +1009,8 @@ async def handle_websocket_request(request):
 
                     logger.info(f"Processing request {request_id} from client {client_id}")
 
-                    # Use the existing handle_request function
-                    response = handle_request(request_id, data)
+                    # Use the existing handle_request function with client_id
+                    response = handle_request(request_id, data, client_id)
 
                     # Ensure response has request_id for client matching
                     if 'request_id' not in response:
@@ -896,8 +1079,13 @@ async def create_combined_app():
 
 async def start_combined_server():
     """Start the combined HTTP/WebSocket server on port 8080"""
-    port = int(os.getenv('PORT', 8080))
+    port = int(os.getenv('PORT', 8080))  # Fixed: Default to 8080 for Cloud Run
     host = os.getenv('HOST', '0.0.0.0')
+
+    logger.info(f"🚀 Starting EasyShifts backend server...")
+    logger.info(f"📍 Host: {host}")
+    logger.info(f"🔌 Port: {port}")
+    logger.info(f"🗄️  Database initialized: {database_initialized}")
 
     try:
         app = await create_combined_app()
@@ -907,22 +1095,28 @@ async def start_combined_server():
         site = web.TCPSite(runner, host, port)
         await site.start()
 
-        logger.info(f"Combined HTTP/WebSocket server started on {host}:{port}")
-        logger.info(f"Health check available at: http://{host}:{port}/health")
-        logger.info(f"WebSocket endpoint available at: ws://{host}:{port}/ws")
+        logger.info(f"✅ Combined HTTP/WebSocket server started on {host}:{port}")
+        logger.info(f"🔍 Health check available at: http://{host}:{port}/health")
+        logger.info(f"🔌 WebSocket endpoint available at: ws://{host}:{port}/ws")
+        logger.info(f"🎯 Server is ready to accept connections!")
 
         # Keep the server running
         await asyncio.Future()  # Run forever
 
     except Exception as e:
-        logger.exception(f"Failed to start combined server: {str(e)}")
+        logger.exception(f"❌ Failed to start combined server: {str(e)}")
+        logger.error(f"💥 Server startup failed with error: {type(e).__name__}")
         raise
 
 
 if __name__ == "__main__":
     try:
+        logger.info("🎬 Starting EasyShifts backend application...")
         asyncio.run(start_combined_server())
     except KeyboardInterrupt:
-        logger.info("Server stopped by user")
+        logger.info("⏹️  Server stopped by user")
     except Exception as e:
-        logger.exception(f"Server crashed: {str(e)}")
+        logger.exception(f"💥 Server crashed: {str(e)}")
+        logger.error(f"🔥 Fatal error: {type(e).__name__}: {str(e)}")
+        import sys
+        sys.exit(1)

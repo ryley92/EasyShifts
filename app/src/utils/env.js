@@ -20,6 +20,7 @@ const getEnvVar = (key, defaultValue = '') => {
 
   console.log(`ENV: Using default value for ${key}:`, defaultValue);
   console.log('ENV: Available runtime config:', window._env_);
+  console.log('ENV: Available build-time config:', process.env);
   return defaultValue;
 };
 
@@ -27,18 +28,24 @@ const getEnvVar = (key, defaultValue = '') => {
 export const ENV = {
   // Google OAuth
   GOOGLE_CLIENT_ID: getEnvVar('REACT_APP_GOOGLE_CLIENT_ID'),
-  
-  // API Configuration
-  API_URL: getEnvVar('REACT_APP_API_URL', 'wss://easyshifts-backend-s5b2sxgpsa-uc.a.run.app').replace(/\/$/, '') + '/ws',
-  
+
+  // API Configuration - Fix double /ws appending
+  API_URL: (() => {
+    const baseUrl = getEnvVar('REACT_APP_API_URL', 'wss://easyshifts-backend-794306818447.us-central1.run.app');
+    // Remove trailing slash and ensure /ws endpoint
+    const cleanUrl = baseUrl.replace(/\/$/, '');
+    // Only add /ws if it's not already there
+    return cleanUrl.endsWith('/ws') ? cleanUrl : cleanUrl + '/ws';
+  })(),
+
   // Environment
   ENVIRONMENT: getEnvVar('REACT_APP_ENV', 'production'),
-  
+
   // Derived values
   get IS_PRODUCTION() {
     return this.ENVIRONMENT === 'production';
   },
-  
+
   get IS_DEVELOPMENT() {
     return this.ENVIRONMENT === 'development';
   }

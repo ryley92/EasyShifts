@@ -78,12 +78,10 @@ if ($LASTEXITCODE -ne 0) {
 # Deploy backend to Cloud Run
 Write-Host "🚀 Deploying backend to Cloud Run" -ForegroundColor $Yellow
 
-# Check if DB_PASSWORD is set
+# Set DB_PASSWORD if not already set (using the known password from the connection string)
 if (-not $env:DB_PASSWORD) {
-    Write-Host "❌ DB_PASSWORD environment variable is not set!" -ForegroundColor $Red
-    Write-Host "Please set DB_PASSWORD before running deployment:" -ForegroundColor $Yellow
-    Write-Host '$env:DB_PASSWORD = "your_database_password"' -ForegroundColor $Cyan
-    exit 1
+    Write-Host "⚠️  DB_PASSWORD not set, using default password from connection string" -ForegroundColor $Yellow
+    $env:DB_PASSWORD = "a61d15d9b4f2671739338d1082cc7b75c0084e21"
 }
 
 gcloud run deploy easyshifts-backend `

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './EmployeeCard.css';
+import EmployeeCertificationManager from '../EmployeeCertificationManager';
 
 const EmployeeCard = ({
     employee,
@@ -8,8 +9,11 @@ const EmployeeCard = ({
     onSelect,
     onClick,
     onApprove,
-    onReject
+    onReject,
+    isManager = false,
+    onCertificationUpdate
 }) => {
+    const [showCertificationModal, setShowCertificationModal] = useState(false);
     const getRoleColor = (role) => {
         const colors = {
             'crew_chief': '#e74c3c',
@@ -82,30 +86,44 @@ const EmployeeCard = ({
                     </div>
                 </div>
                 <div className="table-cell actions-cell">
-                    {!employee.approved && (
-                        <div className="employee-actions">
+                    <div className="employee-actions">
+                        {!employee.approved && (
+                            <>
+                                <button
+                                    className="btn btn-approve"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onApprove();
+                                    }}
+                                    title="Approve Employee"
+                                >
+                                    ✓
+                                </button>
+                                <button
+                                    className="btn btn-reject"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onReject();
+                                    }}
+                                    title="Reject Employee"
+                                >
+                                    ✗
+                                </button>
+                            </>
+                        )}
+                        {isManager && employee.approved && (
                             <button
-                                className="btn btn-approve"
+                                className="btn btn-secondary btn-sm"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    onApprove();
+                                    setShowCertificationModal(true);
                                 }}
-                                title="Approve Employee"
+                                title="Manage Certifications"
                             >
-                                ✓
+                                🏆
                             </button>
-                            <button
-                                className="btn btn-reject"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onReject();
-                                }}
-                                title="Reject Employee"
-                            >
-                                ✗
-                            </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         );
@@ -186,6 +204,18 @@ const EmployeeCard = ({
                             >
                                 ⏰
                             </button>
+                            {isManager && (
+                                <button
+                                    className="quick-action-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowCertificationModal(true);
+                                    }}
+                                    title="Manage Certifications"
+                                >
+                                    🏆
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>
@@ -214,6 +244,23 @@ const EmployeeCard = ({
                         ✗ Reject
                     </button>
                 </div>
+            )}
+
+            {/* Certification Management Modal */}
+            {showCertificationModal && (
+                <EmployeeCertificationManager
+                    employeeId={employee.id}
+                    employeeName={employee.name}
+                    currentCertifications={employee.certifications || {}}
+                    onUpdate={(updatedData) => {
+                        if (onCertificationUpdate) {
+                            onCertificationUpdate(employee.id, updatedData);
+                        }
+                        setShowCertificationModal(false);
+                    }}
+                    isModal={true}
+                    onClose={() => setShowCertificationModal(false)}
+                />
             )}
         </div>
     );

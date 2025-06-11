@@ -1,4 +1,5 @@
 from datetime import date, datetime
+from main import get_db_session
 from sqlalchemy import Date
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
@@ -218,33 +219,35 @@ def convert_shift_for_client(shift: Shift, db, is_manager=True) -> dict:
     Returns:
         dict: A dictionary representation of the shift.
     """
-    shift_workers_controller = ShiftWorkersController(db)
-    shifts_for_client = {
-        'id': shift.id,
-        'job_id': shift.job_id,
-        "required_employee_counts": shift.required_employee_counts if shift.required_employee_counts else {},
-        "client_po_number": shift.client_po_number if shift.client_po_number else "",
-        "shift_description": shift.shift_description if shift.shift_description else "",
-        "special_instructions": shift.special_instructions if shift.special_instructions else ""
-    }
+    with get_db_session() as session:
+        shift_workers_controller = ShiftWorkersController(session)
 
-    # Add new datetime fields if available
-    if hasattr(shift, 'shift_start_datetime') and shift.shift_start_datetime:
-        shifts_for_client['shift_start_datetime'] = shift.shift_start_datetime.isoformat()
-        if hasattr(shift, 'shift_end_datetime') and shift.shift_end_datetime:
-            shifts_for_client['shift_end_datetime'] = shift.shift_end_datetime.isoformat()
+        shifts_for_client = {
+            'id': shift.id,
+            'job_id': shift.job_id,
+            "required_employee_counts": shift.required_employee_counts if shift.required_employee_counts else {},
+            "client_po_number": shift.client_po_number if shift.client_po_number else "",
+            "shift_description": shift.shift_description if shift.shift_description else "",
+            "special_instructions": shift.special_instructions if shift.special_instructions else ""
+        }
 
-    # Add legacy fields for backward compatibility
-    if hasattr(shift, 'shiftDate') and shift.shiftDate:
-        shifts_for_client['shiftDate'] = shift.shiftDate.isoformat()
-    if hasattr(shift, 'shiftPart') and shift.shiftPart:
-        shifts_for_client['shiftPart'] = shift.shiftPart.value
+        # Add new datetime fields if available
+        if hasattr(shift, 'shift_start_datetime') and shift.shift_start_datetime:
+            shifts_for_client['shift_start_datetime'] = shift.shift_start_datetime.isoformat()
+            if hasattr(shift, 'shift_end_datetime') and shift.shift_end_datetime:
+                shifts_for_client['shift_end_datetime'] = shift.shift_end_datetime.isoformat()
 
-    if is_manager:
-        workers = shift_workers_controller.convert_shift_workers_by_shift_id_to_client(shift.id)
-        shifts_for_client["workers"] = workers
+        # Add legacy fields for backward compatibility
+        if hasattr(shift, 'shiftDate') and shift.shiftDate:
+            shifts_for_client['shiftDate'] = shift.shiftDate.isoformat()
+        if hasattr(shift, 'shiftPart') and shift.shiftPart:
+            shifts_for_client['shiftPart'] = shift.shiftPart.value
 
-    return shifts_for_client
+        if is_manager:
+            workers = shift_workers_controller.convert_shift_workers_by_shift_id_to_client(shift.id)
+            shifts_for_client["workers"] = workers
+
+        return shifts_for_client
 
 
 def convert_shifts_for_client(shifts: list[Shift], db, is_manager=True) -> list[dict]:

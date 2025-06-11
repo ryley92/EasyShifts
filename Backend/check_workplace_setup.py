@@ -3,7 +3,7 @@
 Script to check and fix workplace setup for managers.
 """
 
-from main import initialize_database_and_session_factory
+from main import initialize_database_and_session_factory, get_db_session
 from db.controllers.users_controller import UsersController
 from db.controllers.workPlaces_controller import WorkPlacesController
 from sqlalchemy import text
@@ -14,8 +14,12 @@ def check_workplace_setup():
     
     try:
         db, _ = initialize_database_and_session_factory()
-        users_controller = UsersController(db)
-        workplaces_controller = WorkPlacesController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
+        with get_db_session() as session:
+
+            workplaces_controller = WorkPlacesController(session)
         
         print("\n=== CURRENT USERS ===")
         users = users_controller.get_all_entities()
@@ -86,8 +90,12 @@ def create_workplace_for_manager(manager_id, manager_name):
 
     try:
         db, _ = initialize_database_and_session()
-        users_controller = UsersController(db)
-        workplaces_controller = WorkPlacesController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
+        with get_db_session() as session:
+
+            workplaces_controller = WorkPlacesController(session)
 
         # Check if workplace entry already exists for this manager
         try:

@@ -93,24 +93,24 @@ def handle_clock_in_out_worker(data: dict, user_session: UserSession):
         return {"request_id": 241, "success": False, "error": "action must be 'clock_in' or 'clock_out'."}
 
     try:
-        db = get_db_session()
-        shift_workers_controller = ShiftWorkersController(db)
-        current_time = datetime.now()
-        
-        # Get the shift worker record
-        shift_worker = shift_workers_controller.get_shift_worker_for_timecard(shift_id, user_id)
-        if not shift_worker:
-            return {"request_id": 241, "success": False, "error": "Worker not assigned to this shift."}
+        with get_db_session() as db:
+            shift_workers_controller = ShiftWorkersController(db)
+            current_time = datetime.now()
 
-        # Update clock times and status
-        result = shift_workers_controller.update_clock_time(
-            shift_id, user_id, action, current_time, user_session.get_id
-        )
-        
-        if result:
-            return {"request_id": 241, "success": True, "data": {"action": action, "time": current_time.isoformat()}}
-        else:
-            return {"request_id": 241, "success": False, "error": "Failed to update clock time."}
+            # Get the shift worker record
+            shift_worker = shift_workers_controller.get_shift_worker_for_timecard(shift_id, user_id)
+            if not shift_worker:
+                return {"request_id": 241, "success": False, "error": "Worker not assigned to this shift."}
+
+            # Update clock times and status
+            result = shift_workers_controller.update_clock_time(
+                shift_id, user_id, action, current_time, user_session.get_id
+            )
+
+            if result:
+                return {"request_id": 241, "success": True, "data": {"action": action, "time": current_time.isoformat()}}
+            else:
+                return {"request_id": 241, "success": False, "error": "Failed to update clock time."}
         
     except Exception as e:
         print(f"Error in handle_clock_in_out_worker: {e}")
@@ -131,17 +131,17 @@ def handle_mark_worker_absent(data: dict, user_session: UserSession):
         return {"request_id": 242, "success": False, "error": "shift_id and user_id are required."}
 
     try:
-        db = get_db_session()
-        shift_workers_controller = ShiftWorkersController(db)
-        
-        result = shift_workers_controller.mark_worker_absent(
-            shift_id, user_id, user_session.get_id
-        )
-        
-        if result:
-            return {"request_id": 242, "success": True, "data": {"marked_absent": True}}
-        else:
-            return {"request_id": 242, "success": False, "error": "Failed to mark worker absent."}
+        with get_db_session() as db:
+            shift_workers_controller = ShiftWorkersController(db)
+
+            result = shift_workers_controller.mark_worker_absent(
+                shift_id, user_id, user_session.get_id
+            )
+
+            if result:
+                return {"request_id": 242, "success": True, "data": {"marked_absent": True}}
+            else:
+                return {"request_id": 242, "success": False, "error": "Failed to mark worker absent."}
         
     except Exception as e:
         print(f"Error in handle_mark_worker_absent: {e}")
@@ -163,17 +163,17 @@ def handle_update_worker_notes(data: dict, user_session: UserSession):
         return {"request_id": 243, "success": False, "error": "shift_id and user_id are required."}
 
     try:
-        db = get_db_session()
-        shift_workers_controller = ShiftWorkersController(db)
-        
-        result = shift_workers_controller.update_worker_notes(
-            shift_id, user_id, notes
-        )
-        
-        if result:
-            return {"request_id": 243, "success": True, "data": {"notes_updated": True}}
-        else:
-            return {"request_id": 243, "success": False, "error": "Failed to update worker notes."}
+        with get_db_session() as db:
+            shift_workers_controller = ShiftWorkersController(db)
+
+            result = shift_workers_controller.update_worker_notes(
+                shift_id, user_id, notes
+            )
+
+            if result:
+                return {"request_id": 243, "success": True, "data": {"notes_updated": True}}
+            else:
+                return {"request_id": 243, "success": False, "error": "Failed to update worker notes."}
         
     except Exception as e:
         print(f"Error in handle_update_worker_notes: {e}")
@@ -192,27 +192,27 @@ def handle_end_shift_clock_out_all(data: dict, user_session: UserSession):
         return {"request_id": 244, "success": False, "error": "shift_id is required."}
 
     try:
-        db = get_db_session()
-        shift_workers_controller = ShiftWorkersController(db)
-        current_time = datetime.now()
-        
-        # Clock out all workers still clocked in
-        clocked_out_workers = shift_workers_controller.clock_out_all_workers(
-            shift_id, current_time, user_session.get_id
-        )
-        
-        # Generate draft timesheet
-        timesheet = shift_workers_controller.generate_shift_timesheet(shift_id)
-        
-        return {
-            "request_id": 244,
-            "success": True,
-            "data": {
-                "shift_ended": True,
-                "clocked_out_workers": clocked_out_workers,
-                "draft_timesheet": timesheet
+        with get_db_session() as db:
+            shift_workers_controller = ShiftWorkersController(db)
+            current_time = datetime.now()
+
+            # Clock out all workers still clocked in
+            clocked_out_workers = shift_workers_controller.clock_out_all_workers(
+                shift_id, current_time, user_session.get_id
+            )
+
+            # Generate draft timesheet
+            timesheet = shift_workers_controller.generate_shift_timesheet(shift_id)
+
+            return {
+                "request_id": 244,
+                "success": True,
+                "data": {
+                    "shift_ended": True,
+                    "clocked_out_workers": clocked_out_workers,
+                    "draft_timesheet": timesheet
+                }
             }
-        }
         
     except Exception as e:
         print(f"Error in handle_end_shift_clock_out_all: {e}")

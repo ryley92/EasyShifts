@@ -22,9 +22,15 @@ def handle_get_client_directory(user_session: UserSession) -> dict:
 
     try:
         with get_db_session() as db:
-            client_companies_controller = ClientCompaniesController(db)
-            users_controller = UsersController(db)
-            jobs_controller = JobsController(db)
+            with get_db_session() as session:
+
+                client_companies_controller = ClientCompaniesController(session)
+            with get_db_session() as session:
+
+                users_controller = UsersController(session)
+            with get_db_session() as session:
+
+                jobs_controller = JobsController(session)
 
             # Get all client companies
             companies = client_companies_controller.get_all_entities()
@@ -116,9 +122,15 @@ def handle_get_client_company_details(data: dict, user_session: UserSession) -> 
 
     try:
         with get_db_session() as db:
-            client_companies_controller = ClientCompaniesController(db)
-            users_controller = UsersController(db)
-            jobs_controller = JobsController(db)
+            with get_db_session() as session:
+
+                client_companies_controller = ClientCompaniesController(session)
+            with get_db_session() as session:
+
+                users_controller = UsersController(session)
+            with get_db_session() as session:
+
+                jobs_controller = JobsController(session)
 
             # Get company details
             company = client_companies_controller.get_entity(company_id)
@@ -209,7 +221,9 @@ def handle_update_client_user_status(data: dict, user_session: UserSession) -> d
 
     try:
         with get_db_session() as db:
-            users_controller = UsersController(db)
+            with get_db_session() as session:
+
+                users_controller = UsersController(session)
             user = users_controller.get_entity(user_id)
 
             if not user:
@@ -256,9 +270,15 @@ def handle_get_client_analytics(user_session: UserSession) -> dict:
 
     try:
         with get_db_session() as db:
-            client_companies_controller = ClientCompaniesController(db)
-            users_controller = UsersController(db)
-            jobs_controller = JobsController(db)
+            with get_db_session() as session:
+
+                client_companies_controller = ClientCompaniesController(session)
+            with get_db_session() as session:
+
+                users_controller = UsersController(session)
+            with get_db_session() as session:
+
+                jobs_controller = JobsController(session)
 
             # Get all data
             companies = client_companies_controller.get_all_entities()

@@ -1,4 +1,4 @@
-from config.constants import db
+from main import get_db_session
 from db.controllers.client_companies_controller import ClientCompaniesController
 
 
@@ -15,9 +15,10 @@ def handle_get_all_client_companies(user_session):
     #     return {"success": False, "error": "User does not have access to this feature."}
 
     try:
-        controller = ClientCompaniesController(db)
-        companies = controller.get_all_client_companies()
-        return {"request_id": 200, "success": True, "data": companies} # New request_id for this
+        with get_db_session() as session:
+            controller = ClientCompaniesController(session)
+            companies = controller.get_all_client_companies()
+            return {"request_id": 200, "success": True, "data": companies} # New request_id for this
     except Exception as e:
         print(f"Error in handle_get_all_client_companies: {e}")
         return {"request_id": 200, "success": False, "error": str(e)}
@@ -39,16 +40,17 @@ def handle_create_client_company(data, user_session):
         if not company_name:
             return {"request_id": 201, "success": False, "error": "Company name is required."}
 
-        controller = ClientCompaniesController(db)
-        company_data = {"name": company_name}
-        new_company = controller.create_entity(company_data)
+        with get_db_session() as session:
+            controller = ClientCompaniesController(session)
+            company_data = {"name": company_name}
+            new_company = controller.create_entity(company_data)
 
-        return {
-            "request_id": 201,
-            "success": True,
-            "message": "Client company created successfully.",
-            "data": {"id": new_company.id, "name": new_company.name}
-        }
+            return {
+                "request_id": 201,
+                "success": True,
+                "message": "Client company created successfully.",
+                "data": {"id": new_company.id, "name": new_company.name}
+            }
     except Exception as e:
         print(f"Error in handle_create_client_company: {e}")
         return {"request_id": 201, "success": False, "error": str(e)}
@@ -75,16 +77,17 @@ def handle_update_client_company(data, user_session):
         if not company_name:
             return {"request_id": 202, "success": False, "error": "Company name is required."}
 
-        controller = ClientCompaniesController(db)
-        update_data = {"name": company_name}
-        updated_company = controller.update_entity(company_id, update_data)
+        with get_db_session() as session:
+            controller = ClientCompaniesController(session)
+            update_data = {"name": company_name}
+            updated_company = controller.update_entity(company_id, update_data)
 
-        return {
-            "request_id": 202,
-            "success": True,
-            "message": "Client company updated successfully.",
-            "data": {"id": updated_company.id, "name": updated_company.name}
-        }
+            return {
+                "request_id": 202,
+                "success": True,
+                "message": "Client company updated successfully.",
+                "data": {"id": updated_company.id, "name": updated_company.name}
+            }
     except Exception as e:
         print(f"Error in handle_update_client_company: {e}")
         return {"request_id": 202, "success": False, "error": str(e)}
@@ -107,14 +110,15 @@ def handle_delete_client_company(data, user_session):
         if not company_id:
             return {"request_id": 203, "success": False, "error": "Company ID is required."}
 
-        controller = ClientCompaniesController(db)
-        controller.delete_entity(company_id)
+        with get_db_session() as session:
+            controller = ClientCompaniesController(session)
+            controller.delete_entity(company_id)
 
-        return {
-            "request_id": 203,
-            "success": True,
-            "message": "Client company deleted successfully."
-        }
+            return {
+                "request_id": 203,
+                "success": True,
+                "message": "Client company deleted successfully."
+            }
     except Exception as e:
         print(f"Error in handle_delete_client_company: {e}")
         return {"request_id": 203, "success": False, "error": str(e)}

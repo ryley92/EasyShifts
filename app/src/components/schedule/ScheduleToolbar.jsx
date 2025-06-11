@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './ScheduleToolbar.css';
 
 const ScheduleToolbar = ({
@@ -9,8 +9,18 @@ const ScheduleToolbar = ({
   onToday,
   onCreateShift,
   onToggleWorkerPanel,
-  isWorkerPanelOpen
+  isWorkerPanelOpen,
+  onBulkMode,
+  isBulkMode,
+  onShowAnalytics,
+  onShowTemplates,
+  onAutoRefresh,
+  autoRefresh,
+  onExport,
+  onImport,
+  selectedShiftsCount = 0
 }) => {
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const formatDateRange = () => {
     switch (currentView) {
       case 'day':
@@ -101,6 +111,78 @@ const ScheduleToolbar = ({
       </div>
 
       <div className="toolbar-section toolbar-right">
+        {/* Bulk Mode Toggle */}
+        <button
+          onClick={onBulkMode}
+          className={`bulk-mode-button ${isBulkMode ? 'active' : ''}`}
+          title={isBulkMode ? 'Exit Bulk Mode' : 'Enter Bulk Mode'}
+        >
+          <span className="bulk-icon">☑️</span>
+          <span className="bulk-label">
+            {isBulkMode ? `Bulk (${selectedShiftsCount})` : 'Bulk'}
+          </span>
+        </button>
+
+        {/* Auto Refresh Toggle */}
+        <button
+          onClick={onAutoRefresh}
+          className={`auto-refresh-button ${autoRefresh ? 'active' : ''}`}
+          title={autoRefresh ? 'Disable Auto Refresh' : 'Enable Auto Refresh'}
+        >
+          <span className="refresh-icon">🔄</span>
+        </button>
+
+        {/* Analytics Button */}
+        <button
+          onClick={onShowAnalytics}
+          className="analytics-button"
+          title="Show Analytics"
+        >
+          <span className="analytics-icon">📊</span>
+          <span className="analytics-label">Analytics</span>
+        </button>
+
+        {/* Templates Button */}
+        <button
+          onClick={onShowTemplates}
+          className="templates-button"
+          title="Shift Templates"
+        >
+          <span className="templates-icon">📋</span>
+          <span className="templates-label">Templates</span>
+        </button>
+
+        {/* Export/Import Menu */}
+        <div className="export-menu-container">
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            className="export-button"
+            title="Export/Import"
+          >
+            <span className="export-icon">📤</span>
+            <span className="export-label">Export</span>
+          </button>
+
+          {showExportMenu && (
+            <div className="export-dropdown">
+              <button onClick={() => { onExport('csv'); setShowExportMenu(false); }}>
+                Export CSV
+              </button>
+              <button onClick={() => { onExport('excel'); setShowExportMenu(false); }}>
+                Export Excel
+              </button>
+              <button onClick={() => { onExport('pdf'); setShowExportMenu(false); }}>
+                Export PDF
+              </button>
+              <hr />
+              <button onClick={() => { onImport(); setShowExportMenu(false); }}>
+                Import Schedule
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Worker Panel Toggle */}
         <button
           onClick={onToggleWorkerPanel}
           className={`panel-toggle-button ${isWorkerPanelOpen ? 'active' : ''}`}
@@ -111,10 +193,11 @@ const ScheduleToolbar = ({
             {isWorkerPanelOpen ? 'Hide Workers' : 'Show Workers'}
           </span>
         </button>
-        
+
+        {/* Create Shift Button */}
         <button
           onClick={onCreateShift}
-          className="create-shift-button"
+          className="create-shift-button primary"
         >
           <span className="create-icon">➕</span>
           <span className="create-label">New Shift</span>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSocket, logDebug, logError, logWarning, logInfo } from '../../utils';
+import { useWebSocketAuth } from '../../hooks/useWebSocketAuth';
 import ClientCompanyCard from './ClientCompanyCard';
 import ClientAnalytics from './ClientAnalytics';
 import ClientSearch from './ClientSearch';
@@ -9,6 +10,7 @@ const ClientDirectory = () => {
   logDebug('ClientDirectory', 'Component rendering/re-rendering');
 
   const { socket, connectionStatus, lastError, isConnected, hasError } = useSocket();
+  const { isAuthenticated, authError, isAuthenticating } = useWebSocketAuth(socket);
   const [clientDirectory, setClientDirectory] = useState([]);
   const [filteredClients, setFilteredClients] = useState([]);
   const [summary, setSummary] = useState({});
@@ -27,7 +29,9 @@ const ClientDirectory = () => {
       logDebug('ClientDirectory', 'fetchClientDirectory called', {
         socketState: socket?.readyState,
         connectionStatus,
-        retryCount
+        retryCount,
+        isAuthenticated,
+        isAuthenticating
       });
 
       if (!socket) {
@@ -42,6 +46,19 @@ const ClientDirectory = () => {
         logWarning('ClientDirectory', errorMsg);
         setError('Connection not ready. Please wait or try refreshing.');
         return;
+      }
+
+      if (!isAuthenticated) {
+        if (isAuthenticating) {
+          logDebug('ClientDirectory', 'Authentication in progress, waiting...');
+          setError('Authenticating...');
+          return;
+        } else {
+          const errorMsg = 'WebSocket not authenticated. Please log in again.';
+          logWarning('ClientDirectory', errorMsg);
+          setError(errorMsg);
+          return;
+        }
       }
 
       setIsLoading(true);
@@ -67,14 +84,14 @@ const ClientDirectory = () => {
       setIsLoading(false);
       setError(`Failed to fetch data: ${error.message}`);
     }
-  }, [socket, connectionStatus, retryCount, isLoading]);
+  }, [socket, connectionStatus, retryCount, isAuthenticated, isAuthenticating]);
 
   const fetchClientAnalytics = useCallback(() => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    if (socket && socket.readyState === WebSocket.OPEN && isAuthenticated) {
       const request = { request_id: 215 }; // GET_CLIENT_ANALYTICS
       socket.send(JSON.stringify(request));
     }
-  }, [socket]);
+  }, [socket, isAuthenticated]);
 
   // Filter and sort clients
   useEffect(() => {
@@ -136,12 +153,17 @@ const ClientDirectory = () => {
     setFilteredClients(filtered);
   }, [clientDirectory, searchTerm, filterStatus, sortBy]);
 
+  // Track if we've already fetched data to prevent multiple requests
+  const [hasFetched, setHasFetched] = useState(false);
+
   useEffect(() => {
-    if (socket) {
+    if (socket && isAuthenticated && !hasFetched) {
+      logDebug('ClientDirectory', 'Socket connected and authenticated, fetching data');
+      setHasFetched(true);
       fetchClientDirectory();
       fetchClientAnalytics();
     }
-  }, [socket, fetchClientDirectory, fetchClientAnalytics]);
+  }, [socket, isAuthenticated, hasFetched, fetchClientDirectory, fetchClientAnalytics]);
 
   useEffect(() => {
     if (!socket) return;
@@ -315,31 +337,46 @@ const ClientDirectory = () => {
         </button>
       </div>
 
-      {error && (
+      {(error || authError) && (
         <div className="error-message">
           <div className="error-content">
             <span className="error-icon">⚠️</span>
             <div className="error-details">
-              <div className="error-text">{error}</div>
-              {retryCount > 0 && (
+              <div className="error-text">{authError || error}</div>
+              {retryCount > 0 && !authError && (
                 <div className="error-meta">
                   Attempt {retryCount + 1} • Last tried: {lastFetchTime ? new Date(lastFetchTime).toLocaleTimeString() : 'Unknown'}
                 </div>
               )}
+              {authError && (
+                <div className="error-meta">
+                  Authentication failed. Please refresh the page to log in again.
+                </div>
+              )}
             </div>
-            <button onClick={handleRetry} className="retry-button" disabled={isLoading}>
-              {isLoading ? 'Retrying...' : 'Retry'}
-            </button>
+            {!authError && (
+              <button onClick={handleRetry} className="retry-button" disabled={isLoading}>
+                {isLoading ? 'Retrying...' : 'Retry'}
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Connection status indicator */}
+      {/* Connection and authentication status indicators */}
       {!isConnected && (
         <div className="connection-warning">
           <span className="warning-icon">🔌</span>
           Connection status: {connectionStatus}
           {connectionStatus === 'reconnecting' && <span className="loading-dots">...</span>}
+        </div>
+      )}
+
+      {isConnected && !isAuthenticated && !authError && (
+        <div className="auth-warning">
+          <span className="warning-icon">🔐</span>
+          {isAuthenticating ? 'Authenticating...' : 'Authentication required'}
+          {isAuthenticating && <span className="loading-dots">...</span>}
         </div>
       )}
 

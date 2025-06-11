@@ -187,7 +187,8 @@
   cursor: not-allowed;
 }
 
-.connection-warning {
+.connection-warning,
+.auth-warning {
   background: #fff3cd;
   color: #856404;
   border: 1px solid #ffeaa7;
@@ -197,6 +198,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.auth-warning {
+  background: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
 }
 
 .warning-icon {

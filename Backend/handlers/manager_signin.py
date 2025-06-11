@@ -21,7 +21,9 @@ def handle_manager_signin(data):
     try:
         print("IN")
         # Initialize the users controller
-        user_controller = UsersController(db)
+        with get_db_session() as session:
+
+            user_controller = UsersController(session)
 
         # Insert the new manager into the database
         print(data)

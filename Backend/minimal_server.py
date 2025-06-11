@@ -43,14 +43,26 @@ async def handle_test_db(request):
     """Test database connection endpoint"""
     try:
         # Try to import and test database
-        from config.private_password import PASSWORD
         from sqlalchemy import create_engine, text
-        
+
+        # Get database password using the same method as main.py
+        def get_database_password():
+            db_password = os.getenv("DB_PASSWORD")
+            if db_password:
+                return db_password
+
+            try:
+                from config.private_password import PASSWORD
+                return PASSWORD
+            except ImportError:
+                raise RuntimeError("Database password not configured")
+
         DB_HOST = os.getenv("DB_HOST", "miano.h.filess.io")
         DB_PORT = os.getenv("DB_PORT", "3305")
         DB_USER = os.getenv("DB_USER", "easyshiftsdb_danceshall")
         DB_NAME = os.getenv("DB_NAME", "easyshiftsdb_danceshall")
-        
+        PASSWORD = get_database_password()
+
         connection_url = f'mariadb+pymysql://{DB_USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
         
         engine = create_engine(

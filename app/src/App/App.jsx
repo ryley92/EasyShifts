@@ -5,6 +5,8 @@ import { AuthProvider } from '../contexts/AuthContext';
 import { GoogleAuthContextProvider } from '../contexts/GoogleAuthContext';
 import ProtectedRoute from '../components/ProtectedRoute';
 import ErrorBoundary from '../components/ErrorBoundary';
+// Import credential fix to ensure correct admin password
+import '../utils/fixUserCredentials';
 import DashboardRouter from '../components/DashboardRouter';
 import Home from '../components/Home';
 import Login from '../components/Login';
@@ -19,6 +21,7 @@ import EnhancedSettingsPage from '../components/EnhancedSettingsPage';
 import ClientDirectory from '../components/clients/ClientDirectory';
 import ClientDirectoryDebug from '../components/clients/ClientDirectoryDebug';
 import DebugDashboard from '../components/DebugDashboard';
+import WebSocketDebugger from '../components/WebSocketDebugger';
 import SignUpManager from '../components/SignUpManager';
 import SignUpEmployee from '../components/SignUpEmployee';
 import SignUpClient from '../components/SignUpClient';
@@ -82,6 +85,7 @@ function App() {
           <Route path="/google-oauth-setup" element={<GoogleOAuthSetup />} />
           <Route path="/test-google-signup" element={<TestGoogleSignup />} />
           <Route path="/debug" element={<DebugDashboard />} />
+          <Route path="/websocket-debug" element={<WebSocketDebugger />} />
           <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           </div>

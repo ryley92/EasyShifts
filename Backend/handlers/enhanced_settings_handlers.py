@@ -13,7 +13,9 @@ def handle_get_all_settings(user_session: UserSession) -> dict:
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         settings_dict = controller.get_settings_dict()
         return {"request_id": request_id, "success": True, "data": settings_dict}
     except Exception as e:
@@ -30,7 +32,9 @@ def handle_update_scheduling_settings(data: dict, user_session: UserSession) -> 
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         
         # Validate the data
         service = controller.service
@@ -55,7 +59,9 @@ def handle_update_notification_settings(data: dict, user_session: UserSession) -
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         updated_settings = controller.update_notification_settings(data)
         return {"request_id": request_id, "success": True, "data": updated_settings.to_dict()}
     except Exception as e:
@@ -72,7 +78,9 @@ def handle_update_request_window_settings(data: dict, user_session: UserSession)
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         
         # Validate the data
         service = controller.service
@@ -102,7 +110,9 @@ def handle_update_worker_management_settings(data: dict, user_session: UserSessi
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         
         # Validate the data
         service = controller.service
@@ -126,7 +136,9 @@ def handle_update_timesheet_settings(data: dict, user_session: UserSession) -> d
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         
         # Validate the data
         service = controller.service
@@ -150,7 +162,9 @@ def handle_update_display_settings(data: dict, user_session: UserSession) -> dic
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         
         # Validate the data
         service = controller.service
@@ -174,7 +188,9 @@ def handle_reset_settings_to_defaults(user_session: UserSession) -> dict:
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         reset_settings = controller.reset_to_defaults()
         return {"request_id": request_id, "success": True, "data": reset_settings.to_dict()}
     except Exception as e:
@@ -191,7 +207,9 @@ def handle_get_settings_template(user_session: UserSession) -> dict:
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         template = controller.service.get_default_settings_template()
         return {"request_id": request_id, "success": True, "data": template}
     except Exception as e:
@@ -208,7 +226,9 @@ def handle_export_settings(user_session: UserSession) -> dict:
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         settings_dict = controller.get_settings_dict()
 
         # Add export metadata
@@ -234,7 +254,9 @@ def handle_import_settings(data: dict, user_session: UserSession) -> dict:
         return {"request_id": request_id, "success": False, "error": "Unauthorized access."}
     
     try:
-        controller = WorkplaceSettingsController(db)
+        with get_db_session() as session:
+
+            controller = WorkplaceSettingsController(session)
         
         # Validate import data structure
         if "settings" not in data:
@@ -268,7 +290,9 @@ def handle_update_company_profile_settings(data: dict, user_session: UserSession
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_company_profile_settings(data)
@@ -292,7 +316,9 @@ def handle_update_user_management_settings(data: dict, user_session: UserSession
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_user_management_settings(data)
@@ -316,7 +342,9 @@ def handle_update_certifications_settings(data: dict, user_session: UserSession)
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_certifications_settings(data)
@@ -340,7 +368,9 @@ def handle_update_client_management_settings(data: dict, user_session: UserSessi
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_client_management_settings(data)
@@ -364,7 +394,9 @@ def handle_update_job_configuration_settings(data: dict, user_session: UserSessi
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_job_configuration_settings(data)
@@ -388,7 +420,9 @@ def handle_update_timesheet_advanced_settings(data: dict, user_session: UserSess
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_timesheet_advanced_settings(data)
@@ -412,7 +446,9 @@ def handle_update_google_integration_settings(data: dict, user_session: UserSess
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_google_integration_settings(data)
@@ -436,7 +472,9 @@ def handle_update_reporting_settings(data: dict, user_session: UserSession) -> d
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_reporting_settings(data)
@@ -460,7 +498,9 @@ def handle_update_security_settings(data: dict, user_session: UserSession) -> di
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_security_settings(data)
@@ -484,7 +524,9 @@ def handle_update_mobile_accessibility_settings(data: dict, user_session: UserSe
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_mobile_accessibility_settings(data)
@@ -508,7 +550,9 @@ def handle_update_system_admin_settings(data: dict, user_session: UserSession) -
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
 
         # Validate the data
         errors = controller.validate_system_admin_settings(data)
@@ -532,7 +576,9 @@ def handle_get_extended_settings(user_session: UserSession) -> dict:
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
         settings_dict = controller.get_all_extended_settings()
         return {"request_id": request_id, "success": True, "data": settings_dict}
     except Exception as e:
@@ -550,7 +596,9 @@ def handle_reset_extended_settings_to_defaults(user_session: UserSession) -> dic
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
         reset_settings = controller.reset_all_to_defaults(user_session.get_id)
         return {"request_id": request_id, "success": True, "data": reset_settings}
     except Exception as e:
@@ -568,7 +616,9 @@ def handle_test_google_connection(data: dict, user_session: UserSession) -> dict
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
         test_result = controller.test_google_connection(user_session.get_id, data)
         return {"request_id": request_id, "success": True, "data": test_result}
     except Exception as e:
@@ -586,7 +636,9 @@ def handle_manual_google_sync(user_session: UserSession) -> dict:
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
         sync_result = controller.trigger_manual_google_sync(user_session.get_id)
         return {"request_id": request_id, "success": True, "data": sync_result}
     except Exception as e:
@@ -604,7 +656,9 @@ def handle_system_health_check(user_session: UserSession) -> dict:
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
         health_result = controller.run_system_health_check(user_session.get_id)
         return {"request_id": request_id, "success": True, "data": health_result}
     except Exception as e:
@@ -622,7 +676,9 @@ def handle_manual_backup(user_session: UserSession) -> dict:
 
     try:
         from db.controllers.extended_settings_controller import ExtendedSettingsController
-        controller = ExtendedSettingsController(db)
+        with get_db_session() as session:
+
+            controller = ExtendedSettingsController(session)
         backup_result = controller.trigger_manual_backup(user_session.get_id)
         return {"request_id": request_id, "success": True, "data": backup_result}
     except Exception as e:

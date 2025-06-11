@@ -1,4 +1,5 @@
 from typing import List, Optional
+from main import get_db_session
 from ..repositories.employee_certifications_repository import EmployeeCertificationsRepository
 from ..controllers.users_controller import UsersController
 from ..controllers.workPlaces_controller import WorkPlacesController
@@ -28,8 +29,12 @@ class EmployeeCertificationsService:
         certifications = self.repository.get_users_with_role_capability(role)
         
         employees = []
-        users_controller = UsersController(db)
-        workplaces_controller = WorkPlacesController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
+        with get_db_session() as session:
+
+            workplaces_controller = WorkPlacesController(session)
         
         for cert in certifications:
             try:
@@ -73,8 +78,12 @@ class EmployeeCertificationsService:
             List[dict]: List of employee data with certification info
         """
         employees = []
-        users_controller = UsersController(db)
-        workplaces_controller = WorkPlacesController(db)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
+        with get_db_session() as session:
+
+            workplaces_controller = WorkPlacesController(session)
         
         # Get all active, approved employees
         if workplace_id:

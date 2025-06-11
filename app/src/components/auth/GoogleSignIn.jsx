@@ -9,7 +9,7 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
   const [isLoading, setIsLoading] = useState(false);
   const { googleLogin } = useAuth();
   const { isConfigured } = useGoogleAuth();
-  const { socket, connectionStatus, reconnect, isConnected, hasError } = useSocket();
+  const { socket, connectionStatus, reconnect, waitForConnection, isConnected, hasError } = useSocket();
 
   // Monitor connection status
   useEffect(() => {
@@ -25,36 +25,19 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
     setIsLoading(true);
 
     try {
-      // Check connection status with improved logic
+      // Use the improved connection waiting logic
+      let activeSocket = socket;
+
       if (!isConnected) {
-        logWarning('GoogleSignIn', 'WebSocket not connected, attempting to reconnect');
-        reconnect();
+        logWarning('GoogleSignIn', 'WebSocket not connected, waiting for connection');
 
-        // Wait for connection with proper status checking
-        const maxWaitTime = 5000; // 5 seconds
-        const checkInterval = 100; // 100ms
-        const maxAttempts = maxWaitTime / checkInterval;
-
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-          await new Promise(resolve => setTimeout(resolve, checkInterval));
-
-          // Check if connection is established
-          if (socket && socket.readyState === WebSocket.OPEN) {
-            logDebug('GoogleSignIn', 'Connection established after waiting');
-            break;
-          }
-
-          // Check if connection failed
-          if (hasError || connectionStatus === 'failed') {
-            logError('GoogleSignIn', 'Connection failed during wait');
-            throw new Error('Connection failed. Please try again.');
-          }
-        }
-
-        // Final check
-        if (!socket || socket.readyState !== WebSocket.OPEN) {
-          logError('GoogleSignIn', 'Could not establish server connection after waiting');
-          throw new Error('Could not establish server connection');
+        try {
+          // Wait for connection with 10 second timeout
+          activeSocket = await waitForConnection(10000);
+          logDebug('GoogleSignIn', 'Connection established successfully');
+        } catch (connectionError) {
+          logError('GoogleSignIn', 'Failed to establish connection', connectionError);
+          throw new Error('Could not establish server connection. Please try again.');
         }
       }
 
@@ -80,7 +63,7 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
           });
 
           if (response.request_id === 66) {
-            socket.removeEventListener('message', handleMessage);
+            activeSocket.removeEventListener('message', handleMessage);
 
             if (response.success && response.data) {
               // Process successful response
@@ -132,7 +115,7 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
             }
           }
         } catch (error) {
-          socket.removeEventListener('message', handleMessage);
+          activeSocket.removeEventListener('message', handleMessage);
           logError('GoogleSignIn', 'Error processing authentication response', error);
           
           if (onError) {
@@ -144,19 +127,19 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
       };
 
       // Add message listener
-      socket.addEventListener('message', handleMessage);
+      activeSocket.addEventListener('message', handleMessage);
 
       // Send request
-      if (!socket || socket.readyState !== WebSocket.OPEN) {
+      if (!activeSocket || activeSocket.readyState !== WebSocket.OPEN) {
         throw new Error('WebSocket connection not available');
       }
 
-      socket.send(JSON.stringify(request));
+      activeSocket.send(JSON.stringify(request));
       logInfo('GoogleSignIn', 'Authentication request sent', { request_id: 66 });
-      
+
       // Set timeout
       setTimeout(() => {
-        socket.removeEventListener('message', handleMessage);
+        activeSocket.removeEventListener('message', handleMessage);
         setIsLoading(false);
         if (onError) {
           onError('Authentication request timed out');

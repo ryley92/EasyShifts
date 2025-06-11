@@ -11,7 +11,7 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState('link'); // 'link' or 'create'
-  const { socket } = useSocket();
+  const { socket, waitForConnection, isConnected } = useSocket();
   const { googleLogin } = useAuth();
 
   const handleChange = (e) => {
@@ -35,22 +35,31 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
     setError('');
 
     try {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        const request = {
-          request_id: 67, // LINK_GOOGLE_ACCOUNT
-          data: {
-            username: formData.username,
-            password: formData.password,
-            googleData: googleData
-          }
-        };
+      // Ensure connection is available
+      let activeSocket = socket;
+      if (!isConnected) {
+        try {
+          activeSocket = await waitForConnection(10000);
+        } catch (connectionError) {
+          throw new Error('Could not establish server connection. Please try again.');
+        }
+      }
+
+      const request = {
+        request_id: 67, // LINK_GOOGLE_ACCOUNT
+        data: {
+          username: formData.username,
+          password: formData.password,
+          googleData: googleData
+        }
+      };
 
         const handleMessage = (event) => {
           try {
             const response = JSON.parse(event.data);
             
             if (response.request_id === 67) {
-              socket.removeEventListener('message', handleMessage);
+              activeSocket.removeEventListener('message', handleMessage);
               
               if (response.success) {
                 // Account linked successfully, log user in
@@ -72,25 +81,21 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
               }
             }
           } catch (error) {
-            socket.removeEventListener('message', handleMessage);
+            activeSocket.removeEventListener('message', handleMessage);
             setError('Error processing response');
           } finally {
             setIsLoading(false);
           }
         };
 
-        socket.addEventListener('message', handleMessage);
-        socket.send(JSON.stringify(request));
+        activeSocket.addEventListener('message', handleMessage);
+        activeSocket.send(JSON.stringify(request));
 
         setTimeout(() => {
-          socket.removeEventListener('message', handleMessage);
+          activeSocket.removeEventListener('message', handleMessage);
           setIsLoading(false);
           setError('Request timed out');
         }, 10000);
-
-      } else {
-        throw new Error('Not connected to server');
-      }
     } catch (error) {
       setIsLoading(false);
       setError(error.message || 'Failed to link account');
@@ -109,23 +114,32 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
     setError('');
 
     try {
-      if (socket && socket.readyState === WebSocket.OPEN) {
-        const request = {
-          request_id: 68, // CREATE_ACCOUNT_WITH_GOOGLE
-          data: {
-            username: formData.username,
-            googleData: googleData,
-            name: googleData.name,
-            email: googleData.email
-          }
-        };
+      // Ensure connection is available
+      let activeSocket = socket;
+      if (!isConnected) {
+        try {
+          activeSocket = await waitForConnection(10000);
+        } catch (connectionError) {
+          throw new Error('Could not establish server connection. Please try again.');
+        }
+      }
+
+      const request = {
+        request_id: 68, // CREATE_ACCOUNT_WITH_GOOGLE
+        data: {
+          username: formData.username,
+          googleData: googleData,
+          name: googleData.name,
+          email: googleData.email
+        }
+      };
 
         const handleMessage = (event) => {
           try {
             const response = JSON.parse(event.data);
             
             if (response.request_id === 68) {
-              socket.removeEventListener('message', handleMessage);
+              activeSocket.removeEventListener('message', handleMessage);
               
               if (response.success) {
                 // Account created successfully, log user in
@@ -147,25 +161,21 @@ const GoogleAccountLinking = ({ googleData, onSuccess, onCancel }) => {
               }
             }
           } catch (error) {
-            socket.removeEventListener('message', handleMessage);
+            activeSocket.removeEventListener('message', handleMessage);
             setError('Error processing response');
           } finally {
             setIsLoading(false);
           }
         };
 
-        socket.addEventListener('message', handleMessage);
-        socket.send(JSON.stringify(request));
+        activeSocket.addEventListener('message', handleMessage);
+        activeSocket.send(JSON.stringify(request));
 
         setTimeout(() => {
-          socket.removeEventListener('message', handleMessage);
+          activeSocket.removeEventListener('message', handleMessage);
           setIsLoading(false);
           setError('Request timed out');
         }, 10000);
-
-      } else {
-        throw new Error('Not connected to server');
-      }
     } catch (error) {
       setIsLoading(false);
       setError(error.message || 'Failed to create account');

@@ -116,6 +116,22 @@ const EmployeeListPage = () => {
         }
     };
 
+    const handleCertificationUpdate = (employeeId, updatedData) => {
+        // Update the employee in the local state with new certification data
+        setEmployees(prevEmployees =>
+            prevEmployees.map(emp =>
+                emp.id === employeeId
+                    ? {
+                        ...emp,
+                        certifications: updatedData.certifications,
+                        available_roles: updatedData.available_roles
+                    }
+                    : emp
+            )
+        );
+        setSuccessMessage(`Certifications updated for ${updatedData.employee_name}`);
+    };
+
     // Filter and sort employees
     const processedEmployees = useMemo(() => {
         let filtered = employees.filter(employee => {
@@ -412,6 +428,8 @@ const EmployeeListPage = () => {
                                 onClick={() => handleEmployeeClick(employee)}
                                 onApprove={() => handleApprove(employee.userName)}
                                 onReject={() => handleReject(employee.userName)}
+                                isManager={true}
+                                onCertificationUpdate={handleCertificationUpdate}
                             />
                         ))}
                     </div>

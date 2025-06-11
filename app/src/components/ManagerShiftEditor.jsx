@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useSocket, logDebug, logError, logWarning, logInfo } from '../utils';
+import { useWebSocketAuth } from '../hooks/useWebSocketAuth';
 import ShiftAssignmentRow from './ShiftAssignmentRow';
 import RoleRequirementBuilder from './RoleRequirementBuilder';
+import ShiftRequirementsEditor from './ShiftRequirementsEditor';
 import './ManagerShiftEditor.css';
 
 // Helper to get EmployeeType values - in a real app, this might come from an API or a shared constant
@@ -21,6 +23,7 @@ const ManagerShiftEditor = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { socket, connectionStatus, isConnected, hasError, lastError } = useSocket();
+  const { isAuthenticated, authError, isAuthenticating, retryAuthentication } = useWebSocketAuth(socket);
 
   const jobName = location.state?.jobName;
   const clientCompanyId = location.state?.clientCompanyId;
@@ -30,6 +33,8 @@ const ManagerShiftEditor = () => {
   const [availableWorkers, setAvailableWorkers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showRequirementsEditor, setShowRequirementsEditor] = useState(false);
+  const [selectedShiftForEdit, setSelectedShiftForEdit] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [retryCount, setRetryCount] = useState(0);
   const [lastFetchTime, setLastFetchTime] = useState(null);
@@ -43,12 +48,17 @@ const ManagerShiftEditor = () => {
   );
 
   const fetchAvailableWorkers = useCallback(() => {
-    if (socket && socket.readyState === WebSocket.OPEN) {
-      // Potentially set a loading state for workers if needed
+    if (socket && socket.readyState === WebSocket.OPEN && isAuthenticated) {
+      logDebug('ManagerShiftEditor', 'Fetching available workers');
       const request = { request_id: 94 }; // GET_ALL_APPROVED_WORKER_DETAILS
       socket.send(JSON.stringify(request));
+    } else {
+      logWarning('ManagerShiftEditor', 'Cannot fetch workers - not authenticated', {
+        socketReady: socket?.readyState === WebSocket.OPEN,
+        isAuthenticated
+      });
     }
-  }, [socket]);
+  }, [socket, isAuthenticated]);
 
   const fetchShiftsForJob = useCallback(() => {
     try {
@@ -77,6 +87,19 @@ const ManagerShiftEditor = () => {
         logWarning('ManagerShiftEditor', errorMsg);
         setError('Connection not ready. Please wait or try refreshing.');
         return;
+      }
+
+      if (!isAuthenticated) {
+        if (isAuthenticating) {
+          logDebug('ManagerShiftEditor', 'Authentication in progress, waiting...');
+          setError('Authenticating...');
+          return;
+        } else {
+          const errorMsg = 'WebSocket not authenticated. Please log in again.';
+          logWarning('ManagerShiftEditor', errorMsg);
+          setError(errorMsg);
+          return;
+        }
       }
 
       setIsLoading(true);
@@ -111,7 +134,7 @@ const ManagerShiftEditor = () => {
       setIsLoading(false);
       setError(`Failed to fetch shifts: ${error.message}`);
     }
-  }, [socket, jobId, connectionStatus]); // Removed isLoading from dependencies
+  }, [socket, jobId, connectionStatus, isAuthenticated, isAuthenticating]); // Added auth dependencies
 
   // Initial load effect
   useEffect(() => {
@@ -121,22 +144,37 @@ const ManagerShiftEditor = () => {
       return;
     }
 
-    // Only fetch if we have a valid connection
-    if (socket && socket.readyState === WebSocket.OPEN) {
+    // Only fetch if we have a valid connection and are authenticated
+    if (socket && socket.readyState === WebSocket.OPEN && isAuthenticated) {
+      logDebug('ManagerShiftEditor', 'Initial data fetch - authenticated and connected');
       fetchShiftsForJob();
       fetchAvailableWorkers();
     }
-  }, [jobId, jobName]); // Only depend on job details
+  }, [jobId, jobName, socket, isAuthenticated]); // Added socket and auth dependencies
 
   // Connection status effect
   useEffect(() => {
-    if (jobId && jobName && socket && socket.readyState === WebSocket.OPEN && shifts.length === 0 && !isLoading) {
+    if (jobId && jobName && socket && socket.readyState === WebSocket.OPEN && isAuthenticated && shifts.length === 0 && !isLoading) {
       // Fetch data when connection becomes available and we don't have data yet
-      logDebug('ManagerShiftEditor', 'Connection available, fetching data');
+      logDebug('ManagerShiftEditor', 'Connection available and authenticated, fetching data');
       fetchShiftsForJob();
       fetchAvailableWorkers();
     }
-  }, [socket, connectionStatus, isConnected]); // React to connection changes
+  }, [socket, connectionStatus, isConnected, isAuthenticated]); // React to connection and auth changes
+
+  // Add retry functionality
+  const handleRetry = useCallback(() => {
+    if (retryCount < 3) {
+      logInfo('ManagerShiftEditor', 'Retrying data fetch', { attempt: retryCount + 1 });
+      setRetryCount(prev => prev + 1);
+      setError('');
+      fetchShiftsForJob();
+      fetchAvailableWorkers();
+    } else {
+      logError('ManagerShiftEditor', 'Maximum retry attempts reached');
+      setError('Maximum retry attempts reached. Please refresh the page.');
+    }
+  }, [retryCount, fetchShiftsForJob, fetchAvailableWorkers]);
 
   useEffect(() => {
     if (!socket) return;
@@ -221,9 +259,34 @@ const ManagerShiftEditor = () => {
             // For now, we'll assume the success message is enough and a full re-fetch might be simplest
             // or the component initiating the unassign action can provide context for a more targeted update.
             setSuccessMessage(response.message || 'Worker unassigned successfully.');
-            fetchShiftsForJob(); // Re-fetch shifts to reflect the unassignment accurately
+            // Re-fetch shifts to reflect the unassignment accurately
+            if (socket && socket.readyState === WebSocket.OPEN && jobId) {
+              const request = {
+                request_id: 221, // GET_SHIFTS_BY_JOB
+                data: { job_id: parseInt(jobId, 10) },
+              };
+              socket.send(JSON.stringify(request));
+            }
           } else {
             setError(response.error || 'Failed to unassign worker.');
+          }
+        } else if (response.request_id === 232) { // Update Shift Requirements
+          if (response.success && response.data) {
+            // Update the specific shift with new requirements
+            setShifts(prevShifts => prevShifts.map(shift => {
+              if (shift.id === response.data.shift_id) {
+                return {
+                  ...shift,
+                  required_employee_counts: response.data.required_employee_counts
+                };
+              }
+              return shift;
+            }));
+            setSuccessMessage('Shift requirements updated successfully!');
+            setShowRequirementsEditor(false);
+            setSelectedShiftForEdit(null);
+          } else {
+            setError(response.error || 'Failed to update shift requirements.');
           }
         }
       } catch (e) {
@@ -260,7 +323,7 @@ const ManagerShiftEditor = () => {
       return;
     }
 
-    if (socket && socket.readyState === WebSocket.OPEN && jobId) {
+    if (socket && socket.readyState === WebSocket.OPEN && isAuthenticated && jobId) {
       setIsLoading(true);
       setError('');
       setSuccessMessage('');
@@ -283,7 +346,11 @@ const ManagerShiftEditor = () => {
       };
       socket.send(JSON.stringify(request));
     } else {
-      setError('WebSocket is not connected or Job ID is missing.');
+      if (!isAuthenticated) {
+        setError('Not authenticated. Please wait for authentication to complete.');
+      } else {
+        setError('WebSocket is not connected or Job ID is missing.');
+      }
     }
   };
 
@@ -336,7 +403,48 @@ const ManagerShiftEditor = () => {
         {clientCompanyName && <p className="client-info">Client: {clientCompanyName}</p>}
       </div>
 
-      {error && <div className="alert alert-error">Error: {error}</div>}
+      {/* Connection and authentication status indicators */}
+      {!isConnected && (
+        <div className="alert alert-warning">
+          <span>🔌</span>
+          Connection status: {connectionStatus}
+          {connectionStatus === 'reconnecting' && <span>...</span>}
+        </div>
+      )}
+
+      {isConnected && !isAuthenticated && !authError && (
+        <div className="alert alert-warning">
+          <span>🔐</span>
+          {isAuthenticating ? 'Authenticating...' : 'Authentication required'}
+          {isAuthenticating && <span>...</span>}
+        </div>
+      )}
+
+      {(error || authError) && (
+        <div className="alert alert-error">
+          Error: {authError || error}
+          {retryCount < 3 && !authError && (
+            <button
+              onClick={handleRetry}
+              style={{ marginLeft: '10px', padding: '5px 10px', fontSize: '12px' }}
+            >
+              Retry ({retryCount}/3)
+            </button>
+          )}
+          {authError && (
+            <div style={{ marginTop: '5px', fontSize: '12px' }}>
+              Authentication failed: {authError}
+              <button
+                onClick={retryAuthentication}
+                style={{ marginLeft: '10px', padding: '5px 10px', fontSize: '12px' }}
+                disabled={isAuthenticating}
+              >
+                {isAuthenticating ? 'Retrying...' : 'Retry Auth'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
       {successMessage && <div className="alert alert-success">{successMessage}</div>}
 
       <div className="create-shift-section">
@@ -417,6 +525,27 @@ const ManagerShiftEditor = () => {
                   )}
                 </div>
                 <div className="shift-actions">
+                  <button
+                    onClick={() => {
+                      setSelectedShiftForEdit(shift);
+                      setShowRequirementsEditor(true);
+                    }}
+                    className="edit-requirements-btn"
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      marginRight: '10px',
+                      cursor: 'pointer'
+                    }}
+                    title="Edit Worker Requirements"
+                  >
+                    ⚙️ Edit Requirements
+                  </button>
                   <Link
                     to={`/shift/${shift.id}/timecard`}
                     className="timecard-link"
@@ -503,6 +632,22 @@ const ManagerShiftEditor = () => {
         </ul>
       )}
       </div>
+
+      {/* Shift Requirements Editor Modal */}
+      {showRequirementsEditor && selectedShiftForEdit && (
+        <ShiftRequirementsEditor
+          shift={selectedShiftForEdit}
+          onUpdate={(updatedData) => {
+            // The WebSocket handler will update the shifts state
+            setSuccessMessage('Shift requirements updated successfully!');
+          }}
+          onClose={() => {
+            setShowRequirementsEditor(false);
+            setSelectedShiftForEdit(null);
+          }}
+          isModal={true}
+        />
+      )}
     </div>
   );
 };

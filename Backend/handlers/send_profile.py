@@ -1,9 +1,11 @@
+import logging
 from main import get_db_session
 from db.controllers.shifts_controller import ShiftsController, convert_shifts_for_client
 from db.controllers.users_controller import UsersController
 from db.controllers.workPlaces_controller import WorkPlacesController
 from user_session import UserSession
 
+logger = logging.getLogger(__name__)
 
 def handle_send_profile(user_session: UserSession) -> dict:
     """
@@ -15,8 +17,11 @@ def handle_send_profile(user_session: UserSession) -> dict:
     Raises:
         Exception: If the user session is not found.
     """
-    # Retrieve the user ID from the user session
-    user_id = user_session.get_id
+    try:
+        logger.info("Processing send profile request")
+
+        # Retrieve the user ID from the user session
+        user_id = user_session.get_id
 
     with get_db_session() as session:
         # Initialize the controllers with the session
@@ -46,4 +51,12 @@ def handle_send_profile(user_session: UserSession) -> dict:
             returned_data["future_shifts"] = future_shifts_for_client
 
         # Return the dictionary
+        logger.info(f"Profile data retrieved for user: {user_id}")
         return returned_data
+
+    except Exception as e:
+        logger.error(f"Error in handle_send_profile: {e}")
+        return {
+            "success": False,
+            "error": f"Failed to get profile data: {str(e)}"
+        }

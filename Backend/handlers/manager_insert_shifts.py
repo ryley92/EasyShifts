@@ -18,8 +18,12 @@ def get_or_create_default_job(user_session):
     For Hands on Labor, we need a default job to link shifts to.
     """
     try:
-        jobs_controller = JobsController(db)
-        client_companies_controller = ClientCompaniesController(db)
+        with get_db_session() as session:
+
+            jobs_controller = JobsController(session)
+        with get_db_session() as session:
+
+            client_companies_controller = ClientCompaniesController(session)
 
         # Try to get existing default job
         all_jobs = jobs_controller.get_all_active_jobs()
@@ -67,11 +71,21 @@ def get_or_create_default_job(user_session):
 
 def handle_manager_insert_shifts(data, user_session: UserSession):
     if user_session.can_access_manager_page():
-        work_places_controller = WorkPlacesController(db)
-        shifts_controller = ShiftsController(db)
-        shift_workers_controller = ShiftWorkersController(db)
-        user_request_controller = UserRequestsController(db)
-        users_controller = UsersController(db)
+        with get_db_session() as session:
+
+            work_places_controller = WorkPlacesController(session)
+        with get_db_session() as session:
+
+            shifts_controller = ShiftsController(session)
+        with get_db_session() as session:
+
+            shift_workers_controller = ShiftWorkersController(session)
+        with get_db_session() as session:
+
+            user_request_controller = UserRequestsController(session)
+        with get_db_session() as session:
+
+            users_controller = UsersController(session)
         employee_id = users_controller.get_user_id_by_username(data["username"])
         employee_request = user_request_controller.get_request_by_userid(employee_id)
         days = [DayName.Sunday, DayName.Monday, DayName.Tuesday, DayName.Wednesday, DayName.Thursday, DayName.Friday,
@@ -106,7 +120,10 @@ def make_shifts(user_session: UserSession):
             # Get or create a default job for these shifts
             default_job_id = get_or_create_default_job(user_session)
 
-            shifts_controller = ShiftsController(db)
+            with get_db_session() as session:
+
+
+                shifts_controller = ShiftsController(session)
             current_date = datetime.now()
             next_sunday = current_date + timedelta(days=(6 - current_date.weekday() + 1) % 7)
             next_week_dates = [next_sunday + timedelta(days=i) for i in range(7)]

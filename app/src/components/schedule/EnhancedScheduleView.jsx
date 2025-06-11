@@ -1,43 +1,60 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSocket } from '../../utils';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useSocket, logDebug, logError, logInfo } from '../../utils';
 import CalendarView from './CalendarView';
 import ScheduleToolbar from './ScheduleToolbar';
 import WorkerPanel from './WorkerPanel';
 import ShiftDetailsModal from './ShiftDetailsModal';
 import ScheduleFilters from './ScheduleFilters';
+import BulkOperationsPanel from './BulkOperationsPanel';
 import './EnhancedScheduleView.css';
 
 const EnhancedScheduleView = () => {
   const { socket } = useSocket();
+  const scheduleRef = useRef(null);
+  const lastUpdateRef = useRef(Date.now());
 
   // View state
-  const [currentView, setCurrentView] = useState('week'); // 'day', 'week', 'month'
+  const [currentView, setCurrentView] = useState('week'); // 'day', 'week', 'month', 'timeline'
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedShift, setSelectedShift] = useState(null);
+  const [selectedShifts, setSelectedShifts] = useState([]); // For bulk operations
   const [isModalOpen, setIsModalOpen] = useState(false);
-  
+  const [modalType, setModalType] = useState('create'); // 'create', 'edit', 'template', 'conflict'
+
   // Data state
   const [shifts, setShifts] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [clientCompanies, setClientCompanies] = useState([]);
   const [workplaceSettings, setWorkplaceSettings] = useState(null);
-  
+  const [shiftTemplates, setShiftTemplates] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [conflicts, setConflicts] = useState([]);
+
   // Filter state
   const [filters, setFilters] = useState({
     jobs: [],
     clients: [],
     workers: [],
     roles: [],
-    status: 'all', // 'all', 'assigned', 'unassigned', 'understaffed'
-    showOnlyMyShifts: false
+    status: 'all', // 'all', 'assigned', 'unassigned', 'understaffed', 'overstaffed'
+    showOnlyMyShifts: false,
+    dateRange: null,
+    searchTerm: '',
+    showConflicts: false,
+    showAvailableOnly: false
   });
-  
+
   // UI state
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [draggedWorker, setDraggedWorker] = useState(null);
+  const [draggedShift, setDraggedShift] = useState(null);
   const [isWorkerPanelOpen, setIsWorkerPanelOpen] = useState(true);
+  const [isBulkMode, setIsBulkMode] = useState(false);
+  const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshInterval, setRefreshInterval] = useState(30000); // 30 seconds
 
   // Load initial data
   useEffect(() => {
@@ -334,6 +351,78 @@ const EnhancedScheduleView = () => {
     window.open(`/timesheet/${shift.id}`, '_blank');
   };
 
+  // Bulk operation handlers
+  const handleBulkAssign = (shifts, worker) => {
+    logInfo('EnhancedScheduleView', 'Bulk assigning worker to shifts', {
+      workerId: worker.id,
+      shiftCount: shifts.length
+    });
+
+    shifts.forEach(shift => {
+      assignWorkerToShift(shift.id, worker);
+    });
+
+    setSelectedShifts([]);
+  };
+
+  const handleBulkUnassign = (shifts) => {
+    logInfo('EnhancedScheduleView', 'Bulk unassigning workers from shifts', {
+      shiftCount: shifts.length
+    });
+
+    shifts.forEach(shift => {
+      if (shift.assigned_workers) {
+        shift.assigned_workers.forEach(worker => {
+          unassignWorkerFromShift(shift.id, worker.id);
+        });
+      }
+    });
+
+    setSelectedShifts([]);
+  };
+
+  const handleBulkDelete = (shifts) => {
+    logInfo('EnhancedScheduleView', 'Bulk deleting shifts', {
+      shiftCount: shifts.length
+    });
+
+    shifts.forEach(shift => {
+      deleteShift(shift.id);
+    });
+
+    setSelectedShifts([]);
+  };
+
+  const handleBulkCopy = (shifts, targetDate) => {
+    logInfo('EnhancedScheduleView', 'Bulk copying shifts', {
+      shiftCount: shifts.length,
+      targetDate: targetDate.toISOString()
+    });
+
+    // Implementation would copy shifts to target date
+    setSelectedShifts([]);
+  };
+
+  const handleBulkMove = (shifts, targetDate) => {
+    logInfo('EnhancedScheduleView', 'Bulk moving shifts', {
+      shiftCount: shifts.length,
+      targetDate: targetDate.toISOString()
+    });
+
+    // Implementation would move shifts to target date
+    setSelectedShifts([]);
+  };
+
+  const handleCreateTemplate = (shifts, templateName) => {
+    logInfo('EnhancedScheduleView', 'Creating template from shifts', {
+      templateName,
+      shiftCount: shifts.length
+    });
+
+    // Implementation would create a reusable template from selected shifts
+    setSelectedShifts([]);
+  };
+
   return (
     <div className="enhanced-schedule-view">
       <ScheduleToolbar
@@ -388,6 +477,20 @@ const EnhancedScheduleView = () => {
           />
         </div>
       </div>
+
+      {/* Bulk Operations Panel */}
+      <BulkOperationsPanel
+        selectedShifts={selectedShifts}
+        onClearSelection={() => setSelectedShifts([])}
+        onBulkAssign={handleBulkAssign}
+        onBulkUnassign={handleBulkUnassign}
+        onBulkDelete={handleBulkDelete}
+        onBulkCopy={handleBulkCopy}
+        onBulkMove={handleBulkMove}
+        onCreateTemplate={handleCreateTemplate}
+        workers={workers}
+        isVisible={isBulkMode && selectedShifts.length > 0}
+      />
 
       {isModalOpen && (
         <ShiftDetailsModal
