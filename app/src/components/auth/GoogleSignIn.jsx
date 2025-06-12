@@ -32,9 +32,13 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
         logWarning('GoogleSignIn', 'WebSocket not connected, waiting for connection');
 
         try {
-          // Wait for connection with 10 second timeout
-          activeSocket = await waitForConnection(10000);
+          // Wait for connection with 15 second timeout (increased for better reliability)
+          activeSocket = await waitForConnection(15000);
           logDebug('GoogleSignIn', 'Connection established successfully');
+
+          // Add a small buffer to ensure server is ready
+          await new Promise(resolve => setTimeout(resolve, 500));
+          logDebug('GoogleSignIn', 'Connection buffer completed, ready to send auth request');
         } catch (connectionError) {
           logError('GoogleSignIn', 'Failed to establish connection', connectionError);
           throw new Error('Could not establish server connection. Please try again.');
@@ -77,6 +81,7 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
                   isManager: response.data.is_manager,
                   loginTime: new Date().toISOString(),
                   googleLinked: true,
+                  loginMethod: 'google',
                   email: response.data.email
                 };
 
@@ -137,14 +142,15 @@ const GoogleSignIn = ({ onSuccess, onError, buttonText = "Continue with Google" 
       activeSocket.send(JSON.stringify(request));
       logInfo('GoogleSignIn', 'Authentication request sent', { request_id: 66 });
 
-      // Set timeout
+      // Set timeout (increased to 15 seconds to match connection timeout)
       setTimeout(() => {
         activeSocket.removeEventListener('message', handleMessage);
         setIsLoading(false);
+        logError('GoogleSignIn', 'Authentication request timed out after 15 seconds');
         if (onError) {
-          onError('Authentication request timed out');
+          onError('Authentication request timed out. Please try again.');
         }
-      }, 10000);
+      }, 15000);
     } catch (error) {
       setIsLoading(false);
       logError('GoogleSignIn', 'Google sign-in error', error);

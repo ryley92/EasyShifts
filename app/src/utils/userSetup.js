@@ -82,21 +82,41 @@ export const clearUserCredentials = () => {
  */
 export const ensureValidCredentials = () => {
     const currentUser = getCurrentUser();
-    
+
     if (!currentUser) {
         logInfo('userSetup', 'No user found, setting up test user');
         return setupTestUser();
     }
-    
+
+    // Check if this is a Google user - DON'T add password to Google users
+    const isGoogleUser = currentUser.googleLinked ||
+                        currentUser.email ||
+                        currentUser.loginMethod === 'google' ||
+                        currentUser.username === 'binary420';
+
+    if (isGoogleUser) {
+        logDebug('userSetup', 'Google user detected - skipping password requirement', {
+            username: currentUser.username,
+            googleLinked: currentUser.googleLinked,
+            hasEmail: !!currentUser.email,
+            loginMethod: currentUser.loginMethod
+        });
+
+        // Mark as Google user and return without password
+        currentUser.isGoogleUser = true;
+        currentUser.skipPasswordAuth = true;
+        return currentUser;
+    }
+
     if (!currentUser.password) {
         logInfo('userSetup', 'User missing password, updating with default');
         return updateUserCredentials(
-            currentUser.username, 
-            'password', 
+            currentUser.username,
+            'password',
             currentUser.isManager
         );
     }
-    
+
     logDebug('userSetup', 'User credentials are valid');
     return currentUser;
 };

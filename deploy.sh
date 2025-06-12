@@ -109,3 +109,4 @@ echo -e "${YELLOW}📝 Don't forget to update your Google OAuth settings with th
 
 cd ..
 
+

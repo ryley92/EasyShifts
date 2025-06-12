@@ -156,12 +156,114 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
-  const googleLogin = (userData) => {
-    setUser(userData);
-    setIsAuthenticated(true);
+  const googleLogin = async (userData) => {
+    try {
+      logDebug('AuthContext', 'Starting Google login session creation', {
+        username: userData.username,
+        isManager: userData.isManager
+      });
 
-    // Persist to localStorage
-    localStorage.setItem('easyshifts_user', JSON.stringify(userData));
+      // Create a proper session for Google users via WebSocket
+      const socket = new WebSocket(WS_URL);
+
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          socket.close();
+          reject(new Error('Google session creation timed out'));
+        }, 10000);
+
+        socket.onopen = () => {
+          logDebug('AuthContext', 'WebSocket connected for Google session creation');
+
+          // Send a special Google login request to create session
+          const request = {
+            username: userData.username,
+            isManager: userData.isManager,
+            email: userData.email,
+            googleId: userData.googleId,
+            request_id: 69  // Use the correct request_id for Google session creation
+          };
+
+          socket.send(JSON.stringify(request));
+        };
+
+        socket.onmessage = (event) => {
+          try {
+            const response = JSON.parse(event.data);
+
+            if (response.request_id === request.request_id) {
+              clearTimeout(timeout);
+              socket.close();
+
+              if (response.success) {
+                logDebug('AuthContext', 'Google session created successfully', response);
+
+                // Store user data with session info
+                const completeUserData = {
+                  ...userData,
+                  sessionId: response.sessionId,
+                  csrfToken: response.csrfToken,
+                  loginMethod: 'google'
+                };
+
+                setUser(completeUserData);
+                setIsAuthenticated(true);
+                setAuthError(null);
+
+                // Persist user data
+                const persistData = {
+                  username: completeUserData.username,
+                  isManager: completeUserData.isManager,
+                  userId: completeUserData.userId,
+                  email: completeUserData.email,
+                  googleId: completeUserData.googleId,
+                  loginMethod: 'google'
+                };
+                localStorage.setItem('easyshifts_user', JSON.stringify(persistData));
+
+                // Store session data
+                sessionStorage.setItem('easyshifts_session', JSON.stringify({
+                  sessionId: response.sessionId,
+                  csrfToken: response.csrfToken
+                }));
+
+                resolve(completeUserData);
+              } else {
+                const errorMessage = response.error || 'Failed to create Google session';
+                logError('AuthContext', 'Google session creation failed', { error: errorMessage });
+                reject(new Error(errorMessage));
+              }
+            }
+          } catch (error) {
+            clearTimeout(timeout);
+            socket.close();
+            logError('AuthContext', 'Error processing Google session response', error);
+            reject(error);
+          }
+        };
+
+        socket.onerror = (error) => {
+          clearTimeout(timeout);
+          logError('AuthContext', 'WebSocket error during Google session creation', error);
+          reject(new Error('WebSocket connection failed'));
+        };
+      });
+
+    } catch (error) {
+      logError('AuthContext', 'Google login session creation failed', error);
+
+      // Fallback: Set user without session (will need to handle this gracefully)
+      setUser(userData);
+      setIsAuthenticated(true);
+      setAuthError('Session creation failed, some features may be limited');
+
+      // Store basic user data
+      localStorage.setItem('easyshifts_user', JSON.stringify({
+        ...userData,
+        loginMethod: 'google',
+        sessionFailed: true
+      }));
+    }
   };
 
   const logout = () => {

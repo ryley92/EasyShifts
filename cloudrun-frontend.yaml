@@ -27,7 +27,7 @@ spec:
         - name: REACT_APP_API_URL
           value: "wss://easyshifts-backend-HASH-uc.a.run.app"
         - name: REACT_APP_ENV
-          value: "production"
+          value: "development"
         resources:
           limits:
             cpu: 1000m
@@ -41,15 +41,16 @@ spec:
             port: 8080
           initialDelaySeconds: 30
           periodSeconds: 30
-          timeoutSeconds: 10
+          timeoutSeconds: 20
         readinessProbe:
           httpGet:
             path: /health
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 10
-          timeoutSeconds: 5
+          timeoutSeconds: 15
   traffic:
   - percent: 100
     latestRevision: true
+
 

@@ -25,5 +25,8 @@
         "tfvkesrld",
         "uselist",
         "usersnames"
-    ]
+    ],
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true
+    }
 }

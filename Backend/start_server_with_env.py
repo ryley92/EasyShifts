@@ -33,18 +33,30 @@ def main():
     
     # Import and start server
     try:
+        print("🔌 Starting combined HTTP/WebSocket server...")
+
+        # Test database connection first (but don't fail if it doesn't work)
+        try:
+            from main import get_db_session
+            with get_db_session() as session:
+                print("✅ Database connection test successful")
+        except Exception as db_error:
+            print(f"⚠️  Database connection test failed: {db_error}")
+            print("   Server will start anyway - database will be retried on requests")
+
+        # Start server regardless of database status
         import Server
         import asyncio
-        
-        print("🔌 Starting combined HTTP/WebSocket server...")
         asyncio.run(Server.start_combined_server())
-        
+
     except KeyboardInterrupt:
         print("\n⏹️  Server stopped by user")
     except Exception as e:
         print(f"\n❌ Server error: {e}")
         import traceback
         traceback.print_exc()
+        # Exit with error code for Cloud Run
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

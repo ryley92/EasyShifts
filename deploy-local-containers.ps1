@@ -105,8 +105,8 @@ if (-not $FrontendOnly) {
     if (-not $SkipBuild) {
         Write-Info "📦 Building backend Docker image locally..."
         try {
-            Set-Location "../Backend"
-            
+            Set-Location "Backend"
+
             # Build the image
             docker build -t $BACKEND_IMAGE .
             Write-Success "✅ Backend image built successfully"
@@ -142,7 +142,7 @@ if (-not $FrontendOnly) {
             --set-env-vars "REDIS_HOST=redis-12649.c328.europe-west3-1.gce.redns.redis-cloud.com" `
             --set-env-vars "REDIS_PORT=12649" `
             --set-env-vars "REDIS_PASSWORD=AtpYvgs0JUs0KvuZm93yvTEzkXEg4fNa" `
-            --set-env-vars "ENVIRONMENT=production"
+            --set-env-vars "ENVIRONMENT=development"
             
         Write-Success "✅ Backend deployed successfully"
     } catch {
@@ -166,8 +166,8 @@ if (-not $BackendOnly) {
     if (-not $SkipBuild) {
         Write-Info "📦 Building frontend Docker image locally..."
         try {
-            Set-Location "../app"
-            
+            Set-Location "app"
+
             # Build the image
             docker build -t $FRONTEND_IMAGE .
             Write-Success "✅ Frontend image built successfully"
@@ -235,3 +235,5 @@ try {
 }
 
 Write-Success "🚀 Deployment script completed!"
+
+

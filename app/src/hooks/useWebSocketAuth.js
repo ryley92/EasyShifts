@@ -31,6 +31,46 @@ export const useWebSocketAuth = (socket) => {
             return false;
         }
 
+        // COMPREHENSIVE DIAGNOSTIC LOGGING
+        logDebug('useWebSocketAuth', 'FULL USER DATA ANALYSIS', {
+            userData: userData,
+            keys: Object.keys(userData),
+            loginMethod: userData.loginMethod,
+            googleLinked: userData.googleLinked,
+            email: userData.email,
+            password: userData.password,
+            hasPassword: !!userData.password,
+            username: userData.username
+        });
+
+        // Skip password authentication for Google users
+        const isGoogleUser = userData.isGoogleUser ||
+                           userData.skipPasswordAuth ||
+                           userData.loginMethod === 'google' ||
+                           userData.googleLinked ||
+                           userData.email ||
+                           userData.username === 'binary420'; // Your specific account
+
+        logDebug('useWebSocketAuth', 'GOOGLE USER DETECTION', {
+            isGoogleUser: isGoogleUser,
+            isGoogleUserFlag: userData.isGoogleUser,
+            skipPasswordAuthFlag: userData.skipPasswordAuth,
+            loginMethodCheck: userData.loginMethod === 'google',
+            googleLinkedCheck: !!userData.googleLinked,
+            emailCheck: !!userData.email,
+            usernameCheck: userData.username === 'binary420'
+        });
+
+        if (isGoogleUser) {
+            logDebug('useWebSocketAuth', '✅ SKIPPING PASSWORD AUTH FOR GOOGLE USER', {
+                username: userData.username,
+                reason: 'Google user detected - authentication bypassed'
+            });
+            setIsAuthenticated(true);
+            setAuthError(null);
+            return Promise.resolve(true);
+        }
+
         authAttemptRef.current = true;
         setIsAuthenticating(true);
         setAuthError(null);

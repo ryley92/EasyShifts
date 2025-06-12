@@ -35,6 +35,7 @@ from handlers import login, employee_signin, manager_signin, employee_shifts_req
     enhanced_settings_handlers
 from handlers import crew_chief_handlers, client_company_handlers, client_directory_handlers, job_handlers, shift_management_handlers, user_management_handlers
 from handlers.google_auth import google_auth_handler
+from handlers.google_session_create import handle_google_session_create
 from db.controllers.shiftBoard_controller import convert_shiftBoard_to_client
 
 # Initialize the database engine and session factory
@@ -76,10 +77,16 @@ def handle_request(request_id, data, client_id=None):
     # Get session for this client, fallback to global session for backward compatibility
     current_session = user_sessions.get(client_id) if client_id else user_session
     print(f"DEBUG: handle_request - client_id: {client_id}, current_session: {current_session}")
+
+    print(f"DEBUG: Received request_id: {request_id}, type: {type(request_id)}")
+    print(f"DEBUG: Request data keys: {list(data.keys()) if isinstance(data, dict) else 'Not a dict'}")
+
     if request_id == 10:
         # Login request handling
         print("Received Login request")
-        print(data)
+        print(f"DEBUG: Login request data: {data}")
+        print(f"DEBUG: Request ID confirmed as: {request_id}")
+        print(f"DEBUG: Client ID: {client_id}")
 
         # Get client IP for security logging
         client_ip = "unknown"
@@ -576,6 +583,27 @@ def handle_request(request_id, data, client_id=None):
             response['data'].pop('user_session', None)
 
         return {"request_id": request_id, **response}
+
+    elif request_id == 69: # GOOGLE_SESSION_CREATE
+        print("Received Google Session Create request")
+        print(f"DEBUG: Google session create data: {data}")
+
+        # Get client IP for security logging
+        client_ip = "unknown"
+        if client_id in user_sessions:
+            client_ip = getattr(user_sessions[client_id], 'client_ip', 'unknown')
+
+        # Create session for Google user
+        response, session = handle_google_session_create(data, client_ip)
+
+        # Store session for this client
+        if client_id and session:
+            user_sessions[client_id] = session
+            print(f"DEBUG: Stored Google session for client {client_id}: {session}")
+        user_session = session  # Keep global session for backward compatibility
+        current_session = session
+
+        return {"request_id": request_id, "data": response}
 
     elif request_id == 69: # GOOGLE_SIGNUP_EMPLOYEE
         print("Received Google Signup Employee request")

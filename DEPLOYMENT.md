@@ -45,6 +45,28 @@ chmod +x deploy.sh
 ./deploy.sh
 ```
 
+## Local Container Deployment (Recommended)
+
+If you're encountering Cloud Build bucket restrictions, use our local container deployment scripts:
+
+### For Linux/Mac:
+
+```bash
+# Make the script executable
+chmod +x deploy-local-containers.sh
+
+# Deploy both frontend and backend
+./deploy-local-containers.sh
+
+# Deploy only backend
+./deploy-local-containers.sh --backend-only
+
+# Deploy only frontend
+./deploy-local-containers.sh --frontend-only
+
+# Skip building images (if already
+```
+
 ## Manual Deployment Steps
 
 If you prefer to deploy manually, follow these steps:
@@ -60,7 +82,12 @@ export REGION="us-central1"
 
 ```bash
 cd Backend
-gcloud builds submit --tag gcr.io/$PROJECT_ID/easyshifts-backend:latest .
+
+# Build the image locally
+docker build -t us-central1-docker.pkg.dev/$PROJECT_ID/easyshifts-repo/easyshifts-backend:latest .
+
+# Push to Artifact Registry
+docker push us-central1-docker.pkg.dev/$PROJECT_ID/easyshifts-repo/easyshifts-backend:latest
 ```
 
 ### 3. Deploy Backend
@@ -232,3 +259,5 @@ For issues with this deployment:
 2. Verify all environment variables are set correctly
 3. Test locally using the Docker testing script
 4. Check Google Cloud Console for service status
+
+

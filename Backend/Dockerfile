@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
     pkg-config \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -32,9 +33,9 @@ EXPOSE 8080
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Health check - verify HTTP health endpoint
-HEALTHCHECK --interval=30s --timeout=30s --start-period=60s --retries=3 \
-    CMD python -c "import requests; r = requests.get('http://localhost:8080/health', timeout=5); assert r.status_code == 200" || exit 1
+# Simple health check using curl (more reliable)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
 
 # Run the application with environment loading and better error handling
 CMD ["python", "-u", "start_server_with_env.py"]
